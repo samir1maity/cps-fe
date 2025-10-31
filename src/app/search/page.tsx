@@ -1,7 +1,7 @@
 // src/app/search/page.tsx
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -12,7 +12,7 @@ import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
 import toast from 'react-hot-toast';
 
-const SearchPage: React.FC = () => {
+const SearchPageContent: React.FC = () => {
   const searchParams = useSearchParams();
   const { addToCart } = useCart();
   const { user } = useAuth();
@@ -44,7 +44,7 @@ const SearchPage: React.FC = () => {
       };
 
       const response = await api.getProducts(filters);
-      if (response.success && response.data) {
+      if (response.data) {
         setProducts(response.data);
       }
     } catch (error) {
@@ -287,6 +287,18 @@ const SearchPage: React.FC = () => {
         </div>
       </div>
     </div>
+  );
+};
+
+const SearchPage: React.FC = () => {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50 py-8 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    }>
+      <SearchPageContent />
+    </Suspense>
   );
 };
 

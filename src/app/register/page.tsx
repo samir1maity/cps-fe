@@ -5,7 +5,8 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
-import { Eye, EyeOff, Mail, Lock, User } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, User as UserIcon } from 'lucide-react';
+import { User } from '@/lib/types';
 import { useAuth } from '@/contexts/AuthContext';
 import toast from 'react-hot-toast';
 
@@ -39,7 +40,7 @@ const RegisterPage: React.FC = () => {
         name: data.name,
         email: data.email,
         password: data.password,
-      });
+      } as Partial<User> & { password: string });
       
       if (result.success) {
         toast.success('Registration successful!');
@@ -90,7 +91,7 @@ const RegisterPage: React.FC = () => {
                   className="appearance-none rounded-md relative block w-full px-3 py-2 pl-10 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
                   placeholder="Enter your full name"
                 />
-                <User className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+                <UserIcon className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
               </div>
               {errors.name && (
                 <p className="mt-1 text-sm text-red-600">{errors.name.message}</p>
@@ -230,6 +231,7 @@ const RegisterPage: React.FC = () => {
 };
 
 export default RegisterPage;
+
 
 
 

@@ -51,7 +51,7 @@ const CategoryPage: React.FC = () => {
       if (categoryResponse.success && categoryResponse.data) {
         setCategory(categoryResponse.data);
       }
-      if (productsResponse.success && productsResponse.data) {
+      if (productsResponse.data) {
         setProducts(productsResponse.data);
       }
     } catch (error) {
