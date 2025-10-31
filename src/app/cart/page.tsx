@@ -39,7 +39,7 @@ const CartPage: React.FC = () => {
             <h2 className="text-3xl font-bold text-gray-900 mb-4">Your cart is empty</h2>
             <p className="text-gray-600 mb-8">Add some products to get started</p>
             <Link
-              href="/categories"
+              href="/"
               className="bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 transition-colors inline-flex items-center"
             >
               <ArrowLeft className="h-5 w-5 mr-2" />
@@ -172,7 +172,7 @@ const CartPage: React.FC = () => {
               </Link>
               
               <Link
-                href="/categories"
+                href="/"
                 className="w-full border border-gray-300 text-gray-700 py-3 px-4 rounded-lg hover:bg-gray-50 transition-colors text-center font-semibold block"
               >
                 Continue Shopping

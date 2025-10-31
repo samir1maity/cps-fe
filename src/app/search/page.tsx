@@ -10,12 +10,14 @@ import { Product, Category } from '@/lib/types';
 import { api } from '@/lib/api';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useRequireAuth } from '@/hooks/useRequireAuth';
 import toast from 'react-hot-toast';
 
 const SearchPageContent: React.FC = () => {
   const searchParams = useSearchParams();
   const { addToCart } = useCart();
   const { user } = useAuth();
+  const { requireAuthForCart, requireAuthForWishlist } = useRequireAuth();
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(false);
@@ -60,16 +62,16 @@ const SearchPageContent: React.FC = () => {
   };
 
   const handleAddToCart = async (product: Product) => {
-    if (!user) {
-      toast.error('Please login to add items to cart');
+    // Check auth and redirect if needed
+    if (!requireAuthForCart(product.id, 1)) {
       return;
     }
     await addToCart(product);
   };
 
   const handleAddToWishlist = async (product: Product) => {
-    if (!user) {
-      toast.error('Please login to add items to wishlist');
+    // Check auth and redirect if needed
+    if (!requireAuthForWishlist(product.id)) {
       return;
     }
     toast.success('Added to wishlist');

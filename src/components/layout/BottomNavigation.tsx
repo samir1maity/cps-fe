@@ -19,10 +19,10 @@ const BottomNavigation: React.FC = () => {
       active: pathname === '/',
     },
     {
-      href: '/categories',
+      href: '/search',
       icon: Grid3X3,
-      label: 'Categories',
-      active: pathname.startsWith('/categories'),
+      label: 'Search',
+      active: pathname.startsWith('/search'),
     },
     {
       href: '/cart',
@@ -58,14 +58,14 @@ const BottomNavigation: React.FC = () => {
               href={item.href}
               className={`flex flex-col items-center justify-center space-y-1 transition-colors ${
                 isActive
-                  ? 'text-blue-600'
-                  : 'text-gray-500 hover:text-gray-700'
+                  ? 'text-[var(--brand-600)]'
+                  : 'text-gray-500 hover:text-[var(--brand-600)]'
               }`}
             >
               <div className="relative">
                 <Icon className="h-6 w-6" />
                 {item.badge && item.badge > 0 && (
-                  <span className="absolute -top-2 -right-2 bg-blue-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                  <span className="absolute -top-2 -right-2 bg-[var(--brand-600)] text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
                     {item.badge}
                   </span>
                 )}

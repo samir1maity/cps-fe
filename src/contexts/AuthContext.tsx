@@ -4,11 +4,12 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User } from '@/lib/types';
 import { api } from '@/lib/api';
+import { getAndClearPendingAction, PendingAction } from '@/lib/auth/redirects';
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  login: (email: string, password: string) => Promise<{ success: boolean; error?: string; pendingAction?: PendingAction | null }>;
   register: (userData: Partial<User>) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
   isAdmin: boolean;
@@ -53,7 +54,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (response.success && response.data) {
         setUser(response.data);
         localStorage.setItem('user', JSON.stringify(response.data));
-        return { success: true };
+        
+        // Check for pending actions
+        const pendingAction = getAndClearPendingAction();
+        
+        return { success: true, pendingAction };
       } else {
         return { success: false, error: response.error || 'Login failed' };
       }

@@ -1,30 +1,36 @@
 // src/app/login/page.tsx
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { Eye, EyeOff, Mail, Lock } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import toast from 'react-hot-toast';
+import { isValidRedirectUrl } from '@/lib/auth/redirects';
 
 interface LoginForm {
   email: string;
   password: string;
 }
 
-const LoginPage: React.FC = () => {
+const LoginPageContent: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [redirecting, setRedirecting] = useState(false);
   const { login } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const {
     register,
     handleSubmit,
     formState: { errors },
   } = useForm<LoginForm>();
+
+  // Get redirect URL from query params
+  const redirectTo = searchParams.get('redirectTo');
 
   const onSubmit = async (data: LoginForm) => {
     try {
@@ -33,14 +39,27 @@ const LoginPage: React.FC = () => {
       
       if (result.success) {
         toast.success('Login successful!');
-        router.push('/');
+        setRedirecting(true);
+        
+        // Determine where to redirect
+        let destination = '/';
+        if (redirectTo && isValidRedirectUrl(redirectTo)) {
+          destination = redirectTo;
+        }
+        
+        // Small delay for better UX
+        setTimeout(() => {
+          router.push(destination);
+        }, 300);
       } else {
         toast.error(result.error || 'Login failed');
       }
     } catch (error) {
       toast.error('An error occurred during login');
     } finally {
-      setLoading(false);
+      if (!redirecting) {
+        setLoading(false);
+      }
     }
   };
 
@@ -48,18 +67,32 @@ const LoginPage: React.FC = () => {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
         <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Sign in to your account
-          </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            Or{' '}
-            <Link
-              href="/register"
-              className="font-medium text-blue-600 hover:text-blue-500"
-            >
-              create a new account
-            </Link>
-          </p>
+          {redirecting ? (
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+              <p className="text-gray-600">Redirecting...</p>
+            </div>
+          ) : (
+            <>
+              <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+                Sign in to your account
+              </h2>
+              {redirectTo && (
+                <p className="mt-2 text-center text-sm text-amber-600 bg-amber-50 p-2 rounded-md">
+                  Please login to continue
+                </p>
+              )}
+              <p className="mt-2 text-center text-sm text-gray-600">
+                Or{' '}
+                <Link
+                  href={redirectTo ? `/register?redirectTo=${encodeURIComponent(redirectTo)}` : "/register"}
+                  className="font-medium text-blue-600 hover:text-blue-500"
+                >
+                  create a new account
+                </Link>
+              </p>
+            </>
+          )}
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleSubmit(onSubmit)}>
           <div className="space-y-4">
@@ -149,10 +182,10 @@ const LoginPage: React.FC = () => {
           <div>
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || redirecting}
               className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? (
+              {loading || redirecting ? (
                 <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
               ) : (
                 'Sign in'
@@ -190,6 +223,18 @@ const LoginPage: React.FC = () => {
         </form>
       </div>
     </div>
+  );
+};
+
+const LoginPage: React.FC = () => {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    }>
+      <LoginPageContent />
+    </Suspense>
   );
 };
 

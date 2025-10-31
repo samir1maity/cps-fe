@@ -20,16 +20,22 @@ import { Product } from '@/lib/types';
 import { api } from '@/lib/api';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useRequireAuth } from '@/hooks/useRequireAuth';
+import { usePendingActions } from '@/hooks/usePendingActions';
 import toast from 'react-hot-toast';
 
 const ProductPage: React.FC = () => {
   const params = useParams();
   const { addToCart } = useCart();
   const { user } = useAuth();
+  const { requireAuthForCart, requireAuthForWishlist } = useRequireAuth();
   const [product, setProduct] = useState<Product | null>(null);
   const [selectedImage, setSelectedImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [loading, setLoading] = useState(true);
+
+  // Handle pending actions after login
+  usePendingActions();
 
   useEffect(() => {
     if (params.id) {
@@ -54,18 +60,23 @@ const ProductPage: React.FC = () => {
 
   const handleAddToCart = async () => {
     if (!product) return;
-    if (!user) {
-      toast.error('Please login to add items to cart');
+    
+    // Check auth and redirect if needed
+    if (!requireAuthForCart(product.id, quantity)) {
       return;
     }
+    
     await addToCart(product, quantity);
   };
 
   const handleAddToWishlist = async () => {
-    if (!user) {
-      toast.error('Please login to add items to wishlist');
+    if (!product) return;
+    
+    // Check auth and redirect if needed
+    if (!requireAuthForWishlist(product.id)) {
       return;
     }
+    
     toast.success('Added to wishlist');
   };
 
@@ -100,7 +111,7 @@ const ProductPage: React.FC = () => {
         <div className="flex items-center space-x-2 text-sm text-gray-600 mb-8">
           <Link href="/" className="hover:text-blue-600">Home</Link>
           <span>/</span>
-          <Link href="/categories" className="hover:text-blue-600">Categories</Link>
+          <Link href="/" className="hover:text-blue-600">Home</Link>
           <span>/</span>
           <Link href={`/categories/${product.category.slug}`} className="hover:text-blue-600">
             {product.category.name}

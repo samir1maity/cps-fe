@@ -156,7 +156,7 @@ const ProfilePage: React.FC = () => {
                       <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                       <p className="text-gray-600">No orders yet</p>
                       <Link
-                        href="/categories"
+                        href="/"
                         className="text-blue-600 hover:text-blue-700 font-medium"
                       >
                         Start shopping
@@ -177,7 +177,7 @@ const ProfilePage: React.FC = () => {
                     <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                     <p className="text-gray-600">No orders yet</p>
                     <Link
-                      href="/categories"
+                      href="/"
                       className="text-blue-600 hover:text-blue-700 font-medium"
                     >
                       Start shopping
@@ -197,7 +197,7 @@ const ProfilePage: React.FC = () => {
                     <Heart className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                     <p className="text-gray-600">No items in wishlist</p>
                     <Link
-                      href="/categories"
+                      href="/"
                       className="text-blue-600 hover:text-blue-700 font-medium"
                     >
                       Browse products

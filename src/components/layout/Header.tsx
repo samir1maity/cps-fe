@@ -36,7 +36,7 @@ const Header: React.FC = () => {
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <Link href="/" className="flex items-center max-w-[60vw]">
-            <span className="text-xl sm:text-2xl font-bold text-blue-600 truncate">creativepotterystudio</span>
+            <span className="text-xl sm:text-2xl font-bold text-[var(--brand-600)] truncate">creativepotterystudio</span>
           </Link>
 
           {/* Search Bar - Hidden on mobile and on More page */}
@@ -48,9 +48,9 @@ const Header: React.FC = () => {
                   placeholder="Search products..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full pl-11 pr-4 py-2.5 bg-gray-50 rounded-full shadow-[0_1px_2px_0_rgba(0,0,0,0.05)] focus:bg-white focus:shadow-[0_1px_3px_0_rgba(0,0,0,0.08)] focus:outline-none focus:ring-2 focus:ring-[var(--brand-600)]/30 transition-all duration-200 text-gray-900 placeholder:text-gray-400"
                 />
-                <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
               </div>
             </form>
           )}
@@ -59,11 +59,11 @@ const Header: React.FC = () => {
           <div className="hidden md:flex items-center space-x-4">
             <Link
               href="/cart"
-              className="relative p-2 text-gray-600 hover:text-blue-600 transition-colors"
+              className="relative p-2 text-gray-600 hover:text-[var(--brand-600)] transition-colors"
             >
               <ShoppingCart className="h-6 w-6" />
               {getTotalItems() > 0 && (
-                <span className="absolute -top-1 -right-1 bg-blue-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                <span className="absolute -top-1 -right-1 bg-[var(--brand-600)] text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
                   {getTotalItems()}
                 </span>
               )}
@@ -73,14 +73,14 @@ const Header: React.FC = () => {
               <div className="flex items-center space-x-4">
                 <Link
                   href={user.role === 'ADMIN' ? '/admin' : '/profile'}
-                  className="flex items-center space-x-2 text-gray-600 hover:text-blue-600 transition-colors"
+                  className="flex items-center space-x-2 text-gray-600 hover:text-[var(--brand-600)] transition-colors"
                 >
                   <User className="h-6 w-6" />
                   <span className="hidden lg:block">{user.name}</span>
                 </Link>
                 <button
                   onClick={handleLogout}
-                  className="text-gray-600 hover:text-blue-600 transition-colors"
+                  className="text-gray-600 hover:text-[var(--brand-600)] transition-colors"
                 >
                   Logout
                 </button>
@@ -89,13 +89,13 @@ const Header: React.FC = () => {
               <div className="flex items-center space-x-4">
                 <Link
                   href="/login"
-                  className="text-gray-600 hover:text-blue-600 transition-colors"
+                  className="text-gray-600 hover:text-[var(--brand-600)] transition-colors"
                 >
                   Login
                 </Link>
                 <Link
                   href="/register"
-                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                  className="bg-[var(--brand-600)] text-white px-4 py-2 rounded-lg hover:bg-[var(--brand-700)] transition-colors"
                 >
                   Sign Up
                 </Link>
@@ -107,11 +107,11 @@ const Header: React.FC = () => {
           <div className="md:hidden flex items-center space-x-2">
             <Link
               href="/cart"
-              className="relative p-2 text-gray-600 hover:text-blue-600 transition-colors"
+              className="relative p-2 text-gray-600 hover:text-[var(--brand-600)] transition-colors"
             >
               <ShoppingCart className="h-6 w-6" />
               {getTotalItems() > 0 && (
-                <span className="absolute -top-1 -right-1 bg-blue-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                <span className="absolute -top-1 -right-1 bg-[var(--brand-600)] text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
                   {getTotalItems()}
                 </span>
               )}
@@ -127,7 +127,7 @@ const Header: React.FC = () => {
 
         {/* Mobile Search Bar - hidden on More page */}
         {!isMorePage && (
-          <div className="md:hidden pb-4">
+          <div className="md:hidden pb-4 pt-2">
             <form onSubmit={handleSearch}>
               <div className="relative">
                 <input
@@ -135,9 +135,9 @@ const Header: React.FC = () => {
                   placeholder="Search products..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full pl-11 pr-4 py-2.5 bg-gray-50 rounded-full shadow-[0_1px_2px_0_rgba(0,0,0,0.05)] focus:bg-white focus:shadow-[0_1px_3px_0_rgba(0,0,0,0.08)] focus:outline-none focus:ring-2 focus:ring-[var(--brand-600)]/30 transition-all duration-200 text-gray-900 placeholder:text-gray-400"
                 />
-                <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
               </div>
             </form>
           </div>
@@ -159,21 +159,21 @@ const Header: React.FC = () => {
                   <div className="space-y-2">
                     <Link
                       href={user.role === 'ADMIN' ? '/admin' : '/profile'}
-                      className="block py-2 text-gray-600 hover:text-blue-600 transition-colors"
+                      className="block py-2 text-gray-600 hover:text-[var(--brand-600)] transition-colors"
                       onClick={() => setIsMenuOpen(false)}
                     >
                       Profile
                     </Link>
                     <Link
                       href="/orders"
-                      className="block py-2 text-gray-600 hover:text-blue-600 transition-colors"
+                      className="block py-2 text-gray-600 hover:text-[var(--brand-600)] transition-colors"
                       onClick={() => setIsMenuOpen(false)}
                     >
                       Orders
                     </Link>
                     <button
                       onClick={handleLogout}
-                      className="block py-2 text-gray-600 hover:text-blue-600 transition-colors"
+                      className="block py-2 text-gray-600 hover:text-[var(--brand-600)] transition-colors"
                     >
                       Logout
                     </button>

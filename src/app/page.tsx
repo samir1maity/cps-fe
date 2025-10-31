@@ -4,18 +4,21 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { ChevronRight, ShoppingCart, Heart } from 'lucide-react';
-import { Product, Category } from '@/lib/types';
+import { Product } from '@/lib/types';
 import { api } from '@/lib/api';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useRequireAuth } from '@/hooks/useRequireAuth';
 import toast from 'react-hot-toast';
+import Carousel, { CarouselSlide } from '@/components/ui/Carousel';
+import TopOffers, { Offer } from '@/components/ui/TopOffers';
 
 const HomePage: React.FC = () => {
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const { addToCart } = useCart();
   const { user } = useAuth();
+  const { requireAuthForCart, requireAuthForWishlist } = useRequireAuth();
 
   useEffect(() => {
     loadData();
@@ -24,16 +27,10 @@ const HomePage: React.FC = () => {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [productsResponse, categoriesResponse] = await Promise.all([
-        api.getProducts({ limit: 8 }),
-        api.getCategories(),
-      ]);
+      const productsResponse = await api.getProducts({ limit: 8 });
 
       if (productsResponse.data) {
         setFeaturedProducts(productsResponse.data);
-      }
-      if (categoriesResponse.data) {
-        setCategories(categoriesResponse.data);
       }
     } catch (error) {
       console.error('Failed to load data:', error);
@@ -43,16 +40,16 @@ const HomePage: React.FC = () => {
   };
 
   const handleAddToCart = async (product: Product) => {
-    if (!user) {
-      toast.error('Please login to add items to cart');
+    // Check auth and redirect if needed
+    if (!requireAuthForCart(product.id, 1)) {
       return;
     }
     await addToCart(product);
   };
 
   const handleAddToWishlist = async (product: Product) => {
-    if (!user) {
-      toast.error('Please login to add items to wishlist');
+    // Check auth and redirect if needed
+    if (!requireAuthForWishlist(product.id)) {
       return;
     }
     toast.success('Added to wishlist');
@@ -66,58 +63,103 @@ const HomePage: React.FC = () => {
     );
   }
 
+  // Carousel slides data - Text-only with pastel theme colors
+  const carouselSlides: CarouselSlide[] = [
+    {
+      id: '1',
+      title: 'Handcrafted Pottery & Artisan Goods',
+      subtitle: 'Discover unique pieces made with care and passion',
+      description: 'Small-batch pottery crafted by skilled artisans, each piece tells a story of tradition and craftsmanship.',
+      ctaText: 'Shop Now',
+      ctaLink: '/',
+      bgColor: 'bg-gradient-to-br from-rose-200 via-orange-100 to-amber-100'
+    },
+    {
+      id: '2',
+      title: 'New Collection Available',
+      subtitle: 'Fresh designs and timeless classics',
+      description: 'Explore our latest collection featuring contemporary designs alongside traditional favorites.',
+      ctaText: 'Explore Collection',
+      ctaLink: '/',
+      bgColor: 'bg-gradient-to-br from-amber-200 via-orange-100 to-rose-100'
+    },
+    {
+      id: '3',
+      title: 'Artisan Quality, Every Time',
+      subtitle: 'Small-batch pieces with character',
+      description: 'Every product is carefully selected to bring beauty and functionality into your home.',
+      ctaText: 'View Products',
+      ctaLink: '/search',
+      bgColor: 'bg-gradient-to-br from-amber-100 via-yellow-50 to-orange-50'
+    }
+  ];
+
   return (
     <div className="min-h-screen">
-      {/* Hero Section - warm artisan aesthetic */}
-      <section className="bg-[#F7F2EA] text-stone-900 py-12 md:py-14">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <h1 className="text-3xl md:text-5xl font-semibold mb-4">
-              Handcrafted pottery & artisan goods
-            </h1>
-            <p className="text-base md:text-xl mb-8 text-stone-600">
-              Small-batch pieces with character — made with care, meant to last
-            </p>
-            <Link
-              href="/categories"
-              className="inline-flex items-center bg-amber-800 text-amber-50 px-7 py-3 rounded-full font-medium hover:bg-amber-900 transition-colors"
-            >
-              Explore Collections
-              <ChevronRight className="ml-2 h-5 w-5" />
-            </Link>
-          </div>
-        </div>
-      </section>
+      {/* Full-Width Carousel Section */}
+      <Carousel slides={carouselSlides} autoSlideInterval={5000} transitionDuration={500} />
 
-      {/* Categories Section */}
-      <section className="py-12 md:py-16 bg-[#F7F2EA]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-3xl font-bold text-gray-900 mb-8 text-center">
-            Shop by Category
-          </h2>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
-            {categories.map((category) => (
-              <Link
-                key={category.id}
-                href={`/categories/${category.slug}`}
-                className="group bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow p-6 text-center"
-              >
-                <div className="w-16 h-16 bg-gray-200 rounded-full mx-auto mb-4 group-hover:bg-blue-100 transition-colors flex items-center justify-center">
-                  <span className="text-2xl font-bold text-gray-600 group-hover:text-blue-600">
-                    {category.name.charAt(0)}
-                  </span>
-                </div>
-                <h3 className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
-                  {category.name}
-                </h3>
-                <p className="text-sm text-gray-500 mt-1">
-                  {category.productCount} products
-                </p>
-              </Link>
-            ))}
-          </div>
-        </div>
-      </section>
+      {/* Top Offers Section */}
+      {(() => {
+        const topOffers: Offer[] = [
+          {
+            id: '1',
+            title: 'Up to 50% Off',
+            subtitle: 'Handcrafted Pottery Collection',
+            discount: '50%',
+            discountText: 'Limited Time Offer',
+            link: '/categories/pottery',
+            bgGradient: 'bg-gradient-to-br from-rose-200 via-orange-100 to-amber-100'
+          },
+          {
+            id: '2',
+            title: 'New Arrivals',
+            subtitle: 'Fresh Artisan Designs',
+            discount: '30%',
+            discountText: 'Special Launch Price',
+            link: '/search?new=true',
+            bgGradient: 'bg-gradient-to-br from-amber-200 via-yellow-50 to-orange-50'
+          },
+          {
+            id: '3',
+            title: 'Bestsellers',
+            subtitle: 'Customer Favorites',
+            discount: '25%',
+            discountText: 'Top Rated Products',
+            link: '/search?bestseller=true',
+            bgGradient: 'bg-gradient-to-br from-orange-100 via-rose-50 to-amber-50'
+          },
+          {
+            id: '4',
+            title: 'Premium Collection',
+            subtitle: 'Luxury Handcrafted Items',
+            discount: '40%',
+            discountText: 'Exclusive Discount',
+            link: '/categories/premium',
+            bgGradient: 'bg-gradient-to-br from-amber-100 via-orange-50 to-rose-50'
+          },
+          {
+            id: '5',
+            title: 'Clearance Sale',
+            subtitle: 'Last Chance to Buy',
+            discount: '60%',
+            discountText: 'Limited Stock',
+            link: '/search?sale=true',
+            bgGradient: 'bg-gradient-to-br from-orange-200 via-amber-100 to-yellow-50'
+          },
+          {
+            id: '6',
+            title: 'Gift Sets',
+            subtitle: 'Perfect for Gifting',
+            discount: '35%',
+            discountText: 'Bundle Deals',
+            link: '/categories/gifts',
+            bgGradient: 'bg-gradient-to-br from-rose-100 via-pink-50 to-amber-50'
+          }
+        ];
+
+        return <TopOffers offers={topOffers} />;
+      })()}
 
       {/* Featured Products Section */}
       <section className="py-16 bg-gray-50">
@@ -184,7 +226,7 @@ const HomePage: React.FC = () => {
                     <button
                       onClick={() => handleAddToCart(product)}
                       disabled={!product.inStock}
-                      className="bg-blue-600 text-white px-3 py-1.5 rounded-md hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center"
+                      className="bg-[var(--brand-600)] text-white px-3 py-1.5 rounded-md hover:bg-[var(--brand-700)] disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center"
                     >
                       <ShoppingCart className="h-4 w-4 mr-1" />
                       Add
@@ -198,28 +240,55 @@ const HomePage: React.FC = () => {
       </section>
 
       {/* CTA Section */}
-      <section className="bg-blue-600 text-white py-16">
+      <section className="bg-[var(--brand-600)] text-white py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl font-bold mb-4">
-            Ready to start shopping?
-          </h2>
-          <p className="text-xl text-blue-100 mb-8">
-            Join thousands of satisfied customers
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link
-              href="/register"
-              className="bg-white text-blue-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors"
-            >
-              Create Account
-            </Link>
-            <Link
-              href="/categories"
-              className="border-2 border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-white hover:text-blue-600 transition-colors"
-            >
-              Browse Products
-            </Link>
-          </div>
+          {user ? (
+            <>
+              <h2 className="text-3xl font-bold mb-4">
+                Welcome back, {user.name}!
+              </h2>
+              <p className="text-xl opacity-90 mb-8">
+                Continue exploring our handcrafted collection
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <Link
+                  href="/search"
+                  className="bg-white text-[var(--brand-600)] px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors"
+                >
+                  Browse Products
+                </Link>
+                <Link
+                  href="/profile"
+                  className="border-2 border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-white hover:text-[var(--brand-600)] transition-colors"
+                >
+                  View Profile
+                </Link>
+              </div>
+            </>
+          ) : (
+            <>
+              <h2 className="text-3xl font-bold mb-4">
+                Ready to start shopping?
+              </h2>
+              <p className="text-xl opacity-90 mb-8">
+                Join thousands of satisfied customers
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <Link
+                  href="/register"
+                  className="bg-white text-[var(--brand-600)] px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors"
+                >
+                  Create Account
+                </Link>
+                <Link
+                  href="/search"
+                  className="border-2 border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-white hover:text-[var(--brand-600)] transition-colors"
+                >
+                  Browse Products
+                </Link>
+              </div>
+            </>
+          )}
         </div>
       </section>
     </div>

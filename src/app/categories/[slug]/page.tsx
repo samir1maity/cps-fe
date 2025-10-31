@@ -17,12 +17,14 @@ import { Product, Category } from '@/lib/types';
 import { api } from '@/lib/api';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useRequireAuth } from '@/hooks/useRequireAuth';
 import toast from 'react-hot-toast';
 
 const CategoryPage: React.FC = () => {
   const params = useParams();
   const { addToCart } = useCart();
   const { user } = useAuth();
+  const { requireAuthForCart, requireAuthForWishlist } = useRequireAuth();
   const [category, setCategory] = useState<Category | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -62,16 +64,16 @@ const CategoryPage: React.FC = () => {
   };
 
   const handleAddToCart = async (product: Product) => {
-    if (!user) {
-      toast.error('Please login to add items to cart');
+    // Check auth and redirect if needed
+    if (!requireAuthForCart(product.id, 1)) {
       return;
     }
     await addToCart(product);
   };
 
   const handleAddToWishlist = async (product: Product) => {
-    if (!user) {
-      toast.error('Please login to add items to wishlist');
+    // Check auth and redirect if needed
+    if (!requireAuthForWishlist(product.id)) {
       return;
     }
     toast.success('Added to wishlist');
@@ -96,10 +98,10 @@ const CategoryPage: React.FC = () => {
         <div className="text-center">
           <h2 className="text-2xl font-bold text-gray-900 mb-4">Category not found</h2>
           <Link
-            href="/categories"
+            href="/"
             className="text-blue-600 hover:text-blue-700 font-medium"
           >
-            Back to categories
+            Back to home
           </Link>
         </div>
       </div>
