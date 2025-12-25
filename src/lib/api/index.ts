@@ -11,8 +11,13 @@ import {
   ApiResponse,
   PaginatedResponse 
 } from '@/lib/types';
+import { API_CONFIG, getApiUrl } from '@/lib/config/api';
+import { HttpClient } from '@/lib/utils/httpClient';
 
-// Simulate API delay
+// Initialize HTTP client
+const httpClient = new HttpClient(API_CONFIG.BASE_URL);
+
+// Simulate API delay for mock functions
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 // Mock API functions
@@ -239,37 +244,152 @@ export const api = {
     return { success: true, data: coupon };
   },
 
-  // Auth
-  async login(email: string, password: string): Promise<ApiResponse<User>> {
-    await delay(500);
-    const user = users.find(u => u.email === email);
-    
-    if (!user) {
-      return { success: false, error: 'Invalid credentials' };
+  // Auth - Real API Integration
+  async login(email: string, password: string): Promise<ApiResponse<User & { accessToken?: string; refreshToken?: string }>> {
+    try {
+      const response = await httpClient.post<{
+        success: boolean;
+        data?: {
+          user: User;
+          accessToken: string;
+          refreshToken: string;
+        };
+        error?: string;
+      }>(API_CONFIG.ENDPOINTS.AUTH.LOGIN, { email, password });
+
+      if (response.success && response.data) {
+        // Store access token in localStorage
+        localStorage.setItem('accessToken', response.data.accessToken);
+        localStorage.setItem('refreshToken', response.data.refreshToken);
+
+        // Return user data with tokens
+        return {
+          success: true,
+          data: {
+            ...response.data.user,
+            accessToken: response.data.accessToken,
+            refreshToken: response.data.refreshToken,
+          },
+        };
+      }
+
+      return { success: false, error: response.error || 'Login failed' };
+    } catch (error: any) {
+      return { success: false, error: error.message || 'An error occurred during login' };
     }
-    
-    // In a real app, you would verify the password hash
-    return { success: true, data: user };
   },
 
-  async register(userData: Partial<User>): Promise<ApiResponse<User>> {
-    await delay(500);
-    const existingUser = users.find(u => u.email === userData.email);
-    
-    if (existingUser) {
-      return { success: false, error: 'User already exists' };
+  async register(userData: Partial<User> & { password: string }): Promise<ApiResponse<User & { accessToken?: string; refreshToken?: string }>> {
+    try {
+      const response = await httpClient.post<{
+        success: boolean;
+        data?: {
+          user: User;
+          accessToken: string;
+          refreshToken: string;
+        };
+        error?: string;
+        message?: string;
+      }>(API_CONFIG.ENDPOINTS.AUTH.SIGNUP, {
+        name: userData.name,
+        email: userData.email,
+        password: userData.password,
+      });
+
+      if (response.success && response.data) {
+        // Store access token in localStorage
+        localStorage.setItem('accessToken', response.data.accessToken);
+        localStorage.setItem('refreshToken', response.data.refreshToken);
+
+        // Return user data with tokens
+        return {
+          success: true,
+          data: {
+            ...response.data.user,
+            accessToken: response.data.accessToken,
+            refreshToken: response.data.refreshToken,
+          },
+        };
+      }
+
+      return { success: false, error: response.error || 'Registration failed' };
+    } catch (error: any) {
+      return { success: false, error: error.message || 'An error occurred during registration' };
     }
-    
-    const newUser: User = {
-      id: Date.now().toString(),
-      ...userData,
-      role: 'USER',
-      addresses: [],
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    } as User;
-    
-    return { success: true, data: newUser };
+  },
+
+  /**
+   * Logout user
+   */
+  async logout(): Promise<ApiResponse<void>> {
+    try {
+      await httpClient.post(API_CONFIG.ENDPOINTS.AUTH.LOGOUT);
+      
+      // Clear tokens from localStorage
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('refreshToken');
+      localStorage.removeItem('user');
+
+      return { success: true };
+    } catch (error: any) {
+      // Even if the API call fails, clear local tokens
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('refreshToken');
+      localStorage.removeItem('user');
+      
+      return { success: true };
+    }
+  },
+
+  /**
+   * Get current user
+   */
+  async getCurrentUser(): Promise<ApiResponse<User>> {
+    try {
+      const response = await httpClient.get<{
+        success: boolean;
+        data?: User;
+        error?: string;
+      }>(API_CONFIG.ENDPOINTS.AUTH.ME);
+
+      return response;
+    } catch (error: any) {
+      return { success: false, error: error.message || 'Failed to get user data' };
+    }
+  },
+
+  /**
+   * Refresh access token
+   */
+  async refreshToken(): Promise<ApiResponse<{ accessToken: string; refreshToken: string }>> {
+    try {
+      const refreshToken = localStorage.getItem('refreshToken');
+      
+      if (!refreshToken) {
+        return { success: false, error: 'No refresh token available' };
+      }
+
+      const response = await httpClient.post<{
+        success: boolean;
+        data?: {
+          accessToken: string;
+          refreshToken: string;
+        };
+        error?: string;
+      }>(API_CONFIG.ENDPOINTS.AUTH.REFRESH, { refreshToken });
+
+      if (response.success && response.data) {
+        // Update tokens in localStorage
+        localStorage.setItem('accessToken', response.data.accessToken);
+        localStorage.setItem('refreshToken', response.data.refreshToken);
+
+        return { success: true, data: response.data };
+      }
+
+      return { success: false, error: response.error || 'Failed to refresh token' };
+    } catch (error: any) {
+      return { success: false, error: error.message || 'An error occurred while refreshing token' };
+    }
   },
 
   // Admin functions
@@ -316,6 +436,7 @@ export const api = {
 
 // Import dummy data
 import { products, categories, users, orders, reviews, coupons } from '@/data/dummyData';
+
 
 
 

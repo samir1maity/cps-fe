@@ -4,6 +4,7 @@
 import React, { ReactNode } from 'react';
 import { usePathname } from 'next/navigation';
 import { Toaster } from 'react-hot-toast';
+import { useAuth } from '@/contexts/AuthContext';
 import Header from './Header';
 import BottomNavigation from './BottomNavigation';
 import AuthHeader from './AuthHeader';
@@ -20,6 +21,19 @@ const AUTH_PAGES = ['/login', '/register'];
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const pathname = usePathname();
   const isAuthPage = pathname && AUTH_PAGES.includes(pathname);
+  const { loading } = useAuth();
+
+  // Show loading indicator only during initial auth check
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[var(--brand-600)] mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">

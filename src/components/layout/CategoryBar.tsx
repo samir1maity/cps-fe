@@ -77,3 +77,5 @@ const CategoryBar: React.FC = () => {
 
 export default CategoryBar;
 
+
+

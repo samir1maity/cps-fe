@@ -1,4 +1,4 @@
-// src/components/ui/TopOffers.tsx
+// src/components/ui/NewArrivals.tsx
 'use client';
 
 import React from 'react';
@@ -16,11 +16,11 @@ export interface Offer {
   bgGradient?: string;
 }
 
-interface TopOffersProps {
+interface NewArrivalsProps {
   offers: Offer[];
 }
 
-const TopOffers: React.FC<TopOffersProps> = ({ offers }) => {
+const NewArrivals: React.FC<NewArrivalsProps> = ({ offers }) => {
   if (!offers || offers.length === 0) {
     return null;
   }
@@ -31,7 +31,7 @@ const TopOffers: React.FC<TopOffersProps> = ({ offers }) => {
         <div className="flex items-center justify-between mb-6 px-4 sm:px-6 lg:px-8">
           <div className="flex items-center gap-3">
             <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">
-              Top Offers
+              New Arrivals
             </h2>
             <span className="hidden sm:flex items-center gap-1 text-xs text-gray-500">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -136,7 +136,7 @@ const TopOffers: React.FC<TopOffersProps> = ({ offers }) => {
             href="/search"
             className="text-sm text-[var(--brand-600)] hover:text-[var(--brand-700)] font-medium"
           >
-            View All Offers →
+            View All →
           </Link>
         </div>
       </div>
@@ -144,5 +144,5 @@ const TopOffers: React.FC<TopOffersProps> = ({ offers }) => {
   );
 };
 
-export default TopOffers;
+export default NewArrivals;
 

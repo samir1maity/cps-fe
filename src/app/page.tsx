@@ -11,7 +11,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
 import toast from 'react-hot-toast';
 import Carousel, { CarouselSlide } from '@/components/ui/Carousel';
-import TopOffers, { Offer } from '@/components/ui/TopOffers';
+import NewArrivals, { Offer } from '@/components/ui/NewArrivals';
 
 const HomePage: React.FC = () => {
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
@@ -99,9 +99,9 @@ const HomePage: React.FC = () => {
       {/* Full-Width Carousel Section */}
       <Carousel slides={carouselSlides} autoSlideInterval={5000} transitionDuration={500} />
 
-      {/* Top Offers Section */}
+      {/* New Arrivals Section */}
       {(() => {
-        const topOffers: Offer[] = [
+        const newArrivals: Offer[] = [
           {
             id: '1',
             title: 'Up to 50% Off',
@@ -158,7 +158,7 @@ const HomePage: React.FC = () => {
           }
         ];
 
-        return <TopOffers offers={topOffers} />;
+        return <NewArrivals offers={newArrivals} />;
       })()}
 
       {/* Featured Products Section */}

@@ -10,8 +10,8 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string; pendingAction?: PendingAction | null }>;
-  register: (userData: Partial<User>) => Promise<{ success: boolean; error?: string }>;
-  logout: () => void;
+  register: (userData: Partial<User> & { password: string }) => Promise<{ success: boolean; error?: string }>;
+  logout: () => Promise<void>;
   isAdmin: boolean;
 }
 
@@ -34,16 +34,31 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check for stored user data on mount
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
+    // Initialize authentication state
+    const initAuth = async () => {
       try {
-        setUser(JSON.parse(storedUser));
+        // Check for stored user data on mount
+        const storedUser = localStorage.getItem('user');
+        if (storedUser) {
+          try {
+            const parsedUser = JSON.parse(storedUser);
+            setUser(parsedUser);
+          } catch (error) {
+            console.error('Error parsing stored user:', error);
+            localStorage.removeItem('user');
+            localStorage.removeItem('accessToken');
+            localStorage.removeItem('refreshToken');
+          }
+        }
       } catch (error) {
-        localStorage.removeItem('user');
+        console.error('Error initializing auth:', error);
+      } finally {
+        // Always set loading to false, even if there's an error
+        setLoading(false);
       }
-    }
-    setLoading(false);
+    };
+
+    initAuth();
   }, []);
 
   const login = async (email: string, password: string) => {
@@ -69,7 +84,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const register = async (userData: Partial<User>) => {
+  const register = async (userData: Partial<User> & { password: string }) => {
     try {
       setLoading(true);
       const response = await api.register(userData);
@@ -88,9 +103,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem('user');
+  const logout = async () => {
+    try {
+      // Call API logout endpoint
+      await api.logout();
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      // Always clear local state
+      setUser(null);
+      localStorage.removeItem('user');
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('refreshToken');
+    }
   };
 
   const isAdmin = user?.role === 'ADMIN';
