@@ -16,6 +16,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { api } from '@/lib/api';
 import { Order, OrderStatus } from '@/lib/types';
 import Image from 'next/image';
+import { formatCurrency } from '@/lib/utils/formatters';
 
 const OrdersPage: React.FC = () => {
   const { user } = useAuth();
@@ -172,11 +173,11 @@ const OrdersPage: React.FC = () => {
                         <div className="flex-1">
                           <h4 className="font-medium text-gray-900">{item.product.name}</h4>
                           <p className="text-sm text-gray-600">
-                            Quantity: {item.quantity} × ${item.price}
+                            Quantity: {item.quantity} × {formatCurrency(item.price)}
                           </p>
                         </div>
                         <span className="font-medium text-gray-900">
-                          ${(item.price * item.quantity).toFixed(2)}
+                          {formatCurrency(item.price * item.quantity)}
                         </span>
                       </div>
                     ))}
@@ -192,7 +193,7 @@ const OrdersPage: React.FC = () => {
                       </div>
                       <div className="text-right">
                         <p className="text-lg font-semibold text-gray-900">
-                          Total: ${order.total.toFixed(2)}
+                          Total: {formatCurrency(order.total)}
                         </p>
                         <p className="text-sm text-gray-600">
                           {order.paymentStatus} • {order.paymentMethod}
@@ -211,7 +212,6 @@ const OrdersPage: React.FC = () => {
 };
 
 export default OrdersPage;
-
 
 
 

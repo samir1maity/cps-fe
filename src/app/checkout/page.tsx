@@ -17,6 +17,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useCart } from '@/contexts/CartContext';
 import Image from 'next/image';
 import toast from 'react-hot-toast';
+import { formatCurrency } from '@/lib/utils/formatters';
 
 interface CheckoutForm {
   email: string;
@@ -492,7 +493,7 @@ const CheckoutPage: React.FC = () => {
                               <p className="text-sm text-gray-600">Qty: {item.quantity}</p>
                             </div>
                             <span className="font-medium text-gray-900">
-                              ${(item.product.price * item.quantity).toFixed(2)}
+                              {formatCurrency(item.product.price * item.quantity)}
                             </span>
                           </div>
                         ))}
@@ -504,7 +505,7 @@ const CheckoutPage: React.FC = () => {
                       <div className="space-y-2">
                         <div className="flex justify-between">
                           <span className="text-gray-600">Subtotal</span>
-                          <span className="font-medium">${subtotal.toFixed(2)}</span>
+                          <span className="font-medium">{formatCurrency(subtotal)}</span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-gray-600">Shipping</span>
@@ -512,11 +513,11 @@ const CheckoutPage: React.FC = () => {
                         </div>
                         <div className="flex justify-between">
                           <span className="text-gray-600">Tax</span>
-                          <span className="font-medium">${tax.toFixed(2)}</span>
+                          <span className="font-medium">{formatCurrency(tax)}</span>
                         </div>
                         <div className="flex justify-between text-lg font-semibold border-t border-gray-200 pt-2">
                           <span>Total</span>
-                          <span>${total.toFixed(2)}</span>
+                          <span>{formatCurrency(total)}</span>
                         </div>
                       </div>
                     </div>
@@ -556,7 +557,7 @@ const CheckoutPage: React.FC = () => {
               <div className="space-y-3 mb-6">
                 <div className="flex justify-between">
                   <span className="text-gray-600">Subtotal</span>
-                  <span className="font-medium">${subtotal.toFixed(2)}</span>
+                  <span className="font-medium">{formatCurrency(subtotal)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Shipping</span>
@@ -564,11 +565,11 @@ const CheckoutPage: React.FC = () => {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Tax</span>
-                  <span className="font-medium">${tax.toFixed(2)}</span>
+                  <span className="font-medium">{formatCurrency(tax)}</span>
                 </div>
                 <div className="flex justify-between text-lg font-semibold border-t border-gray-200 pt-2">
                   <span>Total</span>
-                  <span>${total.toFixed(2)}</span>
+                  <span>{formatCurrency(total)}</span>
                 </div>
               </div>
 
@@ -595,7 +596,6 @@ const CheckoutPage: React.FC = () => {
 };
 
 export default CheckoutPage;
-
 
 
 

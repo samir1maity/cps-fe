@@ -10,38 +10,51 @@ import {
   Heart, 
   Filter,
   Grid,
-  List,
-  ChevronDown
+  List
 } from 'lucide-react';
 import { Product, Category } from '@/lib/types';
 import { api } from '@/lib/api';
 import { useCart } from '@/contexts/CartContext';
-import { useAuth } from '@/contexts/AuthContext';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
 import toast from 'react-hot-toast';
+import { formatCurrency } from '@/lib/utils/formatters';
 
 const CategoryPage: React.FC = () => {
   const params = useParams();
   const { addToCart } = useCart();
-  const { user } = useAuth();
   const { requireAuthForCart, requireAuthForWishlist } = useRequireAuth();
   const [category, setCategory] = useState<Category | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [pageLoading, setPageLoading] = useState(true);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [sortBy, setSortBy] = useState('relevance');
   const [priceRange, setPriceRange] = useState({ min: '', max: '' });
   const [showFilters, setShowFilters] = useState(false);
+  const [selectedSubcategory, setSelectedSubcategory] = useState<string>('all');
+  const [listLoading, setListLoading] = useState(false);
 
   useEffect(() => {
     if (params.slug) {
+      setSelectedSubcategory('all');
       loadCategoryData();
     }
   }, [params.slug]);
 
+  useEffect(() => {
+    if (!pageLoading) {
+      setListLoading(true);
+      const timer = setTimeout(() => setListLoading(false), 200);
+      return () => clearTimeout(timer);
+    }
+  }, [selectedSubcategory, sortBy, priceRange.min, priceRange.max, pageLoading]);
+
   const loadCategoryData = async () => {
     try {
-      setLoading(true);
+      if (category) {
+        setListLoading(true);
+      } else {
+        setPageLoading(true);
+      }
       const [categoryResponse, productsResponse] = await Promise.all([
         api.getCategory(params.slug as string),
         api.getProducts({ 
@@ -59,7 +72,8 @@ const CategoryPage: React.FC = () => {
     } catch (error) {
       console.error('Failed to load category data:', error);
     } finally {
-      setLoading(false);
+      setPageLoading(false);
+      setListLoading(false);
     }
   };
 
@@ -82,17 +96,10 @@ const CategoryPage: React.FC = () => {
   const clearFilters = () => {
     setPriceRange({ min: '', max: '' });
     setSortBy('relevance');
+    setSelectedSubcategory('all');
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
-      </div>
-    );
-  }
-
-  if (!category) {
+  if (!pageLoading && !category) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -108,14 +115,23 @@ const CategoryPage: React.FC = () => {
     );
   }
 
+  const hasSelectedSubcategory = selectedSubcategory !== 'all'
+    && category?.children?.some((child) => child.slug === selectedSubcategory);
+
+  const filteredProducts = !hasSelectedSubcategory
+    ? products
+    : products.filter((product) => product.subcategory?.slug === selectedSubcategory);
+
   return (
     <div className="min-h-screen bg-[#F7F2EA] py-6">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Minimal Category Header for artisan aesthetic */}
         <div className="mb-6">
           <p className="text-xs tracking-widest uppercase text-amber-700/70">Collection</p>
-          <h1 className="mt-1 text-3xl sm:text-4xl font-semibold text-stone-900">{category.name}</h1>
-          {category.description && (
+          <h1 className="mt-1 text-3xl sm:text-4xl font-semibold text-stone-900">
+            {category?.name || 'Loading...'}
+          </h1>
+          {category?.description && (
             <p className="mt-2 text-stone-600 max-w-2xl text-sm sm:text-base">
               {category.description}
             </p>
@@ -135,6 +151,40 @@ const CategoryPage: React.FC = () => {
                   Clear all
                 </button>
               </div>
+
+              {/* Subcategories */}
+              {category?.children && category.children.length > 0 && (
+                <div className="mb-6">
+                  <h4 className="font-medium text-gray-900 mb-3">Subcategories</h4>
+                  <div className="space-y-2 h-48 overflow-y-auto pr-1">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedSubcategory('all')}
+                      className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${
+                        selectedSubcategory === 'all'
+                          ? 'bg-[var(--brand-100)] text-[var(--brand-700)]'
+                          : 'text-gray-700 hover:bg-gray-100'
+                      }`}
+                    >
+                      All
+                    </button>
+                    {category.children.map((child) => (
+                      <button
+                        key={child.id}
+                        type="button"
+                        onClick={() => setSelectedSubcategory(child.slug)}
+                        className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${
+                          selectedSubcategory === child.slug
+                            ? 'bg-[var(--brand-100)] text-[var(--brand-700)]'
+                            : 'text-gray-700 hover:bg-gray-100'
+                        }`}
+                      >
+                        {child.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Price Range Filter */}
               <div className="mb-6">
@@ -189,7 +239,7 @@ const CategoryPage: React.FC = () => {
                     <span>Filters</span>
                   </button>
                   <span className="text-sm text-gray-600">
-                    {products.length} products found
+                    {filteredProducts.length} products found
                   </span>
                 </div>
                 <div className="flex items-center space-x-2">
@@ -214,11 +264,15 @@ const CategoryPage: React.FC = () => {
             </div>
 
             {/* Products Grid/List */}
-            {products.length === 0 ? (
+            {pageLoading || listLoading ? (
+              <div className="flex items-center justify-center py-16">
+                <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600"></div>
+              </div>
+            ) : filteredProducts.length === 0 ? (
               <div className="text-center py-16">
                 <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
                   <span className="text-2xl font-bold text-gray-400">
-                    {category.name.charAt(0)}
+                    {category?.name?.charAt(0) || '?'}
                   </span>
                 </div>
                 <h3 className="text-xl font-semibold text-gray-900 mb-2">
@@ -240,7 +294,7 @@ const CategoryPage: React.FC = () => {
                   ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6'
                   : 'space-y-4'
               }>
-                {products.map((product) => (
+                {filteredProducts.map((product) => (
                   <div
                     key={product.id}
                     className={`bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow overflow-hidden group ${
@@ -290,11 +344,11 @@ const CategoryPage: React.FC = () => {
                       }`}>
                         <div className="flex items-center space-x-2">
                           <span className="text-lg font-bold text-gray-900">
-                            ${product.price}
+                            {formatCurrency(product.price)}
                           </span>
                           {product.originalPrice && (
                             <span className="text-sm text-gray-500 line-through">
-                              ${product.originalPrice}
+                              {formatCurrency(product.originalPrice)}
                             </span>
                           )}
                         </div>

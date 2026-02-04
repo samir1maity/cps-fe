@@ -7,10 +7,7 @@ import {
   HelpCircle, 
   MessageCircle, 
   Shield, 
-  CreditCard, 
   Truck,
-  Star,
-  Settings,
   LogOut,
   User
 } from 'lucide-react';
@@ -31,15 +28,12 @@ const MorePage: React.FC = () => {
       title: 'Account',
       items: [
         { icon: User, label: 'Profile', href: '/profile' },
-        { icon: Settings, label: 'Settings', href: '/settings' },
       ],
     },
     {
       title: 'Shopping',
       items: [
         { icon: Truck, label: 'Track Order', href: '/track-order' },
-        { icon: CreditCard, label: 'Payment Methods', href: '/payment-methods' },
-        { icon: Star, label: 'Reviews & Ratings', href: '/reviews' },
       ],
     },
     {
@@ -56,7 +50,7 @@ const MorePage: React.FC = () => {
     menuItems.unshift({
       title: 'Admin',
       items: [
-        { icon: Settings, label: 'Admin Dashboard', href: '/admin' },
+        { icon: Shield, label: 'Admin Dashboard', href: '/admin' },
       ],
     });
   }

@@ -25,6 +25,7 @@ export const api = {
   // Products
   async getProducts(filters?: {
     category?: string;
+    subcategory?: string;
     search?: string;
     minPrice?: number;
     maxPrice?: number;
@@ -38,6 +39,10 @@ export const api = {
     
     if (filters?.category) {
       filteredProducts = filteredProducts.filter(p => p.category.slug === filters.category);
+    }
+
+    if (filters?.subcategory) {
+      filteredProducts = filteredProducts.filter(p => p.subcategory?.slug === filters.subcategory);
     }
     
     if (filters?.search) {
@@ -436,7 +441,6 @@ export const api = {
 
 // Import dummy data
 import { products, categories, users, orders, reviews, coupons } from '@/data/dummyData';
-
 
 
 

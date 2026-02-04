@@ -35,6 +35,7 @@ export interface Product {
   originalPrice?: number;
   images: string[];
   category: Category;
+  subcategory?: Category;
   brand: string;
   inStock: boolean;
   stockQuantity: number;
@@ -183,7 +184,6 @@ export interface PaginatedResponse<T> {
     totalPages: number;
   };
 }
-
 
 
 

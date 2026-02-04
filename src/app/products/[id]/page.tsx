@@ -23,6 +23,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
 import { usePendingActions } from '@/hooks/usePendingActions';
 import toast from 'react-hot-toast';
+import { formatCurrency } from '@/lib/utils/formatters';
 
 const ProductPage: React.FC = () => {
   const params = useParams();
@@ -111,11 +112,20 @@ const ProductPage: React.FC = () => {
         <div className="flex items-center space-x-2 text-sm text-gray-600 mb-8">
           <Link href="/" className="hover:text-blue-600">Home</Link>
           <span>/</span>
-          <Link href="/" className="hover:text-blue-600">Home</Link>
-          <span>/</span>
           <Link href={`/categories/${product.category.slug}`} className="hover:text-blue-600">
             {product.category.name}
           </Link>
+          {product.subcategory && (
+            <>
+              <span>/</span>
+              <Link
+                href={`/categories/${product.category.slug}/${product.subcategory.slug}`}
+                className="hover:text-blue-600"
+              >
+                {product.subcategory.name}
+              </Link>
+            </>
+          )}
           <span>/</span>
           <span className="text-gray-900">{product.name}</span>
         </div>
@@ -165,16 +175,16 @@ const ProductPage: React.FC = () => {
 
               <div className="flex items-center space-x-4 mb-6">
                 <span className="text-3xl font-bold text-gray-900">
-                  ${product.price}
+                  {formatCurrency(product.price)}
                 </span>
                 {product.originalPrice && (
                   <span className="text-xl text-gray-500 line-through">
-                    ${product.originalPrice}
+                    {formatCurrency(product.originalPrice)}
                   </span>
                 )}
                 {product.originalPrice && (
                   <span className="bg-red-100 text-red-800 text-sm font-medium px-2 py-1 rounded">
-                    Save ${(product.originalPrice - product.price).toFixed(2)}
+                    Save {formatCurrency(product.originalPrice - product.price)}
                   </span>
                 )}
               </div>

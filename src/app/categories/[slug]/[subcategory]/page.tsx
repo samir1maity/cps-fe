@@ -1,69 +1,72 @@
-// src/app/search/page.tsx
+// src/app/categories/[slug]/[subcategory]/page.tsx
 'use client';
 
-import React, { useState, useEffect, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
+import React, { useState, useEffect } from 'react';
+import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Search, Filter, ShoppingCart, Heart } from 'lucide-react';
+import {
+  ShoppingCart,
+  Heart,
+  Filter,
+  Grid,
+  List
+} from 'lucide-react';
 import { Product, Category } from '@/lib/types';
 import { api } from '@/lib/api';
 import { useCart } from '@/contexts/CartContext';
-import { useAuth } from '@/contexts/AuthContext';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
 import toast from 'react-hot-toast';
 import { formatCurrency } from '@/lib/utils/formatters';
 
-const SearchPageContent: React.FC = () => {
-  const searchParams = useSearchParams();
+const SubcategoryPage: React.FC = () => {
+  const params = useParams();
+  const categorySlug = params.slug as string | undefined;
+  const subcategorySlug = params.subcategory as string | undefined;
   const { addToCart } = useCart();
-  const { user } = useAuth();
   const { requireAuthForCart, requireAuthForWishlist } = useRequireAuth();
+  const [category, setCategory] = useState<Category | null>(null);
+  const [subcategory, setSubcategory] = useState<Category | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
-  const [selectedCategory, setSelectedCategory] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [sortBy, setSortBy] = useState('relevance');
   const [priceRange, setPriceRange] = useState({ min: '', max: '' });
   const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => {
-    if (searchQuery) {
-      performSearch();
+    if (categorySlug && subcategorySlug) {
+      loadCategoryData(categorySlug, subcategorySlug);
     }
-  }, [searchQuery, selectedCategory, sortBy, priceRange]);
+  }, [categorySlug, subcategorySlug]);
 
-  const performSearch = async () => {
+  const loadCategoryData = async (parentSlug: string, childSlug: string) => {
     try {
       setLoading(true);
-      const filters = {
-        search: searchQuery,
-        category: selectedCategory || undefined,
-        minPrice: priceRange.min ? parseFloat(priceRange.min) : undefined,
-        maxPrice: priceRange.max ? parseFloat(priceRange.max) : undefined,
-        page: 1,
-        limit: 20,
-      };
+      const categoriesResponse = await api.getCategories();
+      const parent = categoriesResponse.data?.find((cat) => cat.slug === parentSlug) || null;
+      const child = parent?.children?.find((cat) => cat.slug === childSlug) || null;
 
-      const response = await api.getProducts(filters);
-      if (response.data) {
-        setProducts(response.data);
+      setCategory(parent);
+      setSubcategory(child);
+
+      const productsResponse = await api.getProducts({
+        category: parentSlug,
+        subcategory: childSlug,
+        limit: 50,
+      });
+
+      if (productsResponse.data) {
+        setProducts(productsResponse.data);
       }
     } catch (error) {
-      console.error('Search failed:', error);
+      console.error('Failed to load subcategory data:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    performSearch();
-  };
-
   const handleAddToCart = async (product: Product) => {
-    // Check auth and redirect if needed
     if (!requireAuthForCart(product.id, 1)) {
       return;
     }
@@ -71,7 +74,6 @@ const SearchPageContent: React.FC = () => {
   };
 
   const handleAddToWishlist = async (product: Product) => {
-    // Check auth and redirect if needed
     if (!requireAuthForWishlist(product.id)) {
       return;
     }
@@ -79,47 +81,52 @@ const SearchPageContent: React.FC = () => {
   };
 
   const clearFilters = () => {
-    setSelectedCategory('');
     setPriceRange({ min: '', max: '' });
     setSortBy('relevance');
   };
 
-  return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Search Header */}
-        <div className="mb-8">
-          <form onSubmit={handleSearch} className="mb-6">
-            <div className="relative max-w-2xl">
-              <input
-                type="text"
-                placeholder="Search products..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-              <Search className="absolute left-4 top-3.5 h-6 w-6 text-gray-400" />
-            </div>
-          </form>
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
 
-          <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold text-gray-900">
-              {searchQuery ? `Search results for "${searchQuery}"` : 'Search Products'}
-            </h1>
-            <button
-              onClick={() => setShowFilters(!showFilters)}
-              className="md:hidden flex items-center space-x-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
-            >
-              <Filter className="h-5 w-5" />
-              <span>Filters</span>
-            </button>
-          </div>
+  if (!category || !subcategory) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">Subcategory not found</h2>
+          <Link
+            href="/"
+            className="text-blue-600 hover:text-blue-700 font-medium"
+          >
+            Back to home
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-[#F7F2EA] py-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="mb-6">
+          <p className="text-xs tracking-widest uppercase text-amber-700/70">Collection</p>
+          <h1 className="mt-1 text-3xl sm:text-4xl font-semibold text-stone-900">
+            {category.name} / {subcategory.name}
+          </h1>
+          {subcategory.description && (
+            <p className="mt-2 text-stone-600 max-w-2xl text-sm sm:text-base">
+              {subcategory.description}
+            </p>
+          )}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          {/* Filters Sidebar */}
           <div className={`lg:col-span-1 ${showFilters ? 'block' : 'hidden lg:block'}`}>
-            <div className="bg-white rounded-lg shadow-md p-6 sticky top-8">
+            <div className="bg-white rounded-xl shadow-sm p-5 lg:sticky lg:top-8 border border-stone-200/60">
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-lg font-semibold text-gray-900">Filters</h3>
                 <button
@@ -130,38 +137,6 @@ const SearchPageContent: React.FC = () => {
                 </button>
               </div>
 
-              {/* Category Filter */}
-              <div className="mb-6">
-                <h4 className="font-medium text-gray-900 mb-3">Category</h4>
-                <div className="space-y-2">
-                  <label className="flex items-center">
-                    <input
-                      type="radio"
-                      name="category"
-                      value=""
-                      checked={selectedCategory === ''}
-                      onChange={(e) => setSelectedCategory(e.target.value)}
-                      className="mr-3"
-                    />
-                    <span className="text-sm text-gray-700">All Categories</span>
-                  </label>
-                  {categories.map((category) => (
-                    <label key={category.id} className="flex items-center">
-                      <input
-                        type="radio"
-                        name="category"
-                        value={category.slug}
-                        checked={selectedCategory === category.slug}
-                        onChange={(e) => setSelectedCategory(e.target.value)}
-                        className="mr-3"
-                      />
-                      <span className="text-sm text-gray-700">{category.name}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              {/* Price Range Filter */}
               <div className="mb-6">
                 <h4 className="font-medium text-gray-900 mb-3">Price Range</h4>
                 <div className="grid grid-cols-2 gap-2">
@@ -182,7 +157,6 @@ const SearchPageContent: React.FC = () => {
                 </div>
               </div>
 
-              {/* Sort By */}
               <div>
                 <h4 className="font-medium text-gray-900 mb-3">Sort By</h4>
                 <select
@@ -200,20 +174,54 @@ const SearchPageContent: React.FC = () => {
             </div>
           </div>
 
-          {/* Products Grid */}
           <div className="lg:col-span-3">
-            {loading ? (
-              <div className="flex items-center justify-center py-16">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+            <div className="bg-white rounded-xl shadow-sm p-4 mb-4 border border-stone-200/60">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-4">
+                  <button
+                    onClick={() => setShowFilters(!showFilters)}
+                    className="lg:hidden flex items-center space-x-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                  >
+                    <Filter className="h-4 w-4" />
+                    <span>Filters</span>
+                  </button>
+                  <span className="text-sm text-gray-600">
+                    {products.length} products found
+                  </span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={() => setViewMode('grid')}
+                    className={`p-2 rounded-lg ${
+                      viewMode === 'grid' ? 'bg-blue-100 text-blue-600' : 'text-gray-400'
+                    }`}
+                  >
+                    <Grid className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={() => setViewMode('list')}
+                    className={`p-2 rounded-lg ${
+                      viewMode === 'list' ? 'bg-blue-100 text-blue-600' : 'text-gray-400'
+                    }`}
+                  >
+                    <List className="h-4 w-4" />
+                  </button>
+                </div>
               </div>
-            ) : products.length === 0 ? (
+            </div>
+
+            {products.length === 0 ? (
               <div className="text-center py-16">
-                <Search className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <span className="text-2xl font-bold text-gray-400">
+                    {subcategory.name.charAt(0)}
+                  </span>
+                </div>
                 <h3 className="text-xl font-semibold text-gray-900 mb-2">
                   No products found
                 </h3>
                 <p className="text-gray-600 mb-6">
-                  Try adjusting your search or filter criteria
+                  Try adjusting your filters or check back later
                 </p>
                 <button
                   onClick={clearFilters}
@@ -223,19 +231,27 @@ const SearchPageContent: React.FC = () => {
                 </button>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className={
+                viewMode === 'grid'
+                  ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6'
+                  : 'space-y-4'
+              }>
                 {products.map((product) => (
                   <div
                     key={product.id}
-                    className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow overflow-hidden group"
+                    className={`bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow overflow-hidden group ${
+                      viewMode === 'list' ? 'flex' : ''
+                    }`}
                   >
                     <Link href={`/products/${product.id}`}>
-                      <div className="aspect-square bg-gray-200 relative overflow-hidden">
+                      <div className={`${
+                        viewMode === 'grid' ? 'aspect-square' : 'w-48 h-48'
+                      } bg-gray-200 relative overflow-hidden`}>
                         <Image
                           src={product.images[0] || '/images/placeholder.jpg'}
                           alt={product.name}
-                          width={300}
-                          height={300}
+                          width={viewMode === 'grid' ? 300 : 200}
+                          height={viewMode === 'grid' ? 300 : 200}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                         />
                         {!product.inStock && (
@@ -245,9 +261,11 @@ const SearchPageContent: React.FC = () => {
                         )}
                       </div>
                     </Link>
-                    <div className="p-4">
+                    <div className={`p-4 ${viewMode === 'list' ? 'flex-1' : ''}`}>
                       <div className="flex justify-between items-start mb-2">
-                        <h3 className="font-semibold text-gray-900 line-clamp-2">
+                        <h3 className={`font-semibold text-gray-900 ${
+                          viewMode === 'grid' ? 'line-clamp-2' : 'line-clamp-1'
+                        }`}>
                           {product.name}
                         </h3>
                         <button
@@ -257,11 +275,14 @@ const SearchPageContent: React.FC = () => {
                           <Heart className="h-5 w-5" />
                         </button>
                       </div>
-                      <p className="text-sm text-gray-600 mb-2 line-clamp-2">
+                      <p className={`text-gray-600 mb-2 ${
+                        viewMode === 'grid' ? 'line-clamp-2' : 'line-clamp-1'
+                      }`}>
                         {product.description}
                       </p>
-                      {/* Ratings removed */}
-                      <div className="flex justify-between items-center">
+                      <div className={`flex justify-between items-center ${
+                        viewMode === 'list' ? 'mt-4' : ''
+                      }`}>
                         <div className="flex items-center space-x-2">
                           <span className="text-lg font-bold text-gray-900">
                             {formatCurrency(product.price)}
@@ -293,16 +314,4 @@ const SearchPageContent: React.FC = () => {
   );
 };
 
-const SearchPage: React.FC = () => {
-  return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-gray-50 py-8 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
-    }>
-      <SearchPageContent />
-    </Suspense>
-  );
-};
-
-export default SearchPage;
+export default SubcategoryPage;

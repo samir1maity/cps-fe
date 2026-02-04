@@ -31,12 +31,13 @@ const CategoryBar: React.FC = () => {
 
   // Add "Home" as first category
   const displayCategories = [
-    { id: 'home', name: 'Home', slug: '', href: '/' },
-    ...categories.map(cat => ({
+    { id: 'home', name: 'Home', slug: '', href: '/', children: [] as Category[] },
+    ...categories.map((cat) => ({
       id: cat.id,
       name: cat.name,
       slug: cat.slug,
-      href: `/categories/${cat.slug}`
+      href: `/categories/${cat.slug}`,
+      children: cat.children || [],
     }))
   ];
 
@@ -47,7 +48,7 @@ const CategoryBar: React.FC = () => {
   return (
     <div className="sticky top-16 z-30 bg-white border-b border-gray-100 shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <nav className="overflow-x-auto scrollbar-hide" aria-label="Category navigation">
+        <nav className="overflow-x-auto overflow-y-visible scrollbar-hide" aria-label="Category navigation">
           <div className="flex items-center space-x-1 sm:space-x-2 md:space-x-4 min-w-max py-2">
             {displayCategories.map((category) => {
               const isActive = category.slug 
@@ -76,6 +77,3 @@ const CategoryBar: React.FC = () => {
 };
 
 export default CategoryBar;
-
-
-

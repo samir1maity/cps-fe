@@ -7,6 +7,7 @@ import Image from 'next/image';
 import { Minus, Plus, Trash2, ShoppingBag, ArrowLeft } from 'lucide-react';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { formatCurrency } from '@/lib/utils/formatters';
 
 const CartPage: React.FC = () => {
   const { items, updateQuantity, removeFromCart, getTotalPrice, loading } = useCart();
@@ -94,7 +95,7 @@ const CartPage: React.FC = () => {
                           {item.product.brand}
                         </p>
                         <p className="text-base sm:text-lg font-semibold text-gray-900 mt-2">
-                          ${item.product.price}
+                          {formatCurrency(item.product.price)}
                         </p>
                       </div>
                       <div className="flex items-center justify-between sm:justify-start sm:space-x-3 w-full sm:w-auto">
@@ -142,7 +143,7 @@ const CartPage: React.FC = () => {
               <div className="space-y-3 mb-6">
                 <div className="flex justify-between">
                   <span className="text-gray-600">Subtotal</span>
-                  <span className="font-medium">${getTotalPrice().toFixed(2)}</span>
+                  <span className="font-medium">{formatCurrency(getTotalPrice())}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Shipping</span>
@@ -151,14 +152,14 @@ const CartPage: React.FC = () => {
                 <div className="flex justify-between">
                   <span className="text-gray-600">Tax</span>
                   <span className="font-medium">
-                    ${(getTotalPrice() * 0.08).toFixed(2)}
+                    {formatCurrency(getTotalPrice() * 0.08)}
                   </span>
                 </div>
                 <div className="border-t border-gray-200 pt-3">
                   <div className="flex justify-between text-lg font-semibold">
                     <span>Total</span>
                     <span>
-                      ${(getTotalPrice() * 1.08).toFixed(2)}
+                      {formatCurrency(getTotalPrice() * 1.08)}
                     </span>
                   </div>
                 </div>

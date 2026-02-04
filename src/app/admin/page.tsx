@@ -17,6 +17,7 @@ import {
 import { useAuth } from '@/contexts/AuthContext';
 import { api } from '@/lib/api';
 import { Order, Product } from '@/lib/types';
+import { formatCurrency } from '@/lib/utils/formatters';
 
 const AdminDashboard: React.FC = () => {
   const { user, isAdmin } = useAuth();
@@ -137,7 +138,7 @@ const AdminDashboard: React.FC = () => {
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Total Revenue</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  ${stats.totalRevenue.toFixed(2)}
+                  {formatCurrency(stats.totalRevenue)}
                 </p>
               </div>
             </div>
@@ -171,7 +172,7 @@ const AdminDashboard: React.FC = () => {
                         Order #{order.id}
                       </p>
                       <p className="text-sm text-gray-600">
-                        {order.user.name} • ${order.total.toFixed(2)}
+                        {order.user.name} • {formatCurrency(order.total)}
                       </p>
                       <p className="text-xs text-gray-500">
                         {new Date(order.createdAt).toLocaleDateString()}
@@ -246,7 +247,6 @@ const AdminDashboard: React.FC = () => {
 };
 
 export default AdminDashboard;
-
 
 
 

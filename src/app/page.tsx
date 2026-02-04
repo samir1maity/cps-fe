@@ -12,6 +12,7 @@ import { useRequireAuth } from '@/hooks/useRequireAuth';
 import toast from 'react-hot-toast';
 import Carousel, { CarouselSlide } from '@/components/ui/Carousel';
 import NewArrivals, { Offer } from '@/components/ui/NewArrivals';
+import { formatCurrency } from '@/lib/utils/formatters';
 
 const HomePage: React.FC = () => {
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
@@ -100,6 +101,7 @@ const HomePage: React.FC = () => {
       <Carousel slides={carouselSlides} autoSlideInterval={5000} transitionDuration={500} />
 
       {/* New Arrivals Section */}
+      {/*
       {(() => {
         const newArrivals: Offer[] = [
           {
@@ -108,7 +110,7 @@ const HomePage: React.FC = () => {
             subtitle: 'Handcrafted Pottery Collection',
             discount: '50%',
             discountText: 'Limited Time Offer',
-            link: '/categories/pottery',
+            link: '/categories/dinnerware',
             bgGradient: 'bg-gradient-to-br from-rose-200 via-orange-100 to-amber-100'
           },
           {
@@ -135,7 +137,7 @@ const HomePage: React.FC = () => {
             subtitle: 'Luxury Handcrafted Items',
             discount: '40%',
             discountText: 'Exclusive Discount',
-            link: '/categories/premium',
+            link: '/categories/artworks',
             bgGradient: 'bg-gradient-to-br from-amber-100 via-orange-50 to-rose-50'
           },
           {
@@ -153,13 +155,14 @@ const HomePage: React.FC = () => {
             subtitle: 'Perfect for Gifting',
             discount: '35%',
             discountText: 'Bundle Deals',
-            link: '/categories/gifts',
+            link: '/categories/jewellery',
             bgGradient: 'bg-gradient-to-br from-rose-100 via-pink-50 to-amber-50'
           }
         ];
 
         return <NewArrivals offers={newArrivals} />;
       })()}
+      */}
 
       {/* Featured Products Section */}
       <section className="py-16 bg-gray-50">
@@ -215,11 +218,11 @@ const HomePage: React.FC = () => {
                   <div className="flex justify-between items-center">
                     <div className="flex items-center space-x-2">
                       <span className="text-lg font-bold text-gray-900">
-                        ${product.price}
+                        {formatCurrency(product.price)}
                       </span>
                       {product.originalPrice && (
                         <span className="text-sm text-gray-500 line-through">
-                          ${product.originalPrice}
+                          {formatCurrency(product.originalPrice)}
                         </span>
                       )}
                     </div>
