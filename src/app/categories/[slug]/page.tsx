@@ -1,13 +1,13 @@
 // src/app/categories/[slug]/page.tsx
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { 
-  ShoppingCart, 
-  Heart, 
+import {
+  ShoppingCart,
+  Heart,
   Filter,
   Grid,
   List
@@ -19,77 +19,75 @@ import { useRequireAuth } from '@/hooks/useRequireAuth';
 import toast from 'react-hot-toast';
 import { formatCurrency } from '@/lib/utils/formatters';
 
+const SORT_MAP: Record<string, string> = {
+  relevance: '-createdAt',
+  'price-low': 'price',
+  'price-high': '-price',
+  rating: '-rating',
+  newest: '-createdAt',
+};
+
 const CategoryPage: React.FC = () => {
   const params = useParams();
+  const slug = params.slug as string;
   const { addToCart } = useCart();
   const { requireAuthForCart, requireAuthForWishlist } = useRequireAuth();
+
   const [category, setCategory] = useState<Category | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
+  const [total, setTotal] = useState(0);
   const [pageLoading, setPageLoading] = useState(true);
+  const [listLoading, setListLoading] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [sortBy, setSortBy] = useState('relevance');
   const [priceRange, setPriceRange] = useState({ min: '', max: '' });
   const [showFilters, setShowFilters] = useState(false);
   const [selectedSubcategory, setSelectedSubcategory] = useState<string>('all');
-  const [listLoading, setListLoading] = useState(false);
 
-  useEffect(() => {
-    if (params.slug) {
-      setSelectedSubcategory('all');
-      loadCategoryData();
-    }
-  }, [params.slug]);
-
-  useEffect(() => {
-    if (!pageLoading) {
-      setListLoading(true);
-      const timer = setTimeout(() => setListLoading(false), 200);
-      return () => clearTimeout(timer);
-    }
-  }, [selectedSubcategory, sortBy, priceRange.min, priceRange.max, pageLoading]);
-
-  const loadCategoryData = async () => {
+  const fetchProducts = useCallback(async (sub: string, sort: string, min: string, max: string) => {
+    setListLoading(true);
     try {
-      if (category) {
-        setListLoading(true);
-      } else {
-        setPageLoading(true);
-      }
-      const [categoryResponse, productsResponse] = await Promise.all([
-        api.getCategory(params.slug as string),
-        api.getProducts({ 
-          category: params.slug as string,
-          limit: 50 
-        }),
-      ]);
-
-      if (categoryResponse.success && categoryResponse.data) {
-        setCategory(categoryResponse.data);
-      }
-      if (productsResponse.data) {
-        setProducts(productsResponse.data);
-      }
+      const response = await api.getProducts({
+        category: slug,
+        subcategory: sub !== 'all' ? sub : undefined,
+        minPrice: min ? Number(min) : undefined,
+        maxPrice: max ? Number(max) : undefined,
+        sort: SORT_MAP[sort] ?? '-createdAt',
+        limit: 50,
+      });
+      setProducts(response.data ?? []);
+      setTotal(response.pagination?.total ?? response.data?.length ?? 0);
     } catch (error) {
-      console.error('Failed to load category data:', error);
+      console.error('Failed to load products:', error);
     } finally {
-      setPageLoading(false);
       setListLoading(false);
     }
-  };
+  }, [slug]);
+
+  useEffect(() => {
+    if (!slug) return;
+    setSelectedSubcategory('all');
+    setSortBy('relevance');
+    setPriceRange({ min: '', max: '' });
+    setPageLoading(true);
+    api.getCategory(slug).then((res) => {
+      if (res.success && res.data) setCategory(res.data);
+    }).finally(() => setPageLoading(false));
+  }, [slug]);
+
+  useEffect(() => {
+    if (!pageLoading && slug) {
+      fetchProducts(selectedSubcategory, sortBy, priceRange.min, priceRange.max);
+    }
+  }, [selectedSubcategory, sortBy, priceRange.min, priceRange.max, pageLoading, fetchProducts, slug]);
 
   const handleAddToCart = async (product: Product) => {
-    // Check auth and redirect if needed
-    if (!requireAuthForCart(product.id, 1)) {
-      return;
-    }
+    if (!requireAuthForCart(product.id, 1)) return;
     await addToCart(product);
   };
 
-  const handleAddToWishlist = async (product: Product) => {
-    // Check auth and redirect if needed
-    if (!requireAuthForWishlist(product.id)) {
-      return;
-    }
+  const handleAddToWishlist = (product: Product) => {
+    if (!requireAuthForWishlist(product.id)) return;
     toast.success('Added to wishlist');
   };
 
@@ -104,10 +102,7 @@ const CategoryPage: React.FC = () => {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <h2 className="text-2xl font-bold text-gray-900 mb-4">Category not found</h2>
-          <Link
-            href="/"
-            className="text-blue-600 hover:text-blue-700 font-medium"
-          >
+          <Link href="/" className="text-blue-600 hover:text-blue-700 font-medium">
             Back to home
           </Link>
         </div>
@@ -115,17 +110,9 @@ const CategoryPage: React.FC = () => {
     );
   }
 
-  const hasSelectedSubcategory = selectedSubcategory !== 'all'
-    && category?.children?.some((child) => child.slug === selectedSubcategory);
-
-  const filteredProducts = !hasSelectedSubcategory
-    ? products
-    : products.filter((product) => product.subcategory?.slug === selectedSubcategory);
-
   return (
     <div className="min-h-screen bg-[#F7F2EA] py-6">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Minimal Category Header for artisan aesthetic */}
         <div className="mb-6">
           <p className="text-xs tracking-widest uppercase text-amber-700/70">Collection</p>
           <h1 className="mt-1 text-3xl sm:text-4xl font-semibold text-stone-900">
@@ -139,20 +126,15 @@ const CategoryPage: React.FC = () => {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          {/* Filters Sidebar */}
           <div className={`lg:col-span-1 ${showFilters ? 'block' : 'hidden lg:block'}`}>
             <div className="bg-white rounded-xl shadow-sm p-5 lg:sticky lg:top-8 border border-stone-200/60">
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-lg font-semibold text-gray-900">Filters</h3>
-                <button
-                  onClick={clearFilters}
-                  className="text-sm text-blue-600 hover:text-blue-700"
-                >
+                <button onClick={clearFilters} className="text-sm text-blue-600 hover:text-blue-700">
                   Clear all
                 </button>
               </div>
 
-              {/* Subcategories */}
               {category?.children && category.children.length > 0 && (
                 <div className="mb-6">
                   <h4 className="font-medium text-gray-900 mb-3">Subcategories</h4>
@@ -186,7 +168,6 @@ const CategoryPage: React.FC = () => {
                 </div>
               )}
 
-              {/* Price Range Filter */}
               <div className="mb-6">
                 <h4 className="font-medium text-gray-900 mb-3">Price Range</h4>
                 <div className="grid grid-cols-2 gap-2">
@@ -194,20 +175,19 @@ const CategoryPage: React.FC = () => {
                     type="number"
                     placeholder="Min"
                     value={priceRange.min}
-                    onChange={(e) => setPriceRange({ ...priceRange, min: e.target.value })}
+                    onChange={(e) => setPriceRange((p) => ({ ...p, min: e.target.value }))}
                     className="px-3 py-2 border border-gray-300 rounded-md text-sm"
                   />
                   <input
                     type="number"
                     placeholder="Max"
                     value={priceRange.max}
-                    onChange={(e) => setPriceRange({ ...priceRange, max: e.target.value })}
+                    onChange={(e) => setPriceRange((p) => ({ ...p, max: e.target.value }))}
                     className="px-3 py-2 border border-gray-300 rounded-md text-sm"
                   />
                 </div>
               </div>
 
-              {/* Sort By */}
               <div>
                 <h4 className="font-medium text-gray-900 mb-3">Sort By</h4>
                 <select
@@ -225,9 +205,7 @@ const CategoryPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Products Section */}
           <div className="lg:col-span-3">
-            {/* Toolbar */}
             <div className="bg-white rounded-xl shadow-sm p-4 mb-4 border border-stone-200/60">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-4">
@@ -238,24 +216,18 @@ const CategoryPage: React.FC = () => {
                     <Filter className="h-4 w-4" />
                     <span>Filters</span>
                   </button>
-                  <span className="text-sm text-gray-600">
-                    {filteredProducts.length} products found
-                  </span>
+                  <span className="text-sm text-gray-600">{total} products found</span>
                 </div>
                 <div className="flex items-center space-x-2">
                   <button
                     onClick={() => setViewMode('grid')}
-                    className={`p-2 rounded-lg ${
-                      viewMode === 'grid' ? 'bg-blue-100 text-blue-600' : 'text-gray-400'
-                    }`}
+                    className={`p-2 rounded-lg ${viewMode === 'grid' ? 'bg-blue-100 text-blue-600' : 'text-gray-400'}`}
                   >
                     <Grid className="h-4 w-4" />
                   </button>
                   <button
                     onClick={() => setViewMode('list')}
-                    className={`p-2 rounded-lg ${
-                      viewMode === 'list' ? 'bg-blue-100 text-blue-600' : 'text-gray-400'
-                    }`}
+                    className={`p-2 rounded-lg ${viewMode === 'list' ? 'bg-blue-100 text-blue-600' : 'text-gray-400'}`}
                   >
                     <List className="h-4 w-4" />
                   </button>
@@ -263,24 +235,19 @@ const CategoryPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Products Grid/List */}
             {pageLoading || listLoading ? (
               <div className="flex items-center justify-center py-16">
                 <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600"></div>
               </div>
-            ) : filteredProducts.length === 0 ? (
+            ) : products.length === 0 ? (
               <div className="text-center py-16">
                 <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
                   <span className="text-2xl font-bold text-gray-400">
                     {category?.name?.charAt(0) || '?'}
                   </span>
                 </div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                  No products found
-                </h3>
-                <p className="text-gray-600 mb-6">
-                  Try adjusting your filters or check back later
-                </p>
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">No products found</h3>
+                <p className="text-gray-600 mb-6">Try adjusting your filters or check back later</p>
                 <button
                   onClick={clearFilters}
                   className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors"
@@ -294,7 +261,7 @@ const CategoryPage: React.FC = () => {
                   ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6'
                   : 'space-y-4'
               }>
-                {filteredProducts.map((product) => (
+                {products.map((product) => (
                   <div
                     key={product.id}
                     className={`bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow overflow-hidden group ${
@@ -338,10 +305,7 @@ const CategoryPage: React.FC = () => {
                       }`}>
                         {product.description}
                       </p>
-                      {/* Ratings removed */}
-                      <div className={`flex justify-between items-center ${
-                        viewMode === 'list' ? 'mt-4' : ''
-                      }`}>
+                      <div className={`flex justify-between items-center ${viewMode === 'list' ? 'mt-4' : ''}`}>
                         <div className="flex items-center space-x-2">
                           <span className="text-lg font-bold text-gray-900">
                             {formatCurrency(product.price)}
