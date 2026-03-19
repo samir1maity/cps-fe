@@ -84,7 +84,7 @@ const AdminDashboard: React.FC = () => {
               <span className="text-sm text-gray-600">Welcome, {user?.name}</span>
               <button
                 onClick={() => router.push('/')}
-                className="text-gray-600 hover:text-gray-900"
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
               >
                 Back to Store
               </button>
