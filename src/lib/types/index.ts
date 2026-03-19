@@ -6,6 +6,7 @@ export interface User {
   role: 'USER' | 'ADMIN';
   avatar?: string;
   phone?: string;
+  isBlocked?: boolean;
   addresses: Address[];
   createdAt: Date;
   updatedAt: Date;
@@ -54,6 +55,7 @@ export interface Category {
   description?: string;
   image?: string;
   parentId?: string;
+  isActive: boolean;
   children?: Category[];
   productCount: number;
 }

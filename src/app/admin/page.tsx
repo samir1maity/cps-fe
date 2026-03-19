@@ -197,7 +197,10 @@ const AdminDashboard: React.FC = () => {
               <h3 className="text-lg font-semibold text-gray-900">Quick Actions</h3>
             </div>
             <div className="p-6 space-y-4">
-              <button className="w-full flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+              <button
+                onClick={() => router.push('/admin/products?action=new')}
+                className="w-full flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+              >
                 <div className="flex items-center space-x-3">
                   <Plus className="h-5 w-5 text-blue-600" />
                   <span className="font-medium text-gray-900">Add New Product</span>
@@ -205,7 +208,10 @@ const AdminDashboard: React.FC = () => {
                 <span className="text-gray-600">→</span>
               </button>
 
-              <button className="w-full flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+              <button
+                onClick={() => router.push('/admin/users')}
+                className="w-full flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+              >
                 <div className="flex items-center space-x-3">
                   <Users className="h-5 w-5 text-green-600" />
                   <span className="font-medium text-gray-900">Manage Users</span>
@@ -213,7 +219,10 @@ const AdminDashboard: React.FC = () => {
                 <span className="text-gray-600">→</span>
               </button>
 
-              <button className="w-full flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+              <button
+                onClick={() => router.push('/admin/products')}
+                className="w-full flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+              >
                 <div className="flex items-center space-x-3">
                   <Package className="h-5 w-5 text-purple-600" />
                   <span className="font-medium text-gray-900">Manage Products</span>
@@ -221,10 +230,13 @@ const AdminDashboard: React.FC = () => {
                 <span className="text-gray-600">→</span>
               </button>
 
-              <button className="w-full flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+              <button
+                onClick={() => router.push('/admin/categories')}
+                className="w-full flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+              >
                 <div className="flex items-center space-x-3">
                   <TrendingUp className="h-5 w-5 text-yellow-600" />
-                  <span className="font-medium text-gray-900">View Reports</span>
+                  <span className="font-medium text-gray-900">Manage Categories</span>
                 </div>
                 <span className="text-gray-600">→</span>
               </button>

@@ -60,7 +60,7 @@ export const api = {
     const url = `${API_CONFIG.ENDPOINTS.PRODUCTS.LIST}${query ? '?' + query : ''}`;
     const response = await httpClient.get<any>(url);
     return {
-      data: response.data || [],
+      data: (response.data || []).map(normalizeProduct),
       pagination: response.pagination || { page: 1, limit: 12, total: 0, totalPages: 0 },
     };
   },
@@ -490,7 +490,96 @@ export const api = {
       const params = new URLSearchParams({ page: String(page) });
       if (search) params.set('search', search);
       const response = await httpClient.get<any>(`${API_CONFIG.ENDPOINTS.ADMIN.USERS}?${params}`);
+      const users = (response.data ?? []).map((u: any) => ({ ...u, id: u.id ?? u._id }));
+      return { success: true, data: users };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  },
+
+  async toggleUserBlock(userId: string): Promise<ApiResponse<User>> {
+    try {
+      const response = await httpClient.patch<any>(API_CONFIG.ENDPOINTS.ADMIN.TOGGLE_BLOCK(userId), {});
       return { success: true, data: response.data };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  },
+
+  // Admin Categories
+  async getAdminCategories(): Promise<ApiResponse<Category[]>> {
+    try {
+      const response = await httpClient.get<any>(`${API_CONFIG.ENDPOINTS.ADMIN.CATEGORIES}?includeInactive=true`);
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  },
+
+  async createAdminCategory(data: { name: string; description?: string; image?: string; parentId?: string | null }): Promise<ApiResponse<Category>> {
+    try {
+      const response = await httpClient.post<any>(API_CONFIG.ENDPOINTS.ADMIN.CATEGORIES, data);
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  },
+
+  async updateAdminCategory(id: string, data: { name?: string; description?: string; image?: string; parentId?: string | null; isActive?: boolean }): Promise<ApiResponse<Category>> {
+    try {
+      const response = await httpClient.put<any>(API_CONFIG.ENDPOINTS.ADMIN.CATEGORY(id), data);
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  },
+
+  async deleteAdminCategory(id: string, hard = false): Promise<ApiResponse<void>> {
+    try {
+      await httpClient.delete<any>(`${API_CONFIG.ENDPOINTS.ADMIN.CATEGORY(id)}${hard ? '?hard=true' : ''}`);
+      return { success: true };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  },
+
+  // Admin Products
+  async createAdminProduct(formData: FormData): Promise<ApiResponse<Product>> {
+    try {
+      const accessToken = localStorage.getItem('accessToken');
+      const res = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.ADMIN_PRODUCTS.CREATE}`, {
+        method: 'POST',
+        headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
+        body: formData,
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.message || json.error || 'Failed to create product');
+      return { success: true, data: json.data };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  },
+
+  async updateAdminProduct(id: string, formData: FormData): Promise<ApiResponse<Product>> {
+    try {
+      const accessToken = localStorage.getItem('accessToken');
+      const res = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.ADMIN_PRODUCTS.UPDATE(id)}`, {
+        method: 'PUT',
+        headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
+        body: formData,
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.message || json.error || 'Failed to update product');
+      return { success: true, data: json.data };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  },
+
+  async deleteAdminProduct(id: string): Promise<ApiResponse<void>> {
+    try {
+      await httpClient.delete<any>(API_CONFIG.ENDPOINTS.ADMIN_PRODUCTS.DELETE(id));
+      return { success: true };
     } catch (error: any) {
       return { success: false, error: error.message };
     }
