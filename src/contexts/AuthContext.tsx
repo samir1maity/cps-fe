@@ -37,23 +37,27 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // Initialize authentication state
     const initAuth = async () => {
       try {
-        // Check for stored user data on mount
-        const storedUser = localStorage.getItem('user');
-        if (storedUser) {
-          try {
-            const parsedUser = JSON.parse(storedUser);
-            setUser(parsedUser);
-          } catch (error) {
-            console.error('Error parsing stored user:', error);
-            localStorage.removeItem('user');
-            localStorage.removeItem('accessToken');
-            localStorage.removeItem('refreshToken');
-          }
+        const accessToken = localStorage.getItem('accessToken');
+        if (!accessToken) return;
+
+        const response = await api.getCurrentUser();
+        if (response.success && response.data) {
+          setUser(response.data);
+          localStorage.setItem('user', JSON.stringify(response.data));
+          document.cookie = `role=${response.data.role}; path=/; SameSite=Lax`;
+        } else {
+          // Token invalid or expired — clear everything
+          localStorage.removeItem('user');
+          localStorage.removeItem('accessToken');
+          localStorage.removeItem('refreshToken');
+          document.cookie = 'role=; path=/; max-age=0';
         }
-      } catch (error) {
-        console.error('Error initializing auth:', error);
+      } catch {
+        localStorage.removeItem('user');
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
+        document.cookie = 'role=; path=/; max-age=0';
       } finally {
-        // Always set loading to false, even if there's an error
         setLoading(false);
       }
     };
@@ -65,6 +69,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       localStorage.removeItem('user');
       localStorage.removeItem('accessToken');
       localStorage.removeItem('refreshToken');
+      document.cookie = 'role=; path=/; max-age=0';
     };
     window.addEventListener('auth:logout', handleForceLogout);
     return () => window.removeEventListener('auth:logout', handleForceLogout);
@@ -78,7 +83,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (response.success && response.data) {
         setUser(response.data);
         localStorage.setItem('user', JSON.stringify(response.data));
-        
+        document.cookie = `role=${response.data.role}; path=/; SameSite=Lax`;
+
         // Check for pending actions
         const pendingAction = getAndClearPendingAction();
         
@@ -122,6 +128,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       localStorage.removeItem('user');
       localStorage.removeItem('accessToken');
       localStorage.removeItem('refreshToken');
+      document.cookie = 'role=; path=/; max-age=0';
     }
   };
 

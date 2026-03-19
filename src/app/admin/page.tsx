@@ -18,7 +18,7 @@ import { Order } from '@/lib/types';
 import { formatCurrency } from '@/lib/utils/formatters';
 
 const AdminDashboard: React.FC = () => {
-  const { user, isAdmin } = useAuth();
+  const { user } = useAuth();
   const router = useRouter();
   const [stats, setStats] = useState({
     totalUsers: 0,
@@ -30,16 +30,8 @@ const AdminDashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user) {
-      router.push('/login');
-      return;
-    }
-    if (!isAdmin) {
-      router.push('/');
-      return;
-    }
     loadDashboardData();
-  }, [user, isAdmin, router]);
+  }, []);
 
   const loadDashboardData = async () => {
     try {
