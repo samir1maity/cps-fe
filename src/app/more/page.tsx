@@ -103,7 +103,7 @@ const MorePage: React.FC = () => {
                         <Icon className="h-5 w-5 text-gray-600" />
                         <span className="font-medium text-gray-900">{item.label}</span>
                       </div>
-                      <span className="text-gray-400">→</span>
+                      <span className="text-gray-600">→</span>
                     </Link>
                   );
                 })}
@@ -122,7 +122,7 @@ const MorePage: React.FC = () => {
                   <LogOut className="h-5 w-5" />
                   <span className="font-medium">Sign Out</span>
                 </div>
-                <span className="text-red-400">→</span>
+                <span className="text-red-600">→</span>
               </button>
             </div>
           )}

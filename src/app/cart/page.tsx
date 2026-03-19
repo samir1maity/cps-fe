@@ -103,17 +103,17 @@ const CartPage: React.FC = () => {
                           <button
                             onClick={() => updateQuantity(item.id, item.quantity - 1)}
                             disabled={loading}
-                            className="p-2 hover:bg-gray-100 disabled:opacity-50"
+                            className="p-2 text-gray-900 hover:bg-gray-100 disabled:opacity-50"
                           >
                             <Minus className="h-4 w-4" />
                           </button>
-                          <span className="px-4 py-2 text-sm font-medium">
+                          <span className="px-4 py-2 text-sm font-medium text-gray-900">
                             {item.quantity}
                           </span>
                           <button
                             onClick={() => updateQuantity(item.id, item.quantity + 1)}
                             disabled={loading || !item.product.inStock}
-                            className="p-2 hover:bg-gray-100 disabled:opacity-50"
+                            className="p-2 text-gray-900 hover:bg-gray-100 disabled:opacity-50"
                           >
                             <Plus className="h-4 w-4" />
                           </button>
@@ -143,24 +143,20 @@ const CartPage: React.FC = () => {
               <div className="space-y-3 mb-6">
                 <div className="flex justify-between">
                   <span className="text-gray-600">Subtotal</span>
-                  <span className="font-medium">{formatCurrency(getTotalPrice())}</span>
+                  <span className="font-medium text-gray-900">{formatCurrency(getTotalPrice())}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Shipping</span>
-                  <span className="font-medium">Free</span>
+                  <span className="font-medium text-gray-900">Free</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Tax</span>
-                  <span className="font-medium">
-                    {formatCurrency(getTotalPrice() * 0.08)}
-                  </span>
+                  <span className="font-medium text-gray-900">{formatCurrency(getTotalPrice() * 0.08)}</span>
                 </div>
                 <div className="border-t border-gray-200 pt-3">
-                  <div className="flex justify-between text-lg font-semibold">
+                  <div className="flex justify-between text-lg font-semibold text-gray-900">
                     <span>Total</span>
-                    <span>
-                      {formatCurrency(getTotalPrice() * 1.08)}
-                    </span>
+                    <span>{formatCurrency(getTotalPrice() * 1.08)}</span>
                   </div>
                 </div>
               </div>

@@ -448,7 +448,7 @@ const CheckoutPage: React.FC = () => {
               <div className="space-y-3 mb-6">
                 <div className="flex justify-between">
                   <span className="text-gray-600">Subtotal</span>
-                  <span className="font-medium">{formatCurrency(subtotal)}</span>
+                  <span className="font-medium text-gray-900">{formatCurrency(subtotal)}</span>
                 </div>
                 {discount > 0 && (
                   <div className="flex justify-between text-green-600">
@@ -458,13 +458,13 @@ const CheckoutPage: React.FC = () => {
                 )}
                 <div className="flex justify-between">
                   <span className="text-gray-600">GST (18%)</span>
-                  <span className="font-medium">{formatCurrency(tax)}</span>
+                  <span className="font-medium text-gray-900">{formatCurrency(tax)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Shipping</span>
-                  <span className="font-medium">Free</span>
+                  <span className="font-medium text-gray-900">Free</span>
                 </div>
-                <div className="flex justify-between text-lg font-semibold border-t border-gray-200 pt-2">
+                <div className="flex justify-between text-lg font-semibold text-gray-900 border-t border-gray-200 pt-2">
                   <span>Total</span>
                   <span>{formatCurrency(total)}</span>
                 </div>

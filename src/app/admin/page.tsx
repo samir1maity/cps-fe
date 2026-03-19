@@ -3,20 +3,18 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { 
-  Users, 
-  Package, 
-  DollarSign, 
-  TrendingUp, 
+import {
+  Users,
+  Package,
+  DollarSign,
+  TrendingUp,
   ShoppingCart,
   Eye,
-  Edit,
-  Trash2,
   Plus
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { api } from '@/lib/api';
-import { Order, Product } from '@/lib/types';
+import { Order } from '@/lib/types';
 import { formatCurrency } from '@/lib/utils/formatters';
 
 const AdminDashboard: React.FC = () => {
@@ -210,33 +208,33 @@ const AdminDashboard: React.FC = () => {
               <button className="w-full flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
                 <div className="flex items-center space-x-3">
                   <Plus className="h-5 w-5 text-blue-600" />
-                  <span className="font-medium">Add New Product</span>
+                  <span className="font-medium text-gray-900">Add New Product</span>
                 </div>
-                <span className="text-gray-400">→</span>
+                <span className="text-gray-600">→</span>
               </button>
-              
+
               <button className="w-full flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
                 <div className="flex items-center space-x-3">
                   <Users className="h-5 w-5 text-green-600" />
-                  <span className="font-medium">Manage Users</span>
+                  <span className="font-medium text-gray-900">Manage Users</span>
                 </div>
-                <span className="text-gray-400">→</span>
+                <span className="text-gray-600">→</span>
               </button>
-              
+
               <button className="w-full flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
                 <div className="flex items-center space-x-3">
                   <Package className="h-5 w-5 text-purple-600" />
-                  <span className="font-medium">Manage Products</span>
+                  <span className="font-medium text-gray-900">Manage Products</span>
                 </div>
-                <span className="text-gray-400">→</span>
+                <span className="text-gray-600">→</span>
               </button>
-              
+
               <button className="w-full flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
                 <div className="flex items-center space-x-3">
                   <TrendingUp className="h-5 w-5 text-yellow-600" />
-                  <span className="font-medium">View Reports</span>
+                  <span className="font-medium text-gray-900">View Reports</span>
                 </div>
-                <span className="text-gray-400">→</span>
+                <span className="text-gray-600">→</span>
               </button>
             </div>
           </div>

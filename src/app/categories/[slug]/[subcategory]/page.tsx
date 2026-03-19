@@ -193,7 +193,7 @@ const SubcategoryPage: React.FC = () => {
                   <button
                     onClick={() => setViewMode('grid')}
                     className={`p-2 rounded-lg ${
-                      viewMode === 'grid' ? 'bg-blue-100 text-blue-600' : 'text-gray-400'
+                      viewMode === 'grid' ? 'bg-blue-100 text-blue-600' : 'text-gray-600'
                     }`}
                   >
                     <Grid className="h-4 w-4" />
@@ -201,7 +201,7 @@ const SubcategoryPage: React.FC = () => {
                   <button
                     onClick={() => setViewMode('list')}
                     className={`p-2 rounded-lg ${
-                      viewMode === 'list' ? 'bg-blue-100 text-blue-600' : 'text-gray-400'
+                      viewMode === 'list' ? 'bg-blue-100 text-blue-600' : 'text-gray-600'
                     }`}
                   >
                     <List className="h-4 w-4" />
