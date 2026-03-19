@@ -43,8 +43,8 @@ const RegisterPage: React.FC = () => {
       } as Partial<User> & { password: string });
       
       if (result.success) {
-        toast.success('Registration successful!');
-        router.push('/');
+        toast.success('Registration successful! Please log in.');
+        router.push('/login');
       } else {
         toast.error(result.error || 'Registration failed');
       }

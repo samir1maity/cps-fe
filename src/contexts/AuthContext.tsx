@@ -59,6 +59,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     };
 
     initAuth();
+
+    const handleForceLogout = () => {
+      setUser(null);
+      localStorage.removeItem('user');
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('refreshToken');
+    };
+    window.addEventListener('auth:logout', handleForceLogout);
+    return () => window.removeEventListener('auth:logout', handleForceLogout);
   }, []);
 
   const login = async (email: string, password: string) => {
@@ -89,9 +98,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setLoading(true);
       const response = await api.register(userData);
       
-      if (response.success && response.data) {
-        setUser(response.data);
-        localStorage.setItem('user', JSON.stringify(response.data));
+      if (response.success) {
         return { success: true };
       } else {
         return { success: false, error: response.error || 'Registration failed' };

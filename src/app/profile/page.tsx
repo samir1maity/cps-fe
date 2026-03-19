@@ -217,7 +217,7 @@ const ProfilePage: React.FC = () => {
                   </button>
                 </div>
                 <div className="p-6">
-                  {user.addresses.length === 0 ? (
+                  {user?.addresses?.length === 0 ? (
                     <div className="text-center py-8">
                       <MapPin className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                       <p className="text-gray-600">No addresses saved</p>
@@ -227,7 +227,7 @@ const ProfilePage: React.FC = () => {
                     </div>
                   ) : (
                     <div className="space-y-4">
-                      {user.addresses.map((address) => (
+                      {user?.addresses?.map((address) => (
                         <div key={address.id} className="border border-gray-200 rounded-lg p-4">
                           <div className="flex justify-between items-start">
                             <div>
@@ -239,7 +239,8 @@ const ProfilePage: React.FC = () => {
                                 <p className="text-gray-600">{address.address2}</p>
                               )}
                               <p className="text-gray-600">
-                                {address.city}, {address.state} {address.zipCode}
+                                {address.city}, {address.state}{" "}
+                                {address.zipCode}
                               </p>
                               <p className="text-gray-600">{address.country}</p>
                               <p className="text-gray-600">{address.phone}</p>

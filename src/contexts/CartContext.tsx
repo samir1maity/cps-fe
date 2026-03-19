@@ -70,20 +70,9 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
     try {
       setLoading(true);
       const response = await api.addToCart(user.id, product.id, quantity);
-      
+
       if (response.success && response.data) {
-        setItems(prev => {
-          const existingItem = prev.find(item => item.productId === product.id);
-          if (existingItem) {
-            return prev.map(item =>
-              item.productId === product.id
-                ? { ...item, quantity: item.quantity + quantity }
-                : item
-            );
-          } else {
-            return [...prev, response.data!];
-          }
-        });
+        setItems(response.data);
         toast.success('Added to cart');
       } else {
         toast.error(response.error || 'Failed to add to cart');
@@ -123,13 +112,9 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
       setLoading(true);
       const response = await api.updateCartItem(itemId, quantity);
       
-      if (response.success) {
-        setItems(prev =>
-          prev.map(item =>
-            item.id === itemId ? { ...item, quantity } : item
-          )
-        );
-      } else {
+      if (response.success && response.data) {
+        setItems(response.data);
+      } else if (!response.success) {
         toast.error('Failed to update quantity');
       }
     } catch (error) {

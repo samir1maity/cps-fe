@@ -11,16 +11,27 @@ import {
   ApiResponse,
   PaginatedResponse 
 } from '@/lib/types';
-import { API_CONFIG, getApiUrl } from '@/lib/config/api';
+import { API_CONFIG } from '@/lib/config/api';
 import { HttpClient } from '@/lib/utils/httpClient';
 
 // Initialize HTTP client
 const httpClient = new HttpClient(API_CONFIG.BASE_URL);
 
-// Simulate API delay for mock functions
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+const normalizeProduct = (p: any): Product => ({
+  ...p,
+  id: p.id ?? p._id,
+  images: Array.isArray(p.images) ? p.images : [],
+  category: p.category ? { ...p.category, id: p.category.id ?? p.category._id } : p.category,
+  subcategory: p.subcategory ? { ...p.subcategory, id: p.subcategory.id ?? p.subcategory._id } : p.subcategory,
+});
 
-// Mock API functions
+const normalizeCartItems = (items: any[]): CartItem[] =>
+  (items ?? []).map((item: any) => ({
+    ...item,
+    id: item.id ?? item._id,
+    product: normalizeProduct(item.product),
+  }));
+
 export const api = {
   // Products
   async getProducts(filters?: {
@@ -32,242 +43,322 @@ export const api = {
     inStock?: boolean;
     page?: number;
     limit?: number;
+    sort?: string;
   }): Promise<PaginatedResponse<Product>> {
-    await delay(500);
-    
-    let filteredProducts = [...products];
-    
-    if (filters?.category) {
-      filteredProducts = filteredProducts.filter(p => p.category.slug === filters.category);
-    }
+    const params = new URLSearchParams();
+    if (filters?.category) params.set('category', filters.category);
+    if (filters?.subcategory) params.set('subcategory', filters.subcategory);
+    if (filters?.search) params.set('search', filters.search);
+    if (filters?.minPrice !== undefined) params.set('minPrice', String(filters.minPrice));
+    if (filters?.maxPrice !== undefined) params.set('maxPrice', String(filters.maxPrice));
+    if (filters?.inStock !== undefined) params.set('inStock', String(filters.inStock));
+    if (filters?.page) params.set('page', String(filters.page));
+    if (filters?.limit) params.set('limit', String(filters.limit));
+    if (filters?.sort) params.set('sort', filters.sort);
 
-    if (filters?.subcategory) {
-      filteredProducts = filteredProducts.filter(p => p.subcategory?.slug === filters.subcategory);
-    }
-    
-    if (filters?.search) {
-      const searchTerm = filters.search.toLowerCase();
-      filteredProducts = filteredProducts.filter(p => 
-        p.name.toLowerCase().includes(searchTerm) ||
-        p.description.toLowerCase().includes(searchTerm) ||
-        p.brand.toLowerCase().includes(searchTerm)
-      );
-    }
-    
-    if (filters?.minPrice !== undefined) {
-      filteredProducts = filteredProducts.filter(p => p.price >= filters.minPrice!);
-    }
-    
-    if (filters?.maxPrice !== undefined) {
-      filteredProducts = filteredProducts.filter(p => p.price <= filters.maxPrice!);
-    }
-    
-    if (filters?.inStock !== undefined) {
-      filteredProducts = filteredProducts.filter(p => p.inStock === filters.inStock);
-    }
-    
-    const page = filters?.page || 1;
-    const limit = filters?.limit || 12;
-    const startIndex = (page - 1) * limit;
-    const endIndex = startIndex + limit;
-    
+    const query = params.toString();
+    const url = `${API_CONFIG.ENDPOINTS.PRODUCTS.LIST}${query ? '?' + query : ''}`;
+    const response = await httpClient.get<any>(url);
     return {
-      data: filteredProducts.slice(startIndex, endIndex),
-      pagination: {
-        page,
-        limit,
-        total: filteredProducts.length,
-        totalPages: Math.ceil(filteredProducts.length / limit),
-      },
+      data: response.data || [],
+      pagination: response.pagination || { page: 1, limit: 12, total: 0, totalPages: 0 },
     };
   },
 
   async getProduct(id: string): Promise<ApiResponse<Product>> {
-    await delay(300);
-    const product = products.find(p => p.id === id);
-    
-    if (!product) {
-      return { success: false, error: 'Product not found' };
+    try {
+      const response = await httpClient.get<any>(API_CONFIG.ENDPOINTS.PRODUCTS.DETAIL(id));
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      return { success: false, error: error.message || 'Product not found' };
     }
-    
-    return { success: true, data: product };
   },
 
   // Categories
   async getCategories(): Promise<ApiResponse<Category[]>> {
-    await delay(200);
-    return { success: true, data: categories };
+    try {
+      const response = await httpClient.get<any>(API_CONFIG.ENDPOINTS.CATEGORIES.LIST);
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
   },
 
   async getCategory(slug: string): Promise<ApiResponse<Category>> {
-    await delay(200);
-    const category = categories.find(c => c.slug === slug);
-    
-    if (!category) {
-      return { success: false, error: 'Category not found' };
+    try {
+      const response = await httpClient.get<any>(API_CONFIG.ENDPOINTS.CATEGORIES.DETAIL(slug));
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      return { success: false, error: error.message };
     }
-    
-    return { success: true, data: category };
   },
 
   // Cart
-  async getCart(userId: string): Promise<ApiResponse<CartItem[]>> {
-    await delay(200);
-    // In a real app, this would fetch from the database
-    return { success: true, data: [] };
+  async getCart(_userId: string): Promise<ApiResponse<CartItem[]>> {
+    try {
+      const response = await httpClient.get<any>(API_CONFIG.ENDPOINTS.CART.GET);
+      return { success: true, data: normalizeCartItems(response.data) };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
   },
 
-  async addToCart(userId: string, productId: string, quantity: number): Promise<ApiResponse<CartItem>> {
-    await delay(300);
-    const product = products.find(p => p.id === productId);
-    
-    if (!product) {
-      return { success: false, error: 'Product not found' };
+  async addToCart(_userId: string, productId: string, quantity: number): Promise<ApiResponse<CartItem[]>> {
+    try {
+      const response = await httpClient.post<any>(API_CONFIG.ENDPOINTS.CART.ADD, { productId, quantity });
+      return { success: true, data: normalizeCartItems(response.data) };
+    } catch (error: any) {
+      return { success: false, error: error.message };
     }
-    
-    if (!product.inStock) {
-      return { success: false, error: 'Product out of stock' };
-    }
-    
-    // In a real app, this would save to the database
-    const cartItem: CartItem = {
-      id: Date.now().toString(),
-      productId,
-      product,
-      quantity,
-      userId,
-    };
-    
-    return { success: true, data: cartItem };
   },
 
-  async updateCartItem(itemId: string, quantity: number): Promise<ApiResponse<CartItem>> {
-    await delay(200);
-    // In a real app, this would update the database
-    return { success: true, data: {} as CartItem };
+  async updateCartItem(itemId: string, quantity: number): Promise<ApiResponse<CartItem[]>> {
+    try {
+      const response = await httpClient.put<any>(API_CONFIG.ENDPOINTS.CART.UPDATE(itemId), { quantity });
+      return { success: true, data: normalizeCartItems(response.data) };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
   },
 
   async removeFromCart(itemId: string): Promise<ApiResponse<void>> {
-    await delay(200);
-    // In a real app, this would remove from the database
-    return { success: true };
+    try {
+      await httpClient.delete(API_CONFIG.ENDPOINTS.CART.REMOVE(itemId));
+      return { success: true };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
   },
 
   // Wishlist
-  async getWishlist(userId: string): Promise<ApiResponse<WishlistItem[]>> {
-    await delay(200);
-    return { success: true, data: [] };
-  },
-
-  async addToWishlist(userId: string, productId: string): Promise<ApiResponse<WishlistItem>> {
-    await delay(300);
-    const product = products.find(p => p.id === productId);
-    
-    if (!product) {
-      return { success: false, error: 'Product not found' };
+  async getWishlist(_userId: string): Promise<ApiResponse<WishlistItem[]>> {
+    try {
+      const response = await httpClient.get<any>(API_CONFIG.ENDPOINTS.WISHLIST.GET);
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      return { success: false, error: error.message };
     }
-    
-    const wishlistItem: WishlistItem = {
-      id: Date.now().toString(),
-      userId,
-      productId,
-      product,
-      createdAt: new Date(),
-    };
-    
-    return { success: true, data: wishlistItem };
   },
 
-  async removeFromWishlist(itemId: string): Promise<ApiResponse<void>> {
-    await delay(200);
-    return { success: true };
+  async addToWishlist(_userId: string, productId: string): Promise<ApiResponse<void>> {
+    try {
+      await httpClient.post(API_CONFIG.ENDPOINTS.WISHLIST.ADD, { productId });
+      return { success: true };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  },
+
+  async removeFromWishlist(productId: string): Promise<ApiResponse<void>> {
+    try {
+      await httpClient.delete(API_CONFIG.ENDPOINTS.WISHLIST.REMOVE(productId));
+      return { success: true };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
   },
 
   // Orders
-  async getOrders(userId: string): Promise<ApiResponse<Order[]>> {
-    await delay(300);
-    const userOrders = orders.filter(o => o.userId === userId);
-    return { success: true, data: userOrders };
+  async getOrders(_userId: string): Promise<ApiResponse<Order[]>> {
+    try {
+      const response = await httpClient.get<any>(API_CONFIG.ENDPOINTS.ORDERS.LIST);
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
   },
 
   async getOrder(id: string): Promise<ApiResponse<Order>> {
-    await delay(200);
-    const order = orders.find(o => o.id === id);
-    
-    if (!order) {
-      return { success: false, error: 'Order not found' };
+    try {
+      const response = await httpClient.get<any>(API_CONFIG.ENDPOINTS.ORDERS.DETAIL(id));
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      return { success: false, error: error.message };
     }
-    
-    return { success: true, data: order };
   },
 
-  async createOrder(orderData: Partial<Order>): Promise<ApiResponse<Order>> {
-    await delay(500);
-    // In a real app, this would create the order in the database
-    const newOrder: Order = {
-      id: Date.now().toString(),
-      ...orderData,
-    } as Order;
-    
-    return { success: true, data: newOrder };
+  async createOrder(orderData: {
+    shippingAddress: Record<string, string>;
+    paymentMethod?: string;
+    couponCode?: string;
+  }): Promise<ApiResponse<any>> {
+    try {
+      const response = await httpClient.post<any>(API_CONFIG.ENDPOINTS.ORDERS.CREATE, orderData);
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  },
+
+  async verifyPayment(payload: {
+    orderId: string;
+    razorpayPaymentId: string;
+    razorpayOrderId: string;
+    razorpaySignature: string;
+  }): Promise<ApiResponse<Order>> {
+    try {
+      const response = await httpClient.post<any>(API_CONFIG.ENDPOINTS.ORDERS.VERIFY_PAYMENT, payload);
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  },
+
+  async cancelOrder(orderId: string): Promise<ApiResponse<Order>> {
+    try {
+      const response = await httpClient.patch<any>(API_CONFIG.ENDPOINTS.ORDERS.CANCEL(orderId));
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
   },
 
   // Reviews
   async getProductReviews(productId: string): Promise<ApiResponse<Review[]>> {
-    await delay(200);
-    const productReviews = reviews.filter(r => r.productId === productId);
-    return { success: true, data: productReviews };
+    try {
+      const response = await httpClient.get<any>(API_CONFIG.ENDPOINTS.REVIEWS.BY_PRODUCT(productId));
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
   },
 
-  async createReview(reviewData: Partial<Review>): Promise<ApiResponse<Review>> {
-    await delay(300);
-    const newReview: Review = {
-      id: Date.now().toString(),
-      ...reviewData,
-    } as Review;
-    
-    return { success: true, data: newReview };
+  async createReview(reviewData: {
+    productId: string;
+    orderId: string;
+    rating: number;
+    title?: string;
+    comment: string;
+  }): Promise<ApiResponse<Review>> {
+    try {
+      const response = await httpClient.post<any>(API_CONFIG.ENDPOINTS.REVIEWS.CREATE, reviewData);
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
   },
 
   // Coupons
-  async validateCoupon(code: string): Promise<ApiResponse<Coupon>> {
-    await delay(200);
-    const coupon = coupons.find(c => c.code === code && c.isActive);
-    
-    if (!coupon) {
-      return { success: false, error: 'Invalid or expired coupon' };
+  async validateCoupon(code: string, orderAmount?: number): Promise<ApiResponse<Coupon>> {
+    try {
+      const response = await httpClient.post<any>(API_CONFIG.ENDPOINTS.COUPONS.VALIDATE, { code, orderAmount });
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      return { success: false, error: error.message };
     }
-    
-    if (coupon.validUntil < new Date()) {
-      return { success: false, error: 'Coupon has expired' };
-    }
-    
-    if (coupon.usageLimit && coupon.usedCount >= coupon.usageLimit) {
-      return { success: false, error: 'Coupon usage limit reached' };
-    }
-    
-    return { success: true, data: coupon };
   },
 
-  // Auth - Real API Integration
+  // Notifications
+  async getNotifications(): Promise<ApiResponse<any[]>> {
+    try {
+      const response = await httpClient.get<any>(API_CONFIG.ENDPOINTS.NOTIFICATIONS.LIST);
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  },
+
+  async markNotificationRead(id: string): Promise<ApiResponse<void>> {
+    try {
+      await httpClient.patch(API_CONFIG.ENDPOINTS.NOTIFICATIONS.READ(id));
+      return { success: true };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  },
+
+  // Returns
+  async createReturnRequest(data: {
+    orderId: string;
+    orderItemId: string;
+    reason: string;
+    description?: string;
+  }): Promise<ApiResponse<any>> {
+    try {
+      const response = await httpClient.post<any>(API_CONFIG.ENDPOINTS.RETURNS.CREATE, data);
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  },
+
+  async getUserReturns(): Promise<ApiResponse<any[]>> {
+    try {
+      const response = await httpClient.get<any>(API_CONFIG.ENDPOINTS.RETURNS.LIST);
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  },
+
+  // Profile
+  async getProfile(): Promise<ApiResponse<User>> {
+    try {
+      const response = await httpClient.get<any>(API_CONFIG.ENDPOINTS.PROFILE.GET);
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  },
+
+  async updateProfile(data: { name?: string; phone?: string }): Promise<ApiResponse<User>> {
+    try {
+      const response = await httpClient.put<any>(API_CONFIG.ENDPOINTS.PROFILE.UPDATE, data);
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  },
+
+  async getAddresses(): Promise<ApiResponse<any[]>> {
+    try {
+      const response = await httpClient.get<any>(API_CONFIG.ENDPOINTS.PROFILE.ADDRESSES);
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  },
+
+  async addAddress(address: any): Promise<ApiResponse<any[]>> {
+    try {
+      const response = await httpClient.post<any>(API_CONFIG.ENDPOINTS.PROFILE.ADDRESSES, address);
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  },
+
+  async updateAddress(addressId: string, data: any): Promise<ApiResponse<any[]>> {
+    try {
+      const response = await httpClient.put<any>(API_CONFIG.ENDPOINTS.PROFILE.ADDRESS(addressId), data);
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  },
+
+  async deleteAddress(addressId: string): Promise<ApiResponse<any[]>> {
+    try {
+      const response = await httpClient.delete<any>(API_CONFIG.ENDPOINTS.PROFILE.ADDRESS(addressId));
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  },
+
+  // Auth
   async login(email: string, password: string): Promise<ApiResponse<User & { accessToken?: string; refreshToken?: string }>> {
     try {
       const response = await httpClient.post<{
         success: boolean;
-        data?: {
-          user: User;
-          accessToken: string;
-          refreshToken: string;
-        };
+        data?: { user: User; accessToken: string; refreshToken: string };
         error?: string;
+        message?: string;
       }>(API_CONFIG.ENDPOINTS.AUTH.LOGIN, { email, password });
 
       if (response.success && response.data) {
-        // Store access token in localStorage
         localStorage.setItem('accessToken', response.data.accessToken);
         localStorage.setItem('refreshToken', response.data.refreshToken);
-
-        // Return user data with tokens
         return {
           success: true,
           data: {
@@ -277,8 +368,7 @@ export const api = {
           },
         };
       }
-
-      return { success: false, error: response.error || 'Login failed' };
+      return { success: false, error: response.error || response.message || 'Login failed' };
     } catch (error: any) {
       return { success: false, error: error.message || 'An error occurred during login' };
     }
@@ -288,11 +378,7 @@ export const api = {
     try {
       const response = await httpClient.post<{
         success: boolean;
-        data?: {
-          user: User;
-          accessToken: string;
-          refreshToken: string;
-        };
+        data?: { user: User; accessToken: string; refreshToken: string };
         error?: string;
         message?: string;
       }>(API_CONFIG.ENDPOINTS.AUTH.SIGNUP, {
@@ -302,11 +388,8 @@ export const api = {
       });
 
       if (response.success && response.data) {
-        // Store access token in localStorage
         localStorage.setItem('accessToken', response.data.accessToken);
         localStorage.setItem('refreshToken', response.data.refreshToken);
-
-        // Return user data with tokens
         return {
           success: true,
           data: {
@@ -316,132 +399,101 @@ export const api = {
           },
         };
       }
-
-      return { success: false, error: response.error || 'Registration failed' };
+      return { success: false, error: response.error || response.message || 'Registration failed' };
     } catch (error: any) {
       return { success: false, error: error.message || 'An error occurred during registration' };
     }
   },
 
-  /**
-   * Logout user
-   */
   async logout(): Promise<ApiResponse<void>> {
     try {
       await httpClient.post(API_CONFIG.ENDPOINTS.AUTH.LOGOUT);
-      
-      // Clear tokens from localStorage
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('refreshToken');
-      localStorage.removeItem('user');
-
-      return { success: true };
-    } catch (error: any) {
-      // Even if the API call fails, clear local tokens
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('refreshToken');
-      localStorage.removeItem('user');
-      
-      return { success: true };
-    }
+    } catch {}
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('refreshToken');
+    localStorage.removeItem('user');
+    return { success: true };
   },
 
-  /**
-   * Get current user
-   */
   async getCurrentUser(): Promise<ApiResponse<User>> {
     try {
-      const response = await httpClient.get<{
-        success: boolean;
-        data?: User;
-        error?: string;
-      }>(API_CONFIG.ENDPOINTS.AUTH.ME);
-
-      return response;
+      const response = await httpClient.get<{ success: boolean; data?: User }>(API_CONFIG.ENDPOINTS.AUTH.ME);
+      return { success: true, data: response.data };
     } catch (error: any) {
-      return { success: false, error: error.message || 'Failed to get user data' };
+      return { success: false, error: error.message };
     }
   },
 
-  /**
-   * Refresh access token
-   */
   async refreshToken(): Promise<ApiResponse<{ accessToken: string; refreshToken: string }>> {
     try {
       const refreshToken = localStorage.getItem('refreshToken');
-      
-      if (!refreshToken) {
-        return { success: false, error: 'No refresh token available' };
-      }
+      if (!refreshToken) return { success: false, error: 'No refresh token available' };
 
       const response = await httpClient.post<{
         success: boolean;
-        data?: {
-          accessToken: string;
-          refreshToken: string;
-        };
+        data?: { accessToken: string; refreshToken: string };
         error?: string;
       }>(API_CONFIG.ENDPOINTS.AUTH.REFRESH, { refreshToken });
 
       if (response.success && response.data) {
-        // Update tokens in localStorage
         localStorage.setItem('accessToken', response.data.accessToken);
         localStorage.setItem('refreshToken', response.data.refreshToken);
-
         return { success: true, data: response.data };
       }
-
       return { success: false, error: response.error || 'Failed to refresh token' };
     } catch (error: any) {
-      return { success: false, error: error.message || 'An error occurred while refreshing token' };
+      return { success: false, error: error.message };
     }
   },
 
-  // Admin functions
+  // Admin
   async getAdminStats(): Promise<ApiResponse<{
     totalUsers: number;
     totalOrders: number;
     totalRevenue: number;
     totalProducts: number;
+    totalCategories: number;
   }>> {
-    await delay(300);
-    
-    const totalRevenue = orders.reduce((sum, order) => sum + order.total, 0);
-    
-    return {
-      success: true,
-      data: {
-        totalUsers: users.length,
-        totalOrders: orders.length,
-        totalRevenue,
-        totalProducts: products.length,
-      },
-    };
-  },
-
-  async getAdminOrders(): Promise<ApiResponse<Order[]>> {
-    await delay(300);
-    return { success: true, data: orders };
-  },
-
-  async updateOrderStatus(orderId: string, status: string): Promise<ApiResponse<Order>> {
-    await delay(300);
-    const order = orders.find(o => o.id === orderId);
-    
-    if (!order) {
-      return { success: false, error: 'Order not found' };
+    try {
+      const response = await httpClient.get<any>(API_CONFIG.ENDPOINTS.ADMIN.STATS);
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      return { success: false, error: error.message };
     }
-    
-    order.status = status as any;
-    order.updatedAt = new Date();
-    
-    return { success: true, data: order };
+  },
+
+  async getAdminOrders(page = 1, status?: string): Promise<ApiResponse<Order[]>> {
+    try {
+      const params = new URLSearchParams({ page: String(page) });
+      if (status) params.set('status', status);
+      const response = await httpClient.get<any>(`${API_CONFIG.ENDPOINTS.ADMIN.ORDERS}?${params}`);
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  },
+
+  async updateOrderStatus(orderId: string, status: string, trackingNumber?: string): Promise<ApiResponse<Order>> {
+    try {
+      const response = await httpClient.patch<any>(
+        API_CONFIG.ENDPOINTS.ADMIN.ORDER_STATUS(orderId),
+        { status, trackingNumber }
+      );
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  },
+
+  async getAdminUsers(page = 1, search?: string): Promise<ApiResponse<User[]>> {
+    try {
+      const params = new URLSearchParams({ page: String(page) });
+      if (search) params.set('search', search);
+      const response = await httpClient.get<any>(`${API_CONFIG.ENDPOINTS.ADMIN.USERS}?${params}`);
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
   },
 };
-
-// Import dummy data
-import { products, categories, users, orders, reviews, coupons } from '@/data/dummyData';
-
-
-
 

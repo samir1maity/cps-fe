@@ -193,33 +193,6 @@ const LoginPageContent: React.FC = () => {
             </button>
           </div>
 
-          <div className="mt-6">
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-300" />
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-gray-50 text-gray-500">Demo accounts</span>
-              </div>
-            </div>
-
-            <div className="mt-6 grid grid-cols-1 gap-3">
-              <button
-                type="button"
-                onClick={() => onSubmit({ email: 'admin@example.com', password: 'password' })}
-                className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
-              >
-                Login as Admin
-              </button>
-              <button
-                type="button"
-                onClick={() => onSubmit({ email: 'john@example.com', password: 'password' })}
-                className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
-              >
-                Login as User
-              </button>
-            </div>
-          </div>
         </form>
       </div>
     </div>
@@ -239,7 +212,6 @@ const LoginPage: React.FC = () => {
 };
 
 export default LoginPage;
-
 
 
 
