@@ -99,7 +99,7 @@ const HomePageClient: React.FC = () => {
     <div className="min-h-screen">
       <Carousel slides={carouselSlides} autoSlideInterval={5000} transitionDuration={500} />
 
-      <section className="bg-white border-b border-stone-200">
+      {/* <section className="bg-white border-b border-stone-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="max-w-4xl">
             <p className="text-xs tracking-[0.3em] uppercase text-[var(--brand-600)]">Creative Pottery Studio</p>
@@ -130,7 +130,7 @@ const HomePageClient: React.FC = () => {
             </div>
           </div>
         </div>
-      </section>
+      </section> */}
 
       <section className="py-16 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

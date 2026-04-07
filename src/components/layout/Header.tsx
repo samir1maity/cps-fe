@@ -2,6 +2,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { Search, ShoppingCart, User, Menu, X } from 'lucide-react';
@@ -35,7 +36,14 @@ const Header: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
-          <Link href="/" className="flex items-center max-w-[60vw]">
+          <Link href="/" className="flex items-center gap-2 max-w-[60vw]">
+            <Image
+              src="/favcon.png"
+              alt="Creative Pottery Studio"
+              width={30}
+              height={30}
+              className="h-8 w-8 rounded-sm shrink-0"
+            />
             <span className="text-xl sm:text-2xl font-bold text-[var(--brand-600)] truncate">creativepotterystudio</span>
           </Link>
 

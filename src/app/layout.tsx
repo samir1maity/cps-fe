@@ -11,6 +11,11 @@ const inter = Inter({ subsets: ['latin'] });
 export const metadata: Metadata = {
   metadataBase: new URL(getSiteUrl()),
   applicationName: siteConfig.name,
+  icons: {
+    icon: '/favcon.png',
+    shortcut: '/favcon.png',
+    apple: '/favcon.png',
+  },
   title: {
     default: `${siteConfig.name} | ${siteConfig.title}`,
     template: `%s | ${siteConfig.name}`,

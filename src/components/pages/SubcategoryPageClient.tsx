@@ -103,9 +103,9 @@ const SubcategoryPageClient: React.FC = () => {
           <h1 className="mt-1 text-3xl sm:text-4xl font-semibold text-stone-900">
             {category.name} / {subcategory.name}
           </h1>
-          {subcategory.description && (
+          {/* {subcategory.description && (
             <p className="mt-2 text-stone-600 max-w-2xl text-sm sm:text-base">{subcategory.description}</p>
-          )}
+          )} */}
           <p className="mt-3 text-sm leading-7 text-stone-600 max-w-3xl">
             Browse {subcategory.name.toLowerCase()} inside our {category.name.toLowerCase()} collection
             to compare handcrafted options, review product descriptions, and filter down to the right
