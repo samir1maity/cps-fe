@@ -152,7 +152,7 @@ The application is designed with a mobile-first approach featuring:
 - Responsive breakpoints: sm, md, lg, xl
 
 ### Data Management
-- Currently uses dummy data in `data/dummyData.ts`
+- Uses the API client in `lib/api/index.ts` for frontend data fetching
 - Easy to integrate with real APIs
 - Context providers for state management
 
