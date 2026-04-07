@@ -12,9 +12,11 @@ export const metadata: Metadata = {
   metadataBase: new URL(getSiteUrl()),
   applicationName: siteConfig.name,
   icons: {
-    icon: '/favcon.png',
-    shortcut: '/favcon.png',
-    apple: '/favcon.png',
+    icon: [
+      { url: '/favicon.ico?v=2', sizes: 'any' },
+    ],
+    shortcut: '/favicon.ico?v=2',
+    apple: '/favicon.ico?v=2',
   },
   title: {
     default: `${siteConfig.name} | ${siteConfig.title}`,
