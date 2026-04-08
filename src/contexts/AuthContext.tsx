@@ -77,7 +77,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const login = async (email: string, password: string) => {
     try {
-      setLoading(true);
       const response = await api.login(email, password);
       
       if (response.success && response.data) {
@@ -94,14 +93,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
     } catch (error) {
       return { success: false, error: 'An error occurred during login' };
-    } finally {
-      setLoading(false);
     }
   };
 
   const register = async (userData: Partial<User> & { password: string }) => {
     try {
-      setLoading(true);
       const response = await api.register(userData);
       
       if (response.success) {
@@ -111,8 +107,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
     } catch (error) {
       return { success: false, error: 'An error occurred during registration' };
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -149,7 +143,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     </AuthContext.Provider>
   );
 };
-
 
 
 
