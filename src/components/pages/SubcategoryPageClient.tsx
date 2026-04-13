@@ -98,18 +98,13 @@ const SubcategoryPageClient: React.FC = () => {
   return (
     <div className="min-h-screen bg-[#F7F2EA] py-6">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="mb-6">
-          <p className="text-xs tracking-widest uppercase text-amber-700/70">Collection</p>
-          <h1 className="mt-1 text-3xl sm:text-4xl font-semibold text-stone-900">
+        <div className="mb-4 space-y-1">
+          <p className="text-[10px] tracking-[0.22em] uppercase text-amber-700/70">Collection</p>
+          <h1 className="text-xl sm:text-2xl font-semibold leading-tight text-stone-900">
             {category.name} / {subcategory.name}
           </h1>
-          {/* {subcategory.description && (
-            <p className="mt-2 text-stone-600 max-w-2xl text-sm sm:text-base">{subcategory.description}</p>
-          )} */}
-          <p className="mt-3 text-sm leading-7 text-stone-600 max-w-3xl">
-            Browse {subcategory.name.toLowerCase()} inside our {category.name.toLowerCase()} collection
-            to compare handcrafted options, review product descriptions, and filter down to the right
-            size, style, and budget.
+          <p className="text-xs text-stone-600">
+            {products.length} {products.length === 1 ? 'product' : 'products'}
           </p>
         </div>
 

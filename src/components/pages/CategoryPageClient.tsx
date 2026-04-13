@@ -108,19 +108,12 @@ const CategoryPageClient: React.FC = () => {
   return (
     <div className="min-h-screen bg-[#F7F2EA] py-6">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="mb-6">
-          <p className="text-xs tracking-widest uppercase text-amber-700/70">Collection</p>
-          <h1 className="mt-1 text-3xl sm:text-4xl font-semibold text-stone-900">
+        <div className="mb-4 space-y-1">
+          <p className="text-[10px] tracking-[0.22em] uppercase text-amber-700/70">Collection</p>
+          <h1 className="text-xl sm:text-2xl font-semibold leading-tight text-stone-900">
             {category?.name || 'Loading...'}
           </h1>
-          {category?.description && (
-            <p className="mt-2 text-stone-600 max-w-2xl text-sm sm:text-base">{category.description}</p>
-          )}
-          <p className="mt-3 text-sm leading-7 text-stone-600 max-w-3xl">
-            Explore handcrafted {category?.name?.toLowerCase() || 'pottery'} with product filters,
-            direct category navigation, and clear product cards that make it easier to compare
-            materials, style, and price before you buy.
-          </p>
+          <p className="text-xs text-stone-600">{total} {total === 1 ? 'product' : 'products'}</p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">

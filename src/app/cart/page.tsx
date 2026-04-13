@@ -15,17 +15,23 @@ const CartPage: React.FC = () => {
 
   if (!user) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <ShoppingBag className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Your cart is empty</h2>
-          <p className="text-gray-600 mb-6">Please login to view your cart</p>
-          <Link
-            href="/login"
-            className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            Login
-          </Link>
+      <div className="min-h-screen bg-[#F7F2EA] px-4 py-8 pb-28 sm:px-6">
+        <div className="mx-auto flex min-h-[calc(100vh-13rem)] max-w-md items-center justify-center">
+          <div className="w-full rounded-2xl bg-white/80 px-6 py-10 text-center shadow-sm ring-1 ring-stone-200/70 backdrop-blur">
+            <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-stone-100">
+              <ShoppingBag className="h-10 w-10 text-stone-400" />
+            </div>
+            <h2 className="text-2xl font-semibold text-stone-900">Your cart is empty</h2>
+            <p className="mt-2 text-sm text-stone-600">Please login to view your cart</p>
+            <div className="mt-6">
+              <Link
+                href="/login"
+                className="inline-flex min-w-28 items-center justify-center rounded-xl bg-[var(--brand-600)] px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-[var(--brand-700)]"
+              >
+                Login
+              </Link>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -33,19 +39,23 @@ const CartPage: React.FC = () => {
 
   if (items.length === 0) {
     return (
-      <div className="min-h-screen bg-gray-50 py-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center py-16">
-            <ShoppingBag className="h-24 w-24 text-gray-400 mx-auto mb-6" />
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">Your cart is empty</h2>
-            <p className="text-gray-600 mb-8">Add some products to get started</p>
-            <Link
-              href="/"
-              className="bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 transition-colors inline-flex items-center"
-            >
-              <ArrowLeft className="h-5 w-5 mr-2" />
-              Continue Shopping
-            </Link>
+      <div className="min-h-screen bg-[#F7F2EA] px-4 py-8 pb-28 sm:px-6">
+        <div className="mx-auto flex min-h-[calc(100vh-13rem)] max-w-md items-center justify-center">
+          <div className="w-full rounded-2xl bg-white/80 px-6 py-10 text-center shadow-sm ring-1 ring-stone-200/70 backdrop-blur">
+            <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-stone-100">
+              <ShoppingBag className="h-10 w-10 text-stone-400" />
+            </div>
+            <h2 className="text-2xl font-semibold text-stone-900">Your cart is empty</h2>
+            <p className="mt-2 text-sm text-stone-600">Add some products to get started</p>
+            <div className="mt-6">
+              <Link
+                href="/"
+                className="inline-flex items-center justify-center rounded-xl bg-[var(--brand-600)] px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-[var(--brand-700)]"
+              >
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Continue Shopping
+              </Link>
+            </div>
           </div>
         </div>
       </div>
@@ -53,30 +63,30 @@ const CartPage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 pb-24">
+    <div className="min-h-screen bg-[#F7F2EA] py-4 pb-24 sm:py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center mb-8">
+        <div className="mb-5 flex items-center sm:mb-8">
           <Link
             href="/"
             className="text-gray-600 hover:text-gray-900 mr-4"
           >
-            <ArrowLeft className="h-6 w-6" />
+            <ArrowLeft className="h-5 w-5 sm:h-6 sm:w-6" />
           </Link>
-          <h1 className="text-3xl font-bold text-gray-900">Shopping Cart</h1>
+          <h1 className="text-2xl font-semibold text-stone-900 sm:text-3xl">Shopping Cart</h1>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Cart Items */}
           <div className="lg:col-span-2">
-            <div className="bg-white rounded-lg shadow-md overflow-hidden">
-              <div className="px-6 py-4 border-b border-gray-200">
+            <div className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-stone-200/70">
+              <div className="border-b border-stone-200/70 px-4 py-4 sm:px-6">
                 <h2 className="text-lg font-semibold text-gray-900">
                   Cart Items ({items.length})
                 </h2>
               </div>
-              <div className="divide-y divide-gray-200">
+              <div className="divide-y divide-stone-200/70">
                 {items.map((item) => (
-                  <div key={item.id} className="p-6">
+                  <div key={item.id} className="p-4 sm:p-6">
                     <div className="flex flex-col sm:flex-row sm:items-center gap-4">
                       <div className="flex-shrink-0">
                         <Image
@@ -84,7 +94,7 @@ const CartPage: React.FC = () => {
                           alt={item.product.name}
                           width={96}
                           height={96}
-                          className="rounded-lg object-cover w-24 h-24"
+                          className="h-20 w-20 rounded-xl object-cover sm:h-24 sm:w-24"
                         />
                       </div>
                       <div className="flex-1 min-w-0">
@@ -98,12 +108,12 @@ const CartPage: React.FC = () => {
                           {formatCurrency(item.product.price)}
                         </p>
                       </div>
-                      <div className="flex items-center justify-between sm:justify-start sm:space-x-3 w-full sm:w-auto">
-                        <div className="flex items-center border border-gray-300 rounded-lg">
+                      <div className="flex w-full items-center justify-between sm:w-auto sm:justify-start sm:space-x-3">
+                        <div className="flex items-center rounded-xl border border-stone-300 bg-stone-50">
                           <button
                             onClick={() => updateQuantity(item.id, item.quantity - 1)}
                             disabled={loading}
-                            className="p-2 text-gray-900 hover:bg-gray-100 disabled:opacity-50"
+                            className="p-2 text-gray-900 hover:bg-stone-100 disabled:opacity-50"
                           >
                             <Minus className="h-4 w-4" />
                           </button>
@@ -113,7 +123,7 @@ const CartPage: React.FC = () => {
                           <button
                             onClick={() => updateQuantity(item.id, item.quantity + 1)}
                             disabled={loading || !item.product.inStock}
-                            className="p-2 text-gray-900 hover:bg-gray-100 disabled:opacity-50"
+                            className="p-2 text-gray-900 hover:bg-stone-100 disabled:opacity-50"
                           >
                             <Plus className="h-4 w-4" />
                           </button>
@@ -121,7 +131,7 @@ const CartPage: React.FC = () => {
                         <button
                           onClick={() => removeFromCart(item.id)}
                           disabled={loading}
-                          className="p-2 text-red-600 hover:bg-red-50 rounded-lg disabled:opacity-50 ml-3 sm:ml-0"
+                          className="ml-3 rounded-xl p-2 text-red-600 transition-colors hover:bg-red-50 disabled:opacity-50 sm:ml-0"
                         >
                           <Trash2 className="h-5 w-5" />
                         </button>
@@ -135,7 +145,7 @@ const CartPage: React.FC = () => {
 
           {/* Order Summary */}
           <div className="lg:col-span-1">
-            <div className="bg-white rounded-lg shadow-md p-6 lg:sticky lg:top-8">
+            <div className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-stone-200/70 lg:sticky lg:top-8 sm:p-6">
               <h2 className="text-lg font-semibold text-gray-900 mb-4">
                 Order Summary
               </h2>
@@ -163,14 +173,14 @@ const CartPage: React.FC = () => {
 
               <Link
                 href="/checkout"
-                className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors text-center font-semibold block mb-4"
+                className="mb-4 block w-full rounded-xl bg-[var(--brand-600)] px-4 py-3 text-center font-semibold text-white transition-colors hover:bg-[var(--brand-700)]"
               >
                 Proceed to Checkout
               </Link>
               
               <Link
                 href="/"
-                className="w-full border border-gray-300 text-gray-700 py-3 px-4 rounded-lg hover:bg-gray-50 transition-colors text-center font-semibold block"
+                className="block w-full rounded-xl border border-stone-300 px-4 py-3 text-center font-semibold text-gray-700 transition-colors hover:bg-stone-50"
               >
                 Continue Shopping
               </Link>

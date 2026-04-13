@@ -17,6 +17,7 @@ const Header: React.FC = () => {
   const router = useRouter();
   const pathname = usePathname();
   const isMorePage = pathname?.startsWith('/more');
+  const shouldShowSearch = !isMorePage;
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,7 +49,7 @@ const Header: React.FC = () => {
           </Link>
 
           {/* Search Bar - Hidden on mobile and on More page */}
-          {!isMorePage && (
+          {shouldShowSearch && (
             <form onSubmit={handleSearch} className="hidden md:flex flex-1 max-w-lg mx-8">
               <div className="relative w-full">
                 <input
@@ -134,7 +135,7 @@ const Header: React.FC = () => {
         </div>
 
         {/* Mobile Search Bar - hidden on More page */}
-        {!isMorePage && (
+        {shouldShowSearch && (
           <div className="md:hidden pb-4 pt-2">
             <form onSubmit={handleSearch}>
               <div className="relative">

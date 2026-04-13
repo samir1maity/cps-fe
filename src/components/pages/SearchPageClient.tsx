@@ -14,12 +14,13 @@ import { formatCurrency } from '@/lib/utils/formatters';
 
 const SearchPageContent: React.FC = () => {
   const searchParams = useSearchParams();
+  const queryParam = searchParams.get('q') || '';
   const { addToCart } = useCart();
   const { requireAuthForCart, requireAuthForWishlist } = useRequireAuth();
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(false);
-  const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
+  const [searchQuery, setSearchQuery] = useState(queryParam);
   const [selectedCategory, setSelectedCategory] = useState('');
   const [sortBy, setSortBy] = useState('relevance');
   const [priceRange, setPriceRange] = useState({ min: '', max: '' });
@@ -34,8 +35,14 @@ const SearchPageContent: React.FC = () => {
   }, []);
 
   useEffect(() => {
+    setSearchQuery(queryParam);
+  }, [queryParam]);
+
+  useEffect(() => {
     if (searchQuery) {
       performSearch();
+    } else {
+      setProducts([]);
     }
   }, [searchQuery, selectedCategory, sortBy, priceRange]);
 
@@ -62,11 +69,6 @@ const SearchPageContent: React.FC = () => {
     }
   };
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    performSearch();
-  };
-
   const handleAddToCart = async (product: Product) => {
     if (!requireAuthForCart(product.id, 1)) {
       return;
@@ -91,29 +93,11 @@ const SearchPageContent: React.FC = () => {
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-8">
-          <form onSubmit={handleSearch} className="mb-6">
-            <div className="relative max-w-2xl">
-              <input
-                type="text"
-                placeholder="Search products..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-              <Search className="absolute left-4 top-3.5 h-6 w-6 text-gray-400" />
-            </div>
-          </form>
-
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">
+              <h1 className="text-sm font-medium text-gray-600">
                 {searchQuery ? `Search results for "${searchQuery}"` : 'Search Products'}
               </h1>
-              <p className="mt-2 text-sm text-gray-600 max-w-3xl">
-                Search handcrafted pottery, ceramic decor, artisan tableware, and gift-ready home
-                accents. Use filters to narrow by category or price and compare products with clear
-                descriptions and specifications.
-              </p>
             </div>
             <button
               onClick={() => setShowFilters(!showFilters)}
