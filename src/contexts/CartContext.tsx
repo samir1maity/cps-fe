@@ -63,7 +63,7 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
 
   const addToCart = async (product: Product, quantity: number = 1) => {
     if (!user) {
-      toast.error('Please login to add items to cart');
+      toast('Please login to add items to cart', { icon: '🔒' });
       return;
     }
 

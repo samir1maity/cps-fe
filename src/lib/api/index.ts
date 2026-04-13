@@ -1,15 +1,16 @@
 // src/lib/api/index.ts
-import { 
-  Product, 
-  Category, 
-  User, 
-  Order, 
-  Review, 
-  Coupon, 
-  CartItem, 
+import {
+  Product,
+  Category,
+  User,
+  Order,
+  Address,
+  Review,
+  Coupon,
+  CartItem,
   WishlistItem,
   ApiResponse,
-  PaginatedResponse 
+  PaginatedResponse,
 } from '@/lib/types';
 import { API_CONFIG } from '@/lib/config/api';
 import { HttpClient } from '@/lib/utils/httpClient';
@@ -31,6 +32,28 @@ const normalizeCartItems = (items: any[]): CartItem[] =>
     id: item.id ?? item._id,
     product: normalizeProduct(item.product),
   }));
+
+const normalizeAddress = (a: any): Address => ({
+  ...a,
+  id: a.id ?? a._id,
+});
+
+const normalizeOrder = (o: any): any => ({
+  ...o,
+  id: o.id ?? o._id,
+  shippingAddress: o.shippingAddress ? normalizeAddress(o.shippingAddress) : undefined,
+  items: (o.items ?? []).map((item: any) => ({
+    ...item,
+    id: item.id ?? item._id,
+    product: {
+      id: item.product ?? '',
+      name: item.name ?? '',
+      images: item.image ? [item.image] : [],
+      price: item.price ?? 0,
+    },
+    price: item.price ?? 0,
+  })),
+});
 
 export const api = {
   // Products
@@ -162,7 +185,7 @@ export const api = {
   async getOrders(_userId: string): Promise<ApiResponse<Order[]>> {
     try {
       const response = await httpClient.get<any>(API_CONFIG.ENDPOINTS.ORDERS.LIST);
-      return { success: true, data: response.data };
+      return { success: true, data: (response.data ?? []).map(normalizeOrder) };
     } catch (error: any) {
       return { success: false, error: error.message };
     }
@@ -171,14 +194,16 @@ export const api = {
   async getOrder(id: string): Promise<ApiResponse<Order>> {
     try {
       const response = await httpClient.get<any>(API_CONFIG.ENDPOINTS.ORDERS.DETAIL(id));
-      return { success: true, data: response.data };
+      return { success: true, data: normalizeOrder(response.data) };
     } catch (error: any) {
       return { success: false, error: error.message };
     }
   },
 
   async createOrder(orderData: {
-    shippingAddress: Record<string, string>;
+    addressId?: string;
+    shippingAddress?: Record<string, string>;
+    saveAddress?: boolean;
     paymentMethod?: string;
     couponCode?: string;
   }): Promise<ApiResponse<any>> {
@@ -310,37 +335,37 @@ export const api = {
     }
   },
 
-  async getAddresses(): Promise<ApiResponse<any[]>> {
+  async getAddresses(): Promise<ApiResponse<Address[]>> {
     try {
       const response = await httpClient.get<any>(API_CONFIG.ENDPOINTS.PROFILE.ADDRESSES);
-      return { success: true, data: response.data };
+      return { success: true, data: (response.data ?? []).map(normalizeAddress) };
     } catch (error: any) {
       return { success: false, error: error.message };
     }
   },
 
-  async addAddress(address: any): Promise<ApiResponse<any[]>> {
+  async addAddress(address: Omit<Address, 'id' | 'user'>): Promise<ApiResponse<Address>> {
     try {
       const response = await httpClient.post<any>(API_CONFIG.ENDPOINTS.PROFILE.ADDRESSES, address);
-      return { success: true, data: response.data };
+      return { success: true, data: normalizeAddress(response.data) };
     } catch (error: any) {
       return { success: false, error: error.message };
     }
   },
 
-  async updateAddress(addressId: string, data: any): Promise<ApiResponse<any[]>> {
+  async updateAddress(addressId: string, data: Partial<Omit<Address, 'id' | 'user'>>): Promise<ApiResponse<Address>> {
     try {
       const response = await httpClient.put<any>(API_CONFIG.ENDPOINTS.PROFILE.ADDRESS(addressId), data);
-      return { success: true, data: response.data };
+      return { success: true, data: normalizeAddress(response.data) };
     } catch (error: any) {
       return { success: false, error: error.message };
     }
   },
 
-  async deleteAddress(addressId: string): Promise<ApiResponse<any[]>> {
+  async deleteAddress(addressId: string): Promise<ApiResponse<void>> {
     try {
-      const response = await httpClient.delete<any>(API_CONFIG.ENDPOINTS.PROFILE.ADDRESS(addressId));
-      return { success: true, data: response.data };
+      await httpClient.delete(API_CONFIG.ENDPOINTS.PROFILE.ADDRESS(addressId));
+      return { success: true };
     } catch (error: any) {
       return { success: false, error: error.message };
     }

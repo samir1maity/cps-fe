@@ -7,15 +7,14 @@ export interface User {
   avatar?: string;
   phone?: string;
   isBlocked?: boolean;
-  addresses: Address[];
   createdAt: Date;
   updatedAt: Date;
 }
 
 export interface Address {
   id: string;
-  userId: string;
-  type: 'HOME' | 'WORK' | 'OTHER';
+  user: string;
+  label?: string;
   firstName: string;
   lastName: string;
   address1: string;
@@ -113,11 +112,8 @@ export type PaymentStatus =
   | 'FAILED'
   | 'REFUNDED';
 
-export type PaymentMethod = 
-  | 'CREDIT_CARD'
-  | 'DEBIT_CARD'
-  | 'PAYPAL'
-  | 'STRIPE'
+export type PaymentMethod =
+  | 'RAZORPAY'
   | 'CASH_ON_DELIVERY';
 
 export interface WishlistItem {

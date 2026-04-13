@@ -183,7 +183,17 @@ const OrdersPage: React.FC = () => {
                     ))}
                   </div>
 
-                  <div className="mt-6 pt-6 border-t border-gray-200">
+                  <div className="mt-6 pt-6 border-t border-gray-200 space-y-4">
+                    {order.shippingAddress && (
+                      <div className="text-sm text-gray-600">
+                        <p className="font-medium text-gray-800 mb-1">Shipping Address</p>
+                        <p>{(order.shippingAddress as any).firstName} {(order.shippingAddress as any).lastName}</p>
+                        <p>{(order.shippingAddress as any).address1}</p>
+                        <p>{(order.shippingAddress as any).city}, {(order.shippingAddress as any).state} – {(order.shippingAddress as any).zipCode}</p>
+                        <p>{(order.shippingAddress as any).country}</p>
+                        <p>{(order.shippingAddress as any).phone}</p>
+                      </div>
+                    )}
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-2">
                         {getStatusIcon(order.status)}

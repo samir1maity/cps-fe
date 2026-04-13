@@ -33,7 +33,7 @@ export const useRequireAuth = () => {
     }
 
     // Show message
-    toast.error(customMessage || 'Please login to continue');
+    toast(customMessage || 'Please login to continue', { icon: '🔒' });
 
     // Redirect to login
     router.push(createLoginRedirect(pathname || '/'));
