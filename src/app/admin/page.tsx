@@ -1,4 +1,3 @@
-// src/app/admin/page.tsx
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -7,14 +6,12 @@ import {
   Users,
   Package,
   DollarSign,
-  TrendingUp,
   ShoppingCart,
-  Eye,
-  Plus
+  TrendingUp,
+  ClipboardList,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { api } from '@/lib/api';
-import { Order } from '@/lib/types';
 import { formatCurrency } from '@/lib/utils/formatters';
 
 const AdminDashboard: React.FC = () => {
@@ -26,49 +23,26 @@ const AdminDashboard: React.FC = () => {
     totalRevenue: 0,
     totalProducts: 0,
   });
-  const [recentOrders, setRecentOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadDashboardData();
+    const load = async () => {
+      try {
+        const res = await api.getAdminStats();
+        if (res.success && res.data) setStats(res.data);
+      } catch (err) {
+        console.error('Failed to load dashboard stats:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
   }, []);
-
-  const loadDashboardData = async () => {
-    try {
-      setLoading(true);
-      const [statsResponse, ordersResponse] = await Promise.all([
-        api.getAdminStats(),
-        api.getAdminOrders(),
-      ]);
-
-      if (statsResponse.success && statsResponse.data) {
-        setStats(statsResponse.data);
-      }
-      if (ordersResponse.success && ordersResponse.data) {
-        setRecentOrders(ordersResponse.data.slice(0, 5));
-      }
-    } catch (error) {
-      console.error('Failed to load dashboard data:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleUpdateOrderStatus = async (orderId: string, status: string) => {
-    try {
-      const response = await api.updateOrderStatus(orderId, status);
-      if (response.success) {
-        loadDashboardData();
-      }
-    } catch (error) {
-      console.error('Failed to update order status:', error);
-    }
-  };
 
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600" />
       </div>
     );
   }
@@ -84,7 +58,7 @@ const AdminDashboard: React.FC = () => {
               <span className="text-sm text-gray-600">Welcome, {user?.name}</span>
               <button
                 onClick={() => router.push('/')}
-                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
               >
                 Back to Store
               </button>
@@ -96,151 +70,58 @@ const AdminDashboard: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <div className="flex items-center">
-              <div className="p-3 bg-blue-100 rounded-lg">
-                <Users className="h-6 w-6 text-blue-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Total Users</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.totalUsers}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <div className="flex items-center">
-              <div className="p-3 bg-green-100 rounded-lg">
-                <ShoppingCart className="h-6 w-6 text-green-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Total Orders</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.totalOrders}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <div className="flex items-center">
-              <div className="p-3 bg-yellow-100 rounded-lg">
-                <DollarSign className="h-6 w-6 text-yellow-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Total Revenue</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {formatCurrency(stats.totalRevenue)}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <div className="flex items-center">
-              <div className="p-3 bg-purple-100 rounded-lg">
-                <Package className="h-6 w-6 text-purple-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Total Products</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.totalProducts}</p>
-              </div>
-            </div>
-          </div>
+          <StatCard
+            icon={<Users className="h-6 w-6 text-blue-600" />}
+            bg="bg-blue-100"
+            label="Total Users"
+            value={stats.totalUsers}
+          />
+          <StatCard
+            icon={<ShoppingCart className="h-6 w-6 text-green-600" />}
+            bg="bg-green-100"
+            label="Total Orders"
+            value={stats.totalOrders}
+          />
+          <StatCard
+            icon={<DollarSign className="h-6 w-6 text-yellow-600" />}
+            bg="bg-yellow-100"
+            label="Total Revenue"
+            value={formatCurrency(stats.totalRevenue)}
+          />
+          <StatCard
+            icon={<Package className="h-6 w-6 text-purple-600" />}
+            bg="bg-purple-100"
+            label="Total Products"
+            value={stats.totalProducts}
+          />
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Recent Orders */}
-          <div className="bg-white rounded-lg shadow-md">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900">Recent Orders</h3>
-            </div>
-            <div className="divide-y divide-gray-200">
-              {recentOrders.map((order) => (
-                <div key={order.id} className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">
-                        Order #{order.id}
-                      </p>
-                      <p className="text-sm text-gray-600">
-                        {order.user.name} • {formatCurrency(order.total)}
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        {new Date(order.createdAt).toLocaleDateString()}
-                      </p>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <select
-                        value={order.status}
-                        onChange={(e) => handleUpdateOrderStatus(order.id, e.target.value)}
-                        className="text-sm border border-gray-300 rounded-md px-2 py-1"
-                      >
-                        <option value="PENDING">Pending</option>
-                        <option value="CONFIRMED">Confirmed</option>
-                        <option value="PROCESSING">Processing</option>
-                        <option value="SHIPPED">Shipped</option>
-                        <option value="DELIVERED">Delivered</option>
-                        <option value="CANCELLED">Cancelled</option>
-                      </select>
-                      <button className="text-blue-600 hover:text-blue-700">
-                        <Eye className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
+        {/* Quick Actions — full width */}
+        <div className="bg-white rounded-lg shadow-md">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <h3 className="text-lg font-semibold text-gray-900">Quick Actions</h3>
           </div>
-
-          {/* Quick Actions */}
-          <div className="bg-white rounded-lg shadow-md">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900">Quick Actions</h3>
-            </div>
-            <div className="p-6 space-y-4">
-              <button
-                onClick={() => router.push('/admin/products?action=new')}
-                className="w-full flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                <div className="flex items-center space-x-3">
-                  <Plus className="h-5 w-5 text-blue-600" />
-                  <span className="font-medium text-gray-900">Add New Product</span>
-                </div>
-                <span className="text-gray-600">→</span>
-              </button>
-
-              <button
-                onClick={() => router.push('/admin/users')}
-                className="w-full flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                <div className="flex items-center space-x-3">
-                  <Users className="h-5 w-5 text-green-600" />
-                  <span className="font-medium text-gray-900">Manage Users</span>
-                </div>
-                <span className="text-gray-600">→</span>
-              </button>
-
-              <button
-                onClick={() => router.push('/admin/products')}
-                className="w-full flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                <div className="flex items-center space-x-3">
-                  <Package className="h-5 w-5 text-purple-600" />
-                  <span className="font-medium text-gray-900">Manage Products</span>
-                </div>
-                <span className="text-gray-600">→</span>
-              </button>
-
-              <button
-                onClick={() => router.push('/admin/categories')}
-                className="w-full flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                <div className="flex items-center space-x-3">
-                  <TrendingUp className="h-5 w-5 text-yellow-600" />
-                  <span className="font-medium text-gray-900">Manage Categories</span>
-                </div>
-                <span className="text-gray-600">→</span>
-              </button>
-            </div>
+          <div className="p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <QuickAction
+              icon={<ClipboardList className="h-5 w-5 text-orange-600" />}
+              label="Manage Orders"
+              onClick={() => router.push('/admin/orders')}
+            />
+            <QuickAction
+              icon={<Users className="h-5 w-5 text-green-600" />}
+              label="Manage Users"
+              onClick={() => router.push('/admin/users')}
+            />
+            <QuickAction
+              icon={<Package className="h-5 w-5 text-purple-600" />}
+              label="Manage Products"
+              onClick={() => router.push('/admin/products')}
+            />
+            <QuickAction
+              icon={<TrendingUp className="h-5 w-5 text-yellow-600" />}
+              label="Manage Categories"
+              onClick={() => router.push('/admin/categories')}
+            />
           </div>
         </div>
       </div>
@@ -248,9 +129,53 @@ const AdminDashboard: React.FC = () => {
   );
 };
 
+// ── Sub-components ─────────────────────────────────────────────────────────────
+
+function StatCard({
+  icon,
+  bg,
+  label,
+  value,
+}: {
+  icon: React.ReactNode;
+  bg: string;
+  label: string;
+  value: string | number;
+}) {
+  return (
+    <div className="bg-white rounded-lg shadow-md p-6">
+      <div className="flex items-center">
+        <div className={`p-3 ${bg} rounded-lg`}>{icon}</div>
+        <div className="ml-4">
+          <p className="text-sm font-medium text-gray-600">{label}</p>
+          <p className="text-2xl font-bold text-gray-900">{value}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function QuickAction({
+  icon,
+  label,
+  onClick,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+    >
+      <div className="flex items-center space-x-3">
+        {icon}
+        <span className="font-medium text-gray-900">{label}</span>
+      </div>
+      <span className="text-gray-400">→</span>
+    </button>
+  );
+}
+
 export default AdminDashboard;
-
-
-
-
-

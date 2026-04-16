@@ -492,7 +492,8 @@ export const api = {
       const params = new URLSearchParams({ page: String(page) });
       if (status) params.set('status', status);
       const response = await httpClient.get<any>(`${API_CONFIG.ENDPOINTS.ADMIN.ORDERS}?${params}`);
-      return { success: true, data: response.data };
+      const orders = (response.data ?? []).map((o: any) => ({ ...o, id: o.id ?? o._id }));
+      return { success: true, data: orders };
     } catch (error: any) {
       return { success: false, error: error.message };
     }
