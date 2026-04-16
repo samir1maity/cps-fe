@@ -65,50 +65,52 @@ const Header: React.FC = () => {
           )}
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-4">
+          <div className="hidden md:flex items-center gap-1">
+            {/* Cart */}
             <Link
               href="/cart"
-              className="relative p-2 text-gray-600 hover:text-[var(--brand-600)] transition-colors"
+              className="relative p-2.5 rounded-xl text-gray-500 hover:text-[var(--brand-600)] hover:bg-[var(--brand-50)] transition-colors"
+              title="Cart"
             >
-              <ShoppingCart className="h-6 w-6" />
+              <ShoppingCart className="h-5 w-5" />
               {getTotalItems() > 0 && (
-                <span className="absolute -top-1 -right-1 bg-[var(--brand-600)] text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                <span className="absolute -top-0.5 -right-0.5 bg-[var(--brand-600)] text-white text-[10px] font-bold rounded-full h-4 w-4 flex items-center justify-center">
                   {getTotalItems()}
                 </span>
               )}
             </Link>
 
             {user ? (
-              <div className="flex items-center space-x-4">
+              <>
                 <Link
                   href={user.role === 'ADMIN' ? '/admin' : '/profile'}
-                  className="flex items-center space-x-2 text-gray-600 hover:text-[var(--brand-600)] transition-colors"
+                  className="p-2.5 rounded-xl text-gray-500 hover:text-[var(--brand-600)] hover:bg-[var(--brand-50)] transition-colors"
+                  title={user.name}
                 >
-                  <User className="h-6 w-6" />
-                  <span className="hidden lg:block">{user.name}</span>
+                  <User className="h-5 w-5" />
                 </Link>
                 <button
                   onClick={handleLogout}
-                  className="text-gray-600 hover:text-[var(--brand-600)] transition-colors"
+                  className="ml-1 px-4 py-2 rounded-xl text-sm font-medium text-gray-500 border border-gray-200 hover:border-red-300 hover:text-red-500 hover:bg-red-50 transition-colors"
                 >
                   Logout
                 </button>
-              </div>
+              </>
             ) : (
-              <div className="flex items-center space-x-4">
+              <>
                 <Link
                   href="/login"
-                  className="text-gray-600 hover:text-[var(--brand-600)] transition-colors"
+                  className="px-4 py-2 rounded-xl text-sm font-medium text-gray-600 border border-gray-200 hover:border-[var(--brand-600)] hover:text-[var(--brand-600)] hover:bg-[var(--brand-50)] transition-colors"
                 >
                   Login
                 </Link>
                 <Link
                   href="/register"
-                  className="bg-[var(--brand-600)] text-white px-4 py-2 rounded-lg hover:bg-[var(--brand-700)] transition-colors"
+                  className="px-4 py-2 rounded-xl text-sm font-medium bg-[var(--brand-600)] text-white hover:bg-[var(--brand-700)] transition-colors"
                 >
                   Sign Up
                 </Link>
-              </div>
+              </>
             )}
           </div>
 
