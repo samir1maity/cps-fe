@@ -81,6 +81,12 @@ export const API_CONFIG = {
       UPDATE: (id: string) => `${BASE}/products/${id}`,
       DELETE: (id: string) => `${BASE}/products/${id}`,
     },
+    UPLOAD: {
+      // Request a pre-signed S3 PUT URL + key for a direct browser-to-S3 upload.
+      PRESIGN: `${BASE}/upload/presign`,
+      // Request a short-lived signed GET URL to display a private object.
+      SIGN: (key: string) => `${BASE}/upload/sign/${key}`,
+    },
     HEALTH: '/health',
   },
 };

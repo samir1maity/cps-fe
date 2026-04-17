@@ -11,6 +11,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { api } from '@/lib/api';
 import { Address, Order, OrderStatus } from '@/lib/types';
 import { formatCurrency } from '@/lib/utils/formatters';
+import { uploadToS3 } from '@/lib/hooks/useS3Upload';
+import { useSignedUrl } from '@/lib/hooks/useSignedUrls';
 import Image from 'next/image';
 import toast from 'react-hot-toast';
 
@@ -165,6 +167,14 @@ const ProfilePage: React.FC = () => {
   const [showAddForm, setShowAddForm]               = useState(false);
   const [editingAddress, setEditingAddress]         = useState<Address | null>(null);
 
+  // Settings tab state
+  const [settingsName, setSettingsName]   = useState('');
+  const [settingsPhone, setSettingsPhone] = useState('');
+  const [avatarFile, setAvatarFile]       = useState<File | null>(null);
+  const [savingSettings, setSavingSettings] = useState(false);
+  // Resolve the stored avatar key to a signed URL for display.
+  const avatarUrl = useSignedUrl((user as any)?.avatar ?? null);
+
   const loadOrders = useCallback(async () => {
     setOrdersLoading(true);
     const res = await api.getOrders(user!.id);
@@ -183,7 +193,36 @@ const ProfilePage: React.FC = () => {
     if (!user) return;
     if (activeTab === 'orders')    loadOrders();
     if (activeTab === 'addresses') loadAddresses();
+    if (activeTab === 'settings') {
+      setSettingsName(user.name ?? '');
+      setSettingsPhone((user as any).phone ?? '');
+    }
   }, [activeTab, user, loadOrders, loadAddresses]);
+
+  const handleSaveSettings = async () => {
+    setSavingSettings(true);
+    try {
+      let avatarKey: string | undefined;
+      if (avatarFile) {
+        avatarKey = await uploadToS3(avatarFile, 'avatars');
+      }
+      const res = await api.updateProfile({
+        name: settingsName,
+        phone: settingsPhone,
+        ...(avatarKey ? { avatarKey } : {}),
+      });
+      if (res.success) {
+        toast.success('Profile updated');
+        setAvatarFile(null);
+      } else {
+        toast.error(res.error ?? 'Failed to update profile');
+      }
+    } catch (err: any) {
+      toast.error(err.message ?? 'Something went wrong');
+    } finally {
+      setSavingSettings(false);
+    }
+  };
 
   if (!user) { router.push('/login'); return null; }
 
@@ -214,8 +253,10 @@ const ProfilePage: React.FC = () => {
 
         {/* ── User card ── */}
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5 flex items-center gap-4">
-          <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center shrink-0">
-            <User className="h-6 w-6 text-blue-600" />
+          <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center shrink-0 overflow-hidden">
+            {avatarUrl
+              ? <img src={avatarUrl} alt={user.name} className="w-full h-full object-cover" />
+              : <User className="h-6 w-6 text-blue-600" />}
           </div>
           <div className="flex-1 min-w-0">
             <p className="font-semibold text-gray-900 truncate">{user.name}</p>
@@ -417,26 +458,64 @@ const ProfilePage: React.FC = () => {
               <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
                 <h2 className="font-semibold text-gray-900 mb-5">Account Settings</h2>
                 <div className="space-y-4 max-w-sm">
-                  {[
-                    { label: 'Full Name', type: 'text',     defaultValue: user.name,         disabled: false },
-                    { label: 'Email',     type: 'email',    defaultValue: user.email,        disabled: true  },
-                    { label: 'Phone',     type: 'tel',      defaultValue: user.phone || '',  disabled: false, placeholder: 'Add phone number' },
-                  ].map(({ label, type, defaultValue, disabled, placeholder }) => (
-                    <div key={label}>
-                      <label className="block text-xs font-medium text-gray-600 mb-1">{label}</label>
-                      <input
-                        type={type}
-                        defaultValue={defaultValue}
-                        disabled={disabled}
-                        placeholder={placeholder}
-                        className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                          disabled ? 'border-gray-100 bg-gray-50 text-gray-400 cursor-not-allowed' : 'border-gray-200'
-                        }`}
-                      />
+                  {/* Avatar */}
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-2">Profile Photo</label>
+                    <div className="flex items-center gap-3">
+                      <div className="w-14 h-14 rounded-full bg-blue-100 overflow-hidden flex items-center justify-center shrink-0">
+                        {avatarFile
+                          ? <img src={URL.createObjectURL(avatarFile)} alt="preview" className="w-full h-full object-cover" />
+                          : avatarUrl
+                            ? <img src={avatarUrl} alt={user.name} className="w-full h-full object-cover" />
+                            : <User className="h-7 w-7 text-blue-500" />}
+                      </div>
+                      <label className="cursor-pointer px-3 py-1.5 text-xs font-medium border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-gray-600">
+                        Change Photo
+                        <input
+                          type="file"
+                          accept="image/jpeg,image/png,image/webp"
+                          className="hidden"
+                          onChange={(e) => setAvatarFile(e.target.files?.[0] ?? null)}
+                        />
+                      </label>
                     </div>
-                  ))}
-                  <button className="px-4 py-2 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-                    Save Changes
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Full Name</label>
+                    <input
+                      type="text"
+                      value={settingsName}
+                      onChange={(e) => setSettingsName(e.target.value)}
+                      className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Email</label>
+                    <input
+                      type="email"
+                      value={user.email}
+                      disabled
+                      className="w-full px-3 py-2 text-sm border border-gray-100 bg-gray-50 text-gray-400 rounded-lg cursor-not-allowed"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Phone</label>
+                    <input
+                      type="tel"
+                      value={settingsPhone}
+                      onChange={(e) => setSettingsPhone(e.target.value)}
+                      placeholder="Add phone number"
+                      className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+
+                  <button
+                    onClick={handleSaveSettings}
+                    disabled={savingSettings}
+                    className="px-4 py-2 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                  >
+                    {savingSettings ? 'Saving…' : 'Save Changes'}
                   </button>
                 </div>
               </div>

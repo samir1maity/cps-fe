@@ -326,7 +326,7 @@ export const api = {
     }
   },
 
-  async updateProfile(data: { name?: string; phone?: string }): Promise<ApiResponse<User>> {
+  async updateProfile(data: { name?: string; phone?: string; avatarKey?: string }): Promise<ApiResponse<User>> {
     try {
       const response = await httpClient.put<any>(API_CONFIG.ENDPOINTS.PROFILE.UPDATE, data);
       return { success: true, data: response.data };
@@ -542,7 +542,7 @@ export const api = {
     }
   },
 
-  async createAdminCategory(data: { name: string; description?: string; image?: string; parentId?: string | null }): Promise<ApiResponse<Category>> {
+  async createAdminCategory(data: { name: string; description?: string; imageKey?: string; parentId?: string | null }): Promise<ApiResponse<Category>> {
     try {
       const response = await httpClient.post<any>(API_CONFIG.ENDPOINTS.ADMIN.CATEGORIES, data);
       return { success: true, data: response.data };
@@ -551,7 +551,7 @@ export const api = {
     }
   },
 
-  async updateAdminCategory(id: string, data: { name?: string; description?: string; image?: string; parentId?: string | null; isActive?: boolean }): Promise<ApiResponse<Category>> {
+  async updateAdminCategory(id: string, data: { name?: string; description?: string; imageKey?: string; parentId?: string | null; isActive?: boolean }): Promise<ApiResponse<Category>> {
     try {
       const response = await httpClient.put<any>(API_CONFIG.ENDPOINTS.ADMIN.CATEGORY(id), data);
       return { success: true, data: response.data };
@@ -570,42 +570,71 @@ export const api = {
   },
 
   // Admin Products
-  async createAdminProduct(formData: FormData): Promise<ApiResponse<Product>> {
-    try {
-      const accessToken = localStorage.getItem('accessToken');
-      const res = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.ADMIN_PRODUCTS.CREATE}`, {
-        method: 'POST',
-        headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
-        body: formData,
-      });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.message || json.error || 'Failed to create product');
-      return { success: true, data: json.data };
-    } catch (error: any) {
-      return { success: false, error: error.message };
-    }
-  },
-
-  async updateAdminProduct(id: string, formData: FormData): Promise<ApiResponse<Product>> {
-    try {
-      const accessToken = localStorage.getItem('accessToken');
-      const res = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.ADMIN_PRODUCTS.UPDATE(id)}`, {
-        method: 'PUT',
-        headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
-        body: formData,
-      });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.message || json.error || 'Failed to update product');
-      return { success: true, data: json.data };
-    } catch (error: any) {
-      return { success: false, error: error.message };
-    }
-  },
-
   async deleteAdminProduct(id: string): Promise<ApiResponse<void>> {
     try {
       await httpClient.delete<any>(API_CONFIG.ENDPOINTS.ADMIN_PRODUCTS.DELETE(id));
       return { success: true };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  },
+
+  // ── Secure file upload (pre-signed S3 URLs) ─────────────────────────────────
+
+  /**
+   * Step 1 of 2 — ask the backend for a pre-signed PUT URL and a storage key.
+   * No AWS credentials are involved on the frontend side.
+   *
+   * @param folder   'products' | 'categories' | 'avatars'
+   * @param filename Original filename (used only to preserve the extension)
+   * @param mimeType e.g. 'image/jpeg'
+   */
+  async requestUploadUrl(
+    folder: string,
+    filename: string,
+    mimeType: string,
+    fileSize: number,
+  ): Promise<ApiResponse<{ uploadUrl: string; key: string }>> {
+    try {
+      const response = await httpClient.post<any>(
+        API_CONFIG.ENDPOINTS.UPLOAD.PRESIGN,
+        { folder, filename, mimeType, fileSize },
+      );
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  },
+
+  /**
+   * Step 2 of 2 — upload the file directly to S3 using the pre-signed PUT URL.
+   * The backend is not involved; no AWS credentials reach the browser.
+   * Returns the storage key to be saved in the resource (product / profile / category).
+   *
+   * Usage:
+   *   const { uploadUrl, key } = await api.requestUploadUrl('products', file.name, file.type);
+   *   await api.uploadFileToS3(uploadUrl, file);
+   *   // now send `key` to POST /products or PUT /products/:id
+   */
+  async uploadFileToS3(uploadUrl: string, file: File): Promise<void> {
+    const res = await fetch(uploadUrl, {
+      method: 'PUT',
+      headers: { 'Content-Type': file.type },
+      body: file,
+    });
+    if (!res.ok) throw new Error(`S3 upload failed: ${res.status} ${res.statusText}`);
+  },
+
+  /**
+   * Get a short-lived signed GET URL for a stored key so the browser can
+   * display a private S3 object.
+   *
+   * @param key  Storage key as returned by requestUploadUrl (e.g. "products/uuid-img.jpg")
+   */
+  async getSignedUrl(key: string): Promise<ApiResponse<{ url: string }>> {
+    try {
+      const response = await httpClient.get<any>(API_CONFIG.ENDPOINTS.UPLOAD.SIGN(key));
+      return { success: true, data: response.data };
     } catch (error: any) {
       return { success: false, error: error.message };
     }

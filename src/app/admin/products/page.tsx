@@ -6,6 +6,8 @@ import { Plus, Pencil, Trash2, ArrowLeft, X, Package } from 'lucide-react';
 import { api } from '@/lib/api';
 import { Product, Category } from '@/lib/types';
 import { formatCurrency } from '@/lib/utils/formatters';
+import { uploadManyToS3 } from '@/lib/hooks/useS3Upload';
+import { useSignedUrl } from '@/lib/hooks/useSignedUrls';
 import toast from 'react-hot-toast';
 
 interface ProductFormData {
@@ -25,6 +27,23 @@ const emptyForm: ProductFormData = {
   categoryId: '', subcategoryId: '', brand: '', stockQuantity: '', tags: '',
 };
 
+// ── Small sub-components ──────────────────────────────────────────────────────
+
+/** Resolves a single image key to a signed URL and renders it. */
+function ProductImage({ imageKey, name }: { imageKey?: string; name: string }) {
+  const url = useSignedUrl(imageKey);
+  if (url) {
+    return <img src={url} alt={name} className="h-10 w-10 rounded object-cover" />;
+  }
+  return (
+    <div className="h-10 w-10 rounded bg-gray-100 flex items-center justify-center flex-shrink-0">
+      <Package className="h-5 w-5 text-gray-400" />
+    </div>
+  );
+}
+
+// ── Main page ─────────────────────────────────────────────────────────────────
+
 export default function AdminProductsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -41,7 +60,9 @@ export default function AdminProductsPage() {
 
   const topLevelCategories = categories.filter((c) => !c.parentId);
   const subcategories = form.categoryId
-    ? categories.filter((c) => c.parentId != null && String(c.parentId) === String(form.categoryId))
+    ? categories.filter(
+        (c) => c.parentId != null && String(c.parentId) === String(form.categoryId),
+      )
     : [];
 
   useEffect(() => {
@@ -64,7 +85,7 @@ export default function AdminProductsPage() {
       res.data.forEach((cat) => {
         flat.push({ ...cat, id: String(cat.id) });
         cat.children?.forEach((child) =>
-          flat.push({ ...child, id: String(child.id), parentId: String(child.parentId) })
+          flat.push({ ...child, id: String(child.id), parentId: String(child.parentId) }),
         );
       });
       setCategories(flat);
@@ -72,7 +93,7 @@ export default function AdminProductsPage() {
   };
 
   const openForm = (data: ProductFormData, id: string | null) => {
-    setShowForm(false); // force unmount → remount so form resets cleanly
+    setShowForm(false);
     setTimeout(() => {
       setEditingId(id);
       setForm(data);
@@ -87,51 +108,80 @@ export default function AdminProductsPage() {
   const openEdit = (product: Product) => {
     const catId = (product.category as any)?._id ?? product.category?.id ?? '';
     const subId = (product.subcategory as any)?._id ?? product.subcategory?.id ?? '';
-    openForm({
-      name: product.name,
-      description: product.description,
-      price: String(product.price),
-      originalPrice: String(product.originalPrice ?? ''),
-      categoryId: String(catId),
-      subcategoryId: String(subId),
-      brand: product.brand ?? '',
-      stockQuantity: String(product.stockQuantity),
-      tags: product.tags?.join(', ') ?? '',
-    }, product.id);
+    openForm(
+      {
+        name: product.name,
+        description: product.description,
+        price: String(product.price),
+        originalPrice: String(product.originalPrice ?? ''),
+        categoryId: String(catId),
+        subcategoryId: String(subId),
+        brand: product.brand ?? '',
+        stockQuantity: String(product.stockQuantity),
+        tags: product.tags?.join(', ') ?? '',
+      },
+      product.id,
+    );
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
 
-    const formData = new FormData();
-    formData.append('name', form.name);
-    formData.append('description', form.description);
-    formData.append('price', form.price);
-    if (form.originalPrice) formData.append('originalPrice', form.originalPrice);
-    formData.append('categoryId', form.categoryId);
-    if (form.subcategoryId) formData.append('subcategoryId', form.subcategoryId);
-    if (form.brand) formData.append('brand', form.brand);
-    formData.append('stockQuantity', form.stockQuantity);
-    const tagsArray = form.tags ? form.tags.split(',').map((t) => t.trim()).filter(Boolean) : [];
-    formData.append('tags', JSON.stringify(tagsArray));
-    imageFiles.forEach((file) => formData.append('images', file));
+    try {
+      // Upload each selected file directly to S3; get back storage keys.
+      const newKeys = imageFiles.length > 0
+        ? await uploadManyToS3(imageFiles, 'products')
+        : [];
 
-    const res = editingId
-      ? await api.updateAdminProduct(editingId, formData)
-      : await api.createAdminProduct(formData);
+      const tagsArray = form.tags
+        ? form.tags.split(',').map((t) => t.trim()).filter(Boolean)
+        : [];
 
-    if (res.success) {
+      const body: Record<string, string> = {
+        name: form.name,
+        description: form.description,
+        price: form.price,
+        categoryId: form.categoryId,
+        stockQuantity: form.stockQuantity,
+        tags: JSON.stringify(tagsArray),
+        imageKeys: JSON.stringify(newKeys),
+      };
+      if (form.originalPrice) body.originalPrice = form.originalPrice;
+      if (form.subcategoryId) body.subcategoryId = form.subcategoryId;
+      if (form.brand) body.brand = form.brand;
+
+      // Send JSON — no multipart, no file bytes through our server.
+      const accessToken = typeof window !== 'undefined'
+        ? localStorage.getItem('accessToken')
+        : null;
+
+      const url = editingId
+        ? `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/v1/products/${editingId}`
+        : `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/v1/products`;
+
+      const res = await fetch(url, {
+        method: editingId ? 'PUT' : 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+        },
+        body: JSON.stringify(body),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.message || json.error || 'Request failed');
+
       toast.success(editingId ? 'Product updated' : 'Product created');
       setShowForm(false);
       setEditingId(null);
       setForm(emptyForm);
       setImageFiles([]);
       loadProducts();
-    } else {
-      toast.error(res.error ?? 'Something went wrong');
+    } catch (err: any) {
+      toast.error(err.message ?? 'Something went wrong');
+    } finally {
+      setSubmitting(false);
     }
-    setSubmitting(false);
   };
 
   const handleDelete = async (product: Product) => {
@@ -184,7 +234,7 @@ export default function AdminProductsPage() {
                   required
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
               <div className="md:col-span-2">
@@ -194,30 +244,25 @@ export default function AdminProductsPage() {
                   rows={3}
                   value={form.description}
                   onChange={(e) => setForm({ ...form, description: e.target.value })}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Price (₹) *</label>
                 <input
-                  required
-                  type="number"
-                  min="0"
-                  step="0.01"
+                  required type="number" min="0" step="0.01"
                   value={form.price}
                   onChange={(e) => setForm({ ...form, price: e.target.value })}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Original Price (₹)</label>
                 <input
-                  type="number"
-                  min="0"
-                  step="0.01"
+                  type="number" min="0" step="0.01"
                   value={form.originalPrice}
                   onChange={(e) => setForm({ ...form, originalPrice: e.target.value })}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
               <div>
@@ -226,7 +271,7 @@ export default function AdminProductsPage() {
                   required
                   value={form.categoryId}
                   onChange={(e) => setForm({ ...form, categoryId: e.target.value, subcategoryId: '' })}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="">Select category</option>
                   {topLevelCategories.map((c) => (
@@ -260,12 +305,10 @@ export default function AdminProductsPage() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Stock Quantity *</label>
                 <input
-                  required
-                  type="number"
-                  min="0"
+                  required type="number" min="0"
                   value={form.stockQuantity}
                   onChange={(e) => setForm({ ...form, stockQuantity: e.target.value })}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
               <div className="md:col-span-2">
@@ -290,7 +333,7 @@ export default function AdminProductsPage() {
                   className="w-full text-sm text-gray-600 file:mr-3 file:py-1.5 file:px-3 file:rounded file:border file:border-gray-300 file:text-sm file:bg-gray-50 hover:file:bg-gray-100"
                 />
                 {imageFiles.length > 0 && (
-                  <p className="text-xs text-gray-500 mt-1">{imageFiles.length} file(s) selected</p>
+                  <p className="text-xs text-gray-500 mt-1">{imageFiles.length} file(s) selected — uploaded securely to S3</p>
                 )}
               </div>
               <div className="md:col-span-2 flex gap-3 pt-2">
@@ -299,7 +342,7 @@ export default function AdminProductsPage() {
                   disabled={submitting}
                   className="bg-blue-600 text-white px-5 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
                 >
-                  {submitting ? 'Saving…' : editingId ? 'Save Changes' : 'Create Product'}
+                  {submitting ? 'Uploading & Saving…' : editingId ? 'Save Changes' : 'Create Product'}
                 </button>
                 <button
                   type="button"
@@ -313,7 +356,7 @@ export default function AdminProductsPage() {
           </div>
         )}
 
-        {/* Product List */}
+        {/* Product list */}
         {loading ? (
           <div className="flex justify-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
@@ -339,13 +382,7 @@ export default function AdminProductsPage() {
                   <tr key={product.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        {product.images?.[0] ? (
-                          <img src={product.images[0]} alt={product.name} className="h-10 w-10 rounded object-cover" />
-                        ) : (
-                          <div className="h-10 w-10 rounded bg-gray-100 flex items-center justify-center flex-shrink-0">
-                            <Package className="h-5 w-5 text-gray-400" />
-                          </div>
-                        )}
+                        <ProductImage imageKey={product.images?.[0]} name={product.name} />
                         <div>
                           <p className="font-medium text-gray-900">{product.name}</p>
                           <p className="text-xs text-gray-500">{product.brand}</p>
@@ -354,11 +391,17 @@ export default function AdminProductsPage() {
                     </td>
                     <td className="px-4 py-4 text-gray-600">
                       {product.category?.name}
-                      {product.subcategory && <span className="text-gray-400"> / {product.subcategory.name}</span>}
+                      {product.subcategory && (
+                        <span className="text-gray-400"> / {product.subcategory.name}</span>
+                      )}
                     </td>
                     <td className="px-4 py-4 text-gray-900 font-medium">{formatCurrency(product.price)}</td>
                     <td className="px-4 py-4">
-                      <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${product.inStock ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>
+                      <span
+                        className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                          product.inStock ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'
+                        }`}
+                      >
                         {product.inStock ? `${product.stockQuantity} in stock` : 'Out of stock'}
                       </span>
                     </td>

@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { Plus, Pencil, Trash2, ChevronDown, ChevronRight, ArrowLeft } from 'lucide-react';
 import { api } from '@/lib/api';
 import { Category } from '@/lib/types';
+import { uploadToS3 } from '@/lib/hooks/useS3Upload';
+import { useSignedUrl } from '@/lib/hooks/useSignedUrls';
 import toast from 'react-hot-toast';
 
 interface CategoryFormData {
@@ -15,6 +17,13 @@ interface CategoryFormData {
 
 const emptyForm: CategoryFormData = { name: '', description: '', parentId: '' };
 
+/** Renders a category image from its stored key via a signed URL. */
+function CategoryImage({ imageKey }: { imageKey?: string | null }) {
+  const url = useSignedUrl(imageKey);
+  if (!url) return <div className="w-8 h-8 rounded bg-gray-100 shrink-0" />;
+  return <img src={url} alt="" className="w-8 h-8 rounded object-cover shrink-0" />;
+}
+
 export default function AdminCategoriesPage() {
   const router = useRouter();
   const [categories, setCategories] = useState<Category[]>([]);
@@ -24,6 +33,7 @@ export default function AdminCategoriesPage() {
   const [form, setForm] = useState<CategoryFormData>(emptyForm);
   const [submitting, setSubmitting] = useState(false);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [imageFile, setImageFile] = useState<File | null>(null);
 
   useEffect(() => { loadCategories(); }, []);
 
@@ -37,6 +47,7 @@ export default function AdminCategoriesPage() {
   const openCreate = (parentId = '') => {
     setEditingId(null);
     setForm({ ...emptyForm, parentId });
+    setImageFile(null);
     setShowForm(true);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -48,6 +59,7 @@ export default function AdminCategoriesPage() {
       description: cat.description ?? '',
       parentId: cat.parentId ?? '',
     });
+    setImageFile(null);
     setShowForm(true);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -55,26 +67,39 @@ export default function AdminCategoriesPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
-    const payload = {
-      name: form.name,
-      description: form.description || undefined,
-      parentId: form.parentId || null,
-    };
+    try {
+      // Upload image directly to S3 if one was selected; get back a key.
+      let imageKey: string | undefined;
+      if (imageFile) {
+        imageKey = await uploadToS3(imageFile, 'categories');
+      }
 
-    const res = editingId
-      ? await api.updateAdminCategory(editingId, payload)
-      : await api.createAdminCategory(payload);
+      const payload = {
+        name: form.name,
+        description: form.description || undefined,
+        parentId: form.parentId || null,
+        ...(imageKey ? { imageKey } : {}),
+      };
 
-    if (res.success) {
-      toast.success(editingId ? 'Category updated' : 'Category created');
-      setShowForm(false);
-      setEditingId(null);
-      setForm(emptyForm);
-      loadCategories();
-    } else {
-      toast.error(res.error ?? 'Something went wrong');
+      const res = editingId
+        ? await api.updateAdminCategory(editingId, payload)
+        : await api.createAdminCategory(payload);
+
+      if (res.success) {
+        toast.success(editingId ? 'Category updated' : 'Category created');
+        setShowForm(false);
+        setEditingId(null);
+        setForm(emptyForm);
+        setImageFile(null);
+        loadCategories();
+      } else {
+        toast.error(res.error ?? 'Something went wrong');
+      }
+    } catch (err: any) {
+      toast.error(err.message ?? 'Upload failed');
+    } finally {
+      setSubmitting(false);
     }
-    setSubmitting(false);
   };
 
   const handleDelete = async (cat: Category) => {
@@ -138,6 +163,18 @@ export default function AdminCategoriesPage() {
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Image</label>
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  onChange={(e) => setImageFile(e.target.files?.[0] ?? null)}
+                  className="w-full text-sm text-gray-600 file:mr-3 file:py-1.5 file:px-3 file:rounded file:border file:border-gray-300 file:text-sm file:bg-gray-50 hover:file:bg-gray-100"
+                />
+                {imageFile && (
+                  <p className="text-xs text-gray-500 mt-1">{imageFile.name} — uploaded securely to S3</p>
+                )}
+              </div>
               {form.parentId && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Parent Category</label>
@@ -199,6 +236,7 @@ export default function AdminCategoriesPage() {
                           ? isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />
                           : <span className="w-4 inline-block" />}
                       </button>
+                      <CategoryImage imageKey={(cat as any).image} />
                       <div>
                         <p className="font-medium text-gray-900">{cat.name}</p>
                         <p className="text-xs text-gray-500">{cat.slug} · {cat.productCount} products · {subs.length} subcategories</p>
