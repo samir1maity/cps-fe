@@ -43,6 +43,7 @@ export interface Product {
   reviewCount: number;
   tags: string[];
   specifications: Record<string, string>;
+  isFeatured: boolean;
   createdAt: Date;
   updatedAt: Date;
 }

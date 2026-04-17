@@ -26,7 +26,7 @@ const HomePageClient: React.FC = () => {
   const loadData = async () => {
     try {
       setLoading(true);
-      const productsResponse = await api.getProducts({ limit: 8 });
+      const productsResponse = await api.getProducts({ limit: 8, featured: 'true' });
 
       if (productsResponse.data) {
         setFeaturedProducts(productsResponse.data);

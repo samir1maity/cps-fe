@@ -64,6 +64,7 @@ export const api = {
     minPrice?: number;
     maxPrice?: number;
     inStock?: boolean;
+    featured?: string;
     page?: number;
     limit?: number;
     sort?: string;
@@ -75,6 +76,7 @@ export const api = {
     if (filters?.minPrice !== undefined) params.set('minPrice', String(filters.minPrice));
     if (filters?.maxPrice !== undefined) params.set('maxPrice', String(filters.maxPrice));
     if (filters?.inStock !== undefined) params.set('inStock', String(filters.inStock));
+    if (filters?.featured) params.set('featured', filters.featured);
     if (filters?.page) params.set('page', String(filters.page));
     if (filters?.limit) params.set('limit', String(filters.limit));
     if (filters?.sort) params.set('sort', filters.sort);

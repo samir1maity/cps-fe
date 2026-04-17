@@ -20,11 +20,15 @@ interface ProductFormData {
   brand: string;
   stockQuantity: string;
   tags: string;
+  isFeatured: boolean;
 }
+
+interface SpecEntry { key: string; value: string; }
 
 const emptyForm: ProductFormData = {
   name: '', description: '', price: '', originalPrice: '',
   categoryId: '', subcategoryId: '', brand: '', stockQuantity: '', tags: '',
+  isFeatured: false,
 };
 
 // ── Small sub-components ──────────────────────────────────────────────────────
@@ -56,6 +60,7 @@ export default function AdminProductsPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<ProductFormData>(emptyForm);
   const [imageFiles, setImageFiles] = useState<File[]>([]);
+  const [specs, setSpecs] = useState<SpecEntry[]>([]);
   const [submitting, setSubmitting] = useState(false);
 
   const topLevelCategories = categories.filter((c) => !c.parentId);
@@ -92,22 +97,26 @@ export default function AdminProductsPage() {
     }
   };
 
-  const openForm = (data: ProductFormData, id: string | null) => {
+  const openForm = (data: ProductFormData, id: string | null, specEntries: SpecEntry[] = []) => {
     setShowForm(false);
     setTimeout(() => {
       setEditingId(id);
       setForm(data);
+      setSpecs(specEntries);
       setImageFiles([]);
       setShowForm(true);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }, 0);
   };
 
-  const openCreate = () => openForm(emptyForm, null);
+  const openCreate = () => openForm(emptyForm, null, []);
 
   const openEdit = (product: Product) => {
     const catId = (product.category as any)?._id ?? product.category?.id ?? '';
     const subId = (product.subcategory as any)?._id ?? product.subcategory?.id ?? '';
+    const specEntries: SpecEntry[] = Object.entries(product.specifications ?? {}).map(
+      ([key, value]) => ({ key, value }),
+    );
     openForm(
       {
         name: product.name,
@@ -119,16 +128,29 @@ export default function AdminProductsPage() {
         brand: product.brand ?? '',
         stockQuantity: String(product.stockQuantity),
         tags: product.tags?.join(', ') ?? '',
+        isFeatured: product.isFeatured ?? false,
       },
       product.id,
+      specEntries,
     );
   };
+
+  const addSpec = () => setSpecs((prev) => [...prev, { key: '', value: '' }]);
+  const removeSpec = (i: number) => setSpecs((prev) => prev.filter((_, idx) => idx !== i));
+  const updateSpec = (i: number, field: 'key' | 'value', val: string) =>
+    setSpecs((prev) => prev.map((s, idx) => (idx === i ? { ...s, [field]: val } : s)));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
 
     try {
+      if (!editingId && imageFiles.length === 0) {
+        toast.error('Please select at least 1 image');
+        setSubmitting(false);
+        return;
+      }
+
       // Upload each selected file directly to S3; get back storage keys.
       const newKeys = imageFiles.length > 0
         ? await uploadManyToS3(imageFiles, 'products')
@@ -150,6 +172,11 @@ export default function AdminProductsPage() {
       if (form.originalPrice) body.originalPrice = form.originalPrice;
       if (form.subcategoryId) body.subcategoryId = form.subcategoryId;
       if (form.brand) body.brand = form.brand;
+      body.isFeatured = String(form.isFeatured);
+      const specsObj = Object.fromEntries(
+        specs.filter((s) => s.key.trim()).map((s) => [s.key.trim(), s.value.trim()]),
+      );
+      body.specifications = JSON.stringify(specsObj);
 
       // Send JSON — no multipart, no file bytes through our server.
       const accessToken = typeof window !== 'undefined'
@@ -321,19 +348,94 @@ export default function AdminProductsPage() {
                 />
               </div>
               <div className="md:col-span-2">
+                <label className="flex items-center gap-3 cursor-pointer select-none">
+                  <div className="relative">
+                    <input
+                      type="checkbox"
+                      className="sr-only"
+                      checked={form.isFeatured}
+                      onChange={(e) => setForm({ ...form, isFeatured: e.target.checked })}
+                    />
+                    <div className={`w-10 h-5 rounded-full transition-colors ${form.isFeatured ? 'bg-blue-600' : 'bg-gray-300'}`} />
+                    <div className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${form.isFeatured ? 'translate-x-5' : 'translate-x-0'}`} />
+                  </div>
+                  <span className="text-sm font-medium text-gray-700">Featured Product</span>
+                  {form.isFeatured && <span className="text-xs text-blue-600 font-medium">Shown on homepage</span>}
+                </label>
+              </div>
+              <div className="md:col-span-2">
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-sm font-medium text-gray-700">Specifications</label>
+                  <button
+                    type="button"
+                    onClick={addSpec}
+                    className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800"
+                  >
+                    <Plus className="h-3 w-3" /> Add row
+                  </button>
+                </div>
+                {specs.length === 0 ? (
+                  <p className="text-xs text-gray-400 mb-1">No specifications yet. Click "Add row" to add one.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {specs.map((s, i) => (
+                      <div key={i} className="flex gap-2 items-center">
+                        <input
+                          value={s.key}
+                          onChange={(e) => updateSpec(i, 'key', e.target.value)}
+                          placeholder="e.g. Material"
+                          className="w-1/3 border border-gray-300 rounded-lg px-3 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                        <input
+                          value={s.value}
+                          onChange={(e) => updateSpec(i, 'value', e.target.value)}
+                          placeholder="e.g. Ceramic"
+                          className="flex-1 border border-gray-300 rounded-lg px-3 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeSpec(i)}
+                          className="text-gray-400 hover:text-red-500"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Images {editingId ? '(upload to add new images)' : ''}
+                  Image{editingId ? ' (upload to replace)' : ''}
                 </label>
                 <input
                   ref={fileInputRef}
                   type="file"
-                  multiple
                   accept="image/jpeg,image/png,image/webp"
-                  onChange={(e) => setImageFiles(Array.from(e.target.files ?? []))}
+                  onChange={(e) => setImageFiles(e.target.files?.[0] ? [e.target.files[0]] : [])}
                   className="w-full text-sm text-gray-600 file:mr-3 file:py-1.5 file:px-3 file:rounded file:border file:border-gray-300 file:text-sm file:bg-gray-50 hover:file:bg-gray-100"
                 />
-                {imageFiles.length > 0 && (
-                  <p className="text-xs text-gray-500 mt-1">{imageFiles.length} file(s) selected — uploaded securely to S3</p>
+                {imageFiles[0] && (
+                  <div className="mt-2 flex items-center gap-3">
+                    <div className="relative group w-20 h-20">
+                      <img
+                        src={URL.createObjectURL(imageFiles[0])}
+                        alt={imageFiles[0].name}
+                        className="w-20 h-20 object-cover rounded-lg border border-gray-200"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => { setImageFiles([]); if (fileInputRef.current) fileInputRef.current.value = ''; }}
+                        className="absolute -top-1.5 -right-1.5 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                    <p className="text-xs text-gray-500">{imageFiles[0].name}</p>
+                  </div>
+                )}
+                {!editingId && imageFiles.length === 0 && (
+                  <p className="text-xs text-amber-600 mt-1">An image is required</p>
                 )}
               </div>
               <div className="md:col-span-2 flex gap-3 pt-2">
@@ -346,7 +448,7 @@ export default function AdminProductsPage() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => { setShowForm(false); setEditingId(null); setForm(emptyForm); }}
+                  onClick={() => { setShowForm(false); setEditingId(null); setForm(emptyForm); setSpecs([]); }}
                   className="border border-gray-300 text-gray-700 px-5 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors"
                 >
                   Cancel
