@@ -11,6 +11,7 @@ import { useRequireAuth } from '@/hooks/useRequireAuth';
 import { api } from '@/lib/api';
 import { Product } from '@/lib/types';
 import { formatCurrency } from '@/lib/utils/formatters';
+import ProductThumb from '@/components/ui/ProductThumb';
 
 const HomePageClient: React.FC = () => {
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
@@ -151,11 +152,11 @@ const HomePageClient: React.FC = () => {
                 className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow overflow-hidden group"
               >
                 <Link href={`/products/${product.id}`}>
-                  <div className="aspect-square bg-gray-200 relative overflow-hidden">
-                    <img
-                      src={product.images[0] || '/images/placeholder.jpg'}
+                  <div className="relative">
+                    <ProductThumb
+                      imageKey={product.images[0]}
                       alt={product.name}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      className="w-full group-hover:[&_img]:scale-105 [&_img]:transition-transform [&_img]:duration-300"
                     />
                     {!product.inStock && (
                       <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">

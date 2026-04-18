@@ -3,8 +3,8 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import Image from 'next/image';
 import { ShoppingCart, Heart, Filter, Grid, List } from 'lucide-react';
+import ProductThumb from '@/components/ui/ProductThumb';
 import toast from 'react-hot-toast';
 import { useCart } from '@/contexts/CartContext';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
@@ -209,13 +209,11 @@ const SubcategoryPageClient: React.FC = () => {
                     }`}
                   >
                     <Link href={`/products/${product.id}`}>
-                      <div className={`${viewMode === 'grid' ? 'aspect-square' : 'w-48 h-48'} bg-gray-200 relative overflow-hidden`}>
-                        <Image
-                          src={product.images[0] || '/images/placeholder.jpg'}
+                      <div className="relative">
+                        <ProductThumb
+                          imageKey={product.images[0]}
                           alt={product.name}
-                          width={viewMode === 'grid' ? 300 : 200}
-                          height={viewMode === 'grid' ? 300 : 200}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          className={`${viewMode === 'list' ? 'w-48' : 'w-full'} group-hover:[&_img]:scale-105 [&_img]:transition-transform [&_img]:duration-300`}
                         />
                         {!product.inStock && (
                           <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">

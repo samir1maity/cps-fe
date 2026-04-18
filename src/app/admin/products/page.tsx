@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Plus, Pencil, Trash2, ArrowLeft, X, Package } from 'lucide-react';
+import { Plus, Pencil, Trash2, ArrowLeft, X, Package, Star, Upload } from 'lucide-react';
 import { api } from '@/lib/api';
 import { Product, Category } from '@/lib/types';
 import { formatCurrency } from '@/lib/utils/formatters';
@@ -25,6 +25,9 @@ interface ProductFormData {
 
 interface SpecEntry { key: string; value: string; }
 
+// Existing image from DB (has a storage key)
+interface ExistingImage { key: string; }
+
 const emptyForm: ProductFormData = {
   name: '', description: '', price: '', originalPrice: '',
   categoryId: '', subcategoryId: '', brand: '', stockQuantity: '', tags: '',
@@ -33,17 +36,69 @@ const emptyForm: ProductFormData = {
 
 // ── Small sub-components ──────────────────────────────────────────────────────
 
-/** Resolves a single image key to a signed URL and renders it. */
 function ProductImage({ imageKey, name }: { imageKey?: string; name: string }) {
   const url = useSignedUrl(imageKey);
-  if (url) {
-    return <img src={url} alt={name} className="h-10 w-10 rounded object-cover" />;
-  }
+  if (url) return <img src={url} alt={name} className="h-10 w-10 rounded object-cover" />;
   return (
     <div className="h-10 w-10 rounded bg-gray-100 flex items-center justify-center flex-shrink-0">
       <Package className="h-5 w-5 text-gray-400" />
     </div>
   );
+}
+
+// Single image tile — always-visible controls, no hover tricks
+function ImageTile({
+  src, isPrimary, onSetPrimary, onRemove,
+}: {
+  src: string;
+  isPrimary: boolean;
+  onSetPrimary: () => void;
+  onRemove: () => void;
+}) {
+  return (
+    <div className={`rounded-xl overflow-hidden border-2 transition-all ${
+      isPrimary ? 'border-blue-500 ring-2 ring-blue-100' : 'border-gray-200'
+    }`}>
+      <div className="aspect-square bg-gray-100">
+        <img src={src} alt="product" className="w-full h-full object-cover" />
+      </div>
+      <div className="flex items-center gap-1 p-1 bg-white">
+        <button
+          type="button"
+          onClick={onSetPrimary}
+          title="Set as primary"
+          className={`flex-1 flex items-center justify-center gap-1 py-1 rounded text-[11px] font-medium transition-colors ${
+            isPrimary
+              ? 'bg-blue-500 text-white cursor-default'
+              : 'bg-gray-100 text-gray-600 hover:bg-blue-50 hover:text-blue-600'
+          }`}
+        >
+          <Star className={`h-3 w-3 ${isPrimary ? 'fill-white' : ''}`} />
+          {isPrimary ? 'Primary' : 'Set main'}
+        </button>
+        <button
+          type="button"
+          onClick={onRemove}
+          title="Remove"
+          className="p-1 rounded text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+        >
+          <X className="h-3.5 w-3.5" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function ExistingImageTileWrapper({ imgKey, isPrimary, onSetPrimary, onRemove }: {
+  imgKey: string; isPrimary: boolean; onSetPrimary: () => void; onRemove: () => void;
+}) {
+  const url = useSignedUrl(imgKey);
+  if (!url) return (
+    <div className="rounded-xl border-2 border-gray-200 aspect-square bg-gray-100 flex items-center justify-center">
+      <Package className="h-6 w-6 text-gray-300" />
+    </div>
+  );
+  return <ImageTile src={url} isPrimary={isPrimary} onSetPrimary={onSetPrimary} onRemove={onRemove} />;
 }
 
 // ── Main page ─────────────────────────────────────────────────────────────────
@@ -59,16 +114,24 @@ export default function AdminProductsPage() {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<ProductFormData>(emptyForm);
-  const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [specs, setSpecs] = useState<SpecEntry[]>([]);
   const [submitting, setSubmitting] = useState(false);
 
+  // Existing images (edit mode)
+  const [existingImages, setExistingImages] = useState<ExistingImage[]>([]);
+  // Primary index across the combined list: existing (kept) + new files
+  const [primaryIndex, setPrimaryIndex] = useState(0);
+  // New files to upload
+  const [newFiles, setNewFiles] = useState<File[]>([]);
+
   const topLevelCategories = categories.filter((c) => !c.parentId);
   const subcategories = form.categoryId
-    ? categories.filter(
-        (c) => c.parentId != null && String(c.parentId) === String(form.categoryId),
-      )
+    ? categories.filter((c) => c.parentId != null && String(c.parentId) === String(form.categoryId))
     : [];
+
+  // Kept existing images (not marked for removal)
+  const keptExisting = existingImages;
+  const totalImageCount = keptExisting.length + newFiles.length;
 
   useEffect(() => {
     Promise.all([loadProducts(), loadCategories()]).then(() => {
@@ -97,13 +160,23 @@ export default function AdminProductsPage() {
     }
   };
 
-  const openForm = (data: ProductFormData, id: string | null, specEntries: SpecEntry[] = []) => {
+  const resetImageState = () => {
+    setExistingImages([]);
+    setNewFiles([]);
+    setPrimaryIndex(0);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const openForm = (data: ProductFormData, id: string | null, specEntries: SpecEntry[] = [], imgKeys: string[] = []) => {
     setShowForm(false);
     setTimeout(() => {
       setEditingId(id);
       setForm(data);
       setSpecs(specEntries);
-      setImageFiles([]);
+      setExistingImages(imgKeys.map((key) => ({ key })));
+      setNewFiles([]);
+      setPrimaryIndex(0);
+      if (fileInputRef.current) fileInputRef.current.value = '';
       setShowForm(true);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }, 0);
@@ -132,6 +205,7 @@ export default function AdminProductsPage() {
       },
       product.id,
       specEntries,
+      product.images ?? [],
     );
   };
 
@@ -140,21 +214,52 @@ export default function AdminProductsPage() {
   const updateSpec = (i: number, field: 'key' | 'value', val: string) =>
     setSpecs((prev) => prev.map((s, idx) => (idx === i ? { ...s, [field]: val } : s)));
 
+  const handleAddFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selected = Array.from(e.target.files ?? []);
+    if (!selected.length) return;
+    if (totalImageCount + selected.length > 6) {
+      toast.error(`You can have at most 6 images (currently ${totalImageCount})`);
+      e.target.value = '';
+      return;
+    }
+    setNewFiles((prev) => [...prev, ...selected]);
+    e.target.value = '';
+  };
+
+  const removeNewFile = (i: number) => {
+    setNewFiles((prev) => prev.filter((_, idx) => idx !== i));
+    // Adjust primaryIndex if needed
+    const keptCount = keptExisting.length;
+    const absIndex = keptCount + i;
+    if (primaryIndex === absIndex) setPrimaryIndex(0);
+    else if (primaryIndex > absIndex) setPrimaryIndex((p) => p - 1);
+  };
+
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
 
     try {
-      if (!editingId && imageFiles.length === 0) {
+      if (!editingId && newFiles.length === 0) {
         toast.error('Please select at least 1 image');
         setSubmitting(false);
         return;
       }
+      if (totalImageCount === 0) {
+        toast.error('Product must have at least 1 image');
+        setSubmitting(false);
+        return;
+      }
 
-      // Upload each selected file directly to S3; get back storage keys.
-      const newKeys = imageFiles.length > 0
-        ? await uploadManyToS3(imageFiles, 'products')
-        : [];
+      // Upload new files
+      const newKeys = newFiles.length > 0 ? await uploadManyToS3(newFiles, 'products') : [];
+
+      // Build the final ordered image key list: kept existing + new, then rotate so primary is first
+      const keptKeys = keptExisting.map((img) => img.key);
+      const allKeys = [...keptKeys, ...newKeys];
+      // primaryIndex is into the combined [keptExisting, ...newFiles] list
+      const orderedKeys = [allKeys[primaryIndex], ...allKeys.filter((_, i) => i !== primaryIndex)];
 
       const tagsArray = form.tags
         ? form.tags.split(',').map((t) => t.trim()).filter(Boolean)
@@ -167,8 +272,9 @@ export default function AdminProductsPage() {
         categoryId: form.categoryId,
         stockQuantity: form.stockQuantity,
         tags: JSON.stringify(tagsArray),
-        imageKeys: JSON.stringify(newKeys),
+        imageKeys: JSON.stringify(editingId ? newKeys : orderedKeys),
       };
+
       if (form.originalPrice) body.originalPrice = form.originalPrice;
       if (form.subcategoryId) body.subcategoryId = form.subcategoryId;
       if (form.brand) body.brand = form.brand;
@@ -178,11 +284,12 @@ export default function AdminProductsPage() {
       );
       body.specifications = JSON.stringify(specsObj);
 
-      // Send JSON — no multipart, no file bytes through our server.
-      const accessToken = typeof window !== 'undefined'
-        ? localStorage.getItem('accessToken')
-        : null;
+      // For edit: send the full ordered list so backend replaces images array
+      if (editingId) {
+        body.orderedImageKeys = JSON.stringify(orderedKeys);
+      }
 
+      const accessToken = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
       const url = editingId
         ? `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/v1/products/${editingId}`
         : `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/v1/products`;
@@ -202,7 +309,8 @@ export default function AdminProductsPage() {
       setShowForm(false);
       setEditingId(null);
       setForm(emptyForm);
-      setImageFiles([]);
+      setSpecs([]);
+      resetImageState();
       loadProducts();
     } catch (err: any) {
       toast.error(err.message ?? 'Something went wrong');
@@ -221,6 +329,13 @@ export default function AdminProductsPage() {
       toast.error(res.error ?? 'Something went wrong');
     }
   };
+
+  // Build combined display list for the image manager
+  // Each item: { type: 'existing' | 'new', index: number (within its own array), absIndex: number }
+  const combinedImages = [
+    ...keptExisting.map((img, i) => ({ type: 'existing' as const, key: img.key, absIndex: i })),
+    ...newFiles.map((file, i) => ({ type: 'new' as const, file, absIndex: keptExisting.length + i })),
+  ];
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -250,7 +365,7 @@ export default function AdminProductsPage() {
               <h2 className="text-lg font-semibold text-gray-900">
                 {editingId ? 'Edit Product' : 'New Product'}
               </h2>
-              <button onClick={() => setShowForm(false)} className="text-gray-400 hover:text-gray-600">
+              <button onClick={() => { setShowForm(false); setSpecs([]); resetImageState(); }} className="text-gray-400 hover:text-gray-600">
                 <X className="h-5 w-5" />
               </button>
             </div>
@@ -366,11 +481,7 @@ export default function AdminProductsPage() {
               <div className="md:col-span-2">
                 <div className="flex items-center justify-between mb-1">
                   <label className="block text-sm font-medium text-gray-700">Specifications</label>
-                  <button
-                    type="button"
-                    onClick={addSpec}
-                    className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800"
-                  >
+                  <button type="button" onClick={addSpec} className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800">
                     <Plus className="h-3 w-3" /> Add row
                   </button>
                 </div>
@@ -392,11 +503,7 @@ export default function AdminProductsPage() {
                           placeholder="e.g. Ceramic"
                           className="flex-1 border border-gray-300 rounded-lg px-3 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
-                        <button
-                          type="button"
-                          onClick={() => removeSpec(i)}
-                          className="text-gray-400 hover:text-red-500"
-                        >
+                        <button type="button" onClick={() => removeSpec(i)} className="text-gray-400 hover:text-red-500">
                           <X className="h-4 w-4" />
                         </button>
                       </div>
@@ -404,40 +511,90 @@ export default function AdminProductsPage() {
                   </div>
                 )}
               </div>
+
+              {/* ── Image Manager ─────────────────────────────────────────── */}
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Image{editingId ? ' (upload to replace)' : ''}
-                </label>
+                <div className="flex items-center justify-between mb-2">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">
+                      Images <span className="text-gray-400 font-normal">— up to 6 · hover to set primary or remove</span>
+                    </label>
+                    {totalImageCount > 0 && (
+                      <p className="text-xs text-gray-500 mt-0.5">{totalImageCount}/6 images · <span className="text-blue-600">★ = primary (shown first in listings)</span></p>
+                    )}
+                  </div>
+                  {totalImageCount < 6 && (
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="flex items-center gap-1.5 text-xs bg-blue-50 text-blue-600 hover:bg-blue-100 px-3 py-1.5 rounded-lg font-medium transition-colors"
+                    >
+                      <Upload className="h-3.5 w-3.5" /> Add Images
+                    </button>
+                  )}
+                </div>
                 <input
                   ref={fileInputRef}
                   type="file"
+                  multiple
                   accept="image/jpeg,image/png,image/webp"
-                  onChange={(e) => setImageFiles(e.target.files?.[0] ? [e.target.files[0]] : [])}
-                  className="w-full text-sm text-gray-600 file:mr-3 file:py-1.5 file:px-3 file:rounded file:border file:border-gray-300 file:text-sm file:bg-gray-50 hover:file:bg-gray-100"
+                  onChange={handleAddFiles}
+                  className="hidden"
                 />
-                {imageFiles[0] && (
-                  <div className="mt-2 flex items-center gap-3">
-                    <div className="relative group w-20 h-20">
-                      <img
-                        src={URL.createObjectURL(imageFiles[0])}
-                        alt={imageFiles[0].name}
-                        className="w-20 h-20 object-cover rounded-lg border border-gray-200"
-                      />
+
+                {combinedImages.length === 0 ? (
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="w-full border-2 border-dashed border-gray-300 rounded-xl py-10 flex flex-col items-center gap-2 text-gray-400 hover:border-blue-400 hover:text-blue-500 transition-colors"
+                  >
+                    <Upload className="h-8 w-8" />
+                    <span className="text-sm font-medium">Click to upload images</span>
+                    <span className="text-xs">JPEG, PNG, WebP · max 250 KB each · up to 6</span>
+                  </button>
+                ) : (
+                  <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                    {combinedImages.map((item) =>
+                      item.type === 'existing' ? (
+                        <ExistingImageTileWrapper
+                          key={item.key}
+                          imgKey={item.key}
+                          isPrimary={primaryIndex === item.absIndex}
+                          onSetPrimary={() => setPrimaryIndex(item.absIndex)}
+                          onRemove={() => {
+                            const origIdx = existingImages.findIndex((img) => img.key === item.key);
+                            setExistingImages((prev) => prev.filter((_, i) => i !== origIdx));
+                            if (primaryIndex === item.absIndex) setPrimaryIndex(0);
+                            else if (primaryIndex > item.absIndex) setPrimaryIndex((p) => p - 1);
+                          }}
+                        />
+                      ) : (
+                        <ImageTile
+                          key={item.absIndex}
+                          src={URL.createObjectURL(item.file)}
+                          isPrimary={primaryIndex === item.absIndex}
+                          onSetPrimary={() => setPrimaryIndex(item.absIndex)}
+                          onRemove={() => removeNewFile(item.absIndex - keptExisting.length)}
+                        />
+                      )
+                    )}
+                    {totalImageCount < 6 && (
                       <button
                         type="button"
-                        onClick={() => { setImageFiles([]); if (fileInputRef.current) fileInputRef.current.value = ''; }}
-                        className="absolute -top-1.5 -right-1.5 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="aspect-square border-2 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center gap-1 text-gray-400 hover:border-blue-400 hover:text-blue-500 transition-colors"
                       >
-                        <X className="w-3 h-3" />
+                        <Plus className="h-5 w-5" />
+                        <span className="text-[10px]">Add</span>
                       </button>
-                    </div>
-                    <p className="text-xs text-gray-500">{imageFiles[0].name}</p>
+                    )}
                   </div>
                 )}
-                {!editingId && imageFiles.length === 0 && (
-                  <p className="text-xs text-amber-600 mt-1">An image is required</p>
+                {!editingId && totalImageCount === 0 && (
+                  <p className="text-xs text-amber-600 mt-1">At least 1 image is required</p>
                 )}
               </div>
+
               <div className="md:col-span-2 flex gap-3 pt-2">
                 <button
                   type="submit"
@@ -448,7 +605,7 @@ export default function AdminProductsPage() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => { setShowForm(false); setEditingId(null); setForm(emptyForm); setSpecs([]); }}
+                  onClick={() => { setShowForm(false); setEditingId(null); setForm(emptyForm); setSpecs([]); resetImageState(); }}
                   className="border border-gray-300 text-gray-700 px-5 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors"
                 >
                   Cancel
@@ -499,11 +656,9 @@ export default function AdminProductsPage() {
                     </td>
                     <td className="px-4 py-4 text-gray-900 font-medium">{formatCurrency(product.price)}</td>
                     <td className="px-4 py-4">
-                      <span
-                        className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                          product.inStock ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'
-                        }`}
-                      >
+                      <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                        product.inStock ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'
+                      }`}>
                         {product.inStock ? `${product.stockQuantity} in stock` : 'Out of stock'}
                       </span>
                     </td>

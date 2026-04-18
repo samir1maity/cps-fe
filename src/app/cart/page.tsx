@@ -3,8 +3,8 @@
 
 import React from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { Minus, Plus, Trash2, ShoppingBag, ArrowLeft } from 'lucide-react';
+import ProductThumb from '@/components/ui/ProductThumb';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { formatCurrency } from '@/lib/utils/formatters';
@@ -89,12 +89,10 @@ const CartPage: React.FC = () => {
                   <div key={item.id} className="p-4 sm:p-6">
                     <div className="flex flex-col sm:flex-row sm:items-center gap-4">
                       <div className="flex-shrink-0">
-                        <Image
-                          src={item.product.images[0] || '/images/placeholder.jpg'}
+                        <ProductThumb
+                          imageKey={item.product.images[0]}
                           alt={item.product.name}
-                          width={96}
-                          height={96}
-                          className="h-20 w-20 rounded-xl object-cover sm:h-24 sm:w-24"
+                          className="h-20 w-20 sm:h-24 sm:w-24 rounded-xl shrink-0"
                         />
                       </div>
                       <div className="flex-1 min-w-0">

@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCart } from '@/contexts/CartContext';
-import Image from 'next/image';
+import ProductThumb from '@/components/ui/ProductThumb';
 import toast from 'react-hot-toast';
 import { formatCurrency } from '@/lib/utils/formatters';
 import { api } from '@/lib/api';
@@ -345,11 +345,10 @@ function ReviewStep({ items, subtotal, discount, tax, total, paymentMethod, load
       <div className="space-y-3">
         {items.map((item) => (
           <div key={item.id} className="flex items-center gap-3">
-            <Image
-              src={item.product.images[0] || '/images/placeholder.jpg'}
+            <ProductThumb
+              imageKey={item.product.images[0]}
               alt={item.product.name}
-              width={56} height={56}
-              className="rounded-lg object-cover border border-gray-100 shrink-0"
+              className="h-14 w-14 rounded-lg border border-gray-100 shrink-0"
             />
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-gray-900 truncate">{item.product.name}</p>

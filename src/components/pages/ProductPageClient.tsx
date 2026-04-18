@@ -2,8 +2,8 @@
 
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
-import Image from 'next/image';
 import Link from 'next/link';
+import { useSignedUrls } from '@/lib/hooks/useSignedUrls';
 import {
   Heart,
   ShoppingCart,
@@ -30,6 +30,7 @@ const ProductPageClient: React.FC = () => {
   const [selectedImage, setSelectedImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [loading, setLoading] = useState(true);
+  const signedUrls = useSignedUrls(product?.images ?? []);
 
   usePendingActions();
 
@@ -111,33 +112,30 @@ const ProductPageClient: React.FC = () => {
           <span className="text-gray-900">{product.name}</span>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-          <div className="space-y-4">
-            <div className="aspect-square bg-white rounded-lg shadow-md overflow-hidden">
-              <Image
-                src={product.images[selectedImage] || '/images/placeholder.jpg'}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
+          {/* Image column — sticky on desktop */}
+          <div className="lg:sticky lg:top-8 space-y-3">
+            <div className="w-full aspect-square rounded-xl overflow-hidden bg-white shadow-md">
+              <img
+                src={signedUrls[selectedImage] || '/images/placeholder.jpg'}
                 alt={product.name}
-                width={600}
-                height={600}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover block"
               />
             </div>
             {product.images.length > 1 && (
-              <div className="grid grid-cols-4 gap-4">
-                {product.images.map((image, index) => (
+              <div className="grid grid-cols-4 gap-2">
+                {product.images.map((_, index) => (
                   <button
                     key={index}
                     onClick={() => setSelectedImage(index)}
-                    className={`aspect-square bg-white rounded-lg shadow-md overflow-hidden border-2 ${
-                      selectedImage === index ? 'border-blue-600' : 'border-gray-200'
+                    className={`rounded-lg overflow-hidden border-2 transition-colors ${
+                      selectedImage === index ? 'border-blue-600' : 'border-transparent hover:border-gray-300'
                     }`}
                   >
-                    <Image
-                      src={image || '/images/placeholder.jpg'}
+                    <img
+                      src={signedUrls[index] || '/images/placeholder.jpg'}
                       alt={`${product.name} ${index + 1}`}
-                      width={150}
-                      height={150}
-                      className="w-full h-full object-cover"
+                      className="w-full h-20 object-cover block"
                     />
                   </button>
                 ))}
@@ -165,27 +163,19 @@ const ProductPageClient: React.FC = () => {
               </div>
             </div>
 
-            <div className="rounded-xl bg-white border border-stone-200 p-5">
-              <h2 className="text-lg font-semibold text-stone-900">Why shoppers choose this piece</h2>
-              <p className="mt-3 text-sm leading-7 text-stone-600">
-                This handcrafted item sits in our {product.category.name.toLowerCase()} collection and is
-                selected for its balance of everyday usability, artisan finish, and long-lasting appeal.
-                Review the specifications below for size, material, and design details before purchase.
-              </p>
-            </div>
 
             <div className="space-y-4">
               <div className="flex items-center space-x-4">
                 <span className="text-sm font-medium text-gray-700">Quantity:</span>
                 <div className="flex items-center border border-gray-300 rounded-lg">
-                  <button onClick={() => setQuantity(Math.max(1, quantity - 1))} className="p-2 hover:bg-gray-100">
+                  <button onClick={() => setQuantity(Math.max(1, quantity - 1))} className="p-2 hover:bg-gray-100 text-gray-800">
                     <Minus className="h-4 w-4" />
                   </button>
-                  <span className="px-4 py-2 text-sm font-medium">{quantity}</span>
+                  <span className="px-4 py-2 text-sm font-semibold text-gray-900">{quantity}</span>
                   <button
                     onClick={() => setQuantity(Math.min(product.stockQuantity, quantity + 1))}
                     disabled={quantity >= product.stockQuantity}
-                    className="p-2 hover:bg-gray-100 disabled:opacity-50"
+                    className="p-2 hover:bg-gray-100 disabled:opacity-30 text-gray-800"
                   >
                     <Plus className="h-4 w-4" />
                   </button>
@@ -204,11 +194,11 @@ const ProductPageClient: React.FC = () => {
                 </button>
                 <button
                   onClick={handleAddToWishlist}
-                  className="p-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                  className="p-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-gray-700 hover:text-red-500"
                 >
                   <Heart className="h-5 w-5" />
                 </button>
-                <button className="p-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                <button className="p-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-gray-700 hover:text-blue-500">
                   <Share2 className="h-5 w-5" />
                 </button>
               </div>

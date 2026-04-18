@@ -15,7 +15,7 @@ import {
 import { useAuth } from '@/contexts/AuthContext';
 import { api } from '@/lib/api';
 import { Order, OrderStatus } from '@/lib/types';
-import Image from 'next/image';
+import ProductThumb from '@/components/ui/ProductThumb';
 import { formatCurrency } from '@/lib/utils/formatters';
 
 const OrdersPage: React.FC = () => {
@@ -163,12 +163,10 @@ const OrdersPage: React.FC = () => {
                   <div className="space-y-4">
                     {order.items.map((item) => (
                       <div key={item.id} className="flex items-center space-x-4">
-                        <Image
-                          src={item.product.images[0] || '/images/placeholder.jpg'}
+                        <ProductThumb
+                          imageKey={item.product.images[0]}
                           alt={item.product.name}
-                          width={60}
-                          height={60}
-                          className="rounded-lg object-cover"
+                          className="h-14 w-14 rounded-lg shrink-0"
                         />
                         <div className="flex-1">
                           <h4 className="font-medium text-gray-900">{item.product.name}</h4>
