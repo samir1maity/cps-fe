@@ -455,6 +455,29 @@ export const api = {
     }
   },
 
+  async requestPasswordResetOtp(email: string): Promise<ApiResponse<{ expiresInSeconds: number; resendAfterSeconds: number }>> {
+    try {
+      const response = await httpClient.post<any>(API_CONFIG.ENDPOINTS.AUTH.FORGOT_PASSWORD, { email });
+      return { success: true, data: response.data, message: response.message };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  },
+
+  async resetPasswordWithOtp(payload: {
+    email: string;
+    otp: string;
+    newPassword: string;
+    confirmPassword: string;
+  }): Promise<ApiResponse<void>> {
+    try {
+      const response = await httpClient.post<any>(API_CONFIG.ENDPOINTS.AUTH.RESET_PASSWORD, payload);
+      return { success: true, message: response.message };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  },
+
   async logout(): Promise<ApiResponse<void>> {
     try {
       await httpClient.post(API_CONFIG.ENDPOINTS.AUTH.LOGOUT);

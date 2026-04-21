@@ -9,6 +9,8 @@ export const API_CONFIG = {
     AUTH: {
       LOGIN: `${BASE}/auth/login`,
       SIGNUP: `${BASE}/auth/signup`,
+      FORGOT_PASSWORD: `${BASE}/auth/forgot-password`,
+      RESET_PASSWORD: `${BASE}/auth/reset-password`,
       LOGOUT: `${BASE}/auth/logout`,
       REFRESH: `${BASE}/auth/refresh`,
       ME: `${BASE}/auth/me`,
@@ -91,4 +93,3 @@ export const API_CONFIG = {
     HEALTH: '/health',
   },
 };
-

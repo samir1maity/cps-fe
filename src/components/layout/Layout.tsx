@@ -16,7 +16,7 @@ interface LayoutProps {
 }
 
 // Pages that should use the minimal auth header
-const AUTH_PAGES = ['/login', '/register'];
+const AUTH_PAGES = ['/login', '/register', '/forgot-password'];
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const pathname = usePathname();
