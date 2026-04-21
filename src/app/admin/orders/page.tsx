@@ -8,9 +8,11 @@ import {
   ChevronLeft,
   ChevronRight,
   RefreshCw,
+  ScrollText,
+  X,
 } from 'lucide-react';
 import { api } from '@/lib/api';
-import { Order, OrderStatus } from '@/lib/types';
+import { Order, OrderStatus, PaymentAuditLog } from '@/lib/types';
 import { formatCurrency } from '@/lib/utils/formatters';
 import toast from 'react-hot-toast';
 
@@ -33,6 +35,18 @@ const STATUS_STYLES: Record<OrderStatus, string> = {
   REFUNDED:   'bg-gray-100 text-gray-700',
 };
 
+const LOG_LEVEL_STYLES: Record<PaymentAuditLog['level'], string> = {
+  INFO: 'bg-blue-100 text-blue-700',
+  WARN: 'bg-amber-100 text-amber-700',
+  ERROR: 'bg-red-100 text-red-700',
+};
+
+const LOG_SCOPE_STYLES: Record<PaymentAuditLog['scope'], string> = {
+  PAYMENT: 'bg-slate-100 text-slate-700',
+  ORDER: 'bg-emerald-100 text-emerald-700',
+  REFUND: 'bg-fuchsia-100 text-fuchsia-700',
+};
+
 export default function AdminOrdersPage() {
   const router = useRouter();
 
@@ -43,6 +57,10 @@ export default function AdminOrdersPage() {
   const [hasMore, setHasMore] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [search, setSearch] = useState('');
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [orderLogs, setOrderLogs] = useState<PaymentAuditLog[]>([]);
+  const [logsLoading, setLogsLoading] = useState(false);
+  const [logsRefreshing, setLogsRefreshing] = useState(false);
 
   const loadOrders = useCallback(async () => {
     setLoading(true);
@@ -73,6 +91,32 @@ export default function AdminOrdersPage() {
       toast.error(res.error ?? 'Failed to update status');
     }
     setUpdating(null);
+  };
+
+  const loadOrderLogs = useCallback(async (order: Order, silent = false) => {
+    if (silent) {
+      setLogsRefreshing(true);
+    } else {
+      setLogsLoading(true);
+    }
+
+    const res = await api.getAdminPaymentLogs({ orderId: order.id });
+    if (res.success && res.data) {
+      setOrderLogs(res.data.logs);
+      setSelectedOrder(order);
+    } else {
+      toast.error(res.error ?? 'Failed to load order logs');
+    }
+
+    setLogsLoading(false);
+    setLogsRefreshing(false);
+  }, []);
+
+  const closeLogsPanel = () => {
+    setSelectedOrder(null);
+    setOrderLogs([]);
+    setLogsLoading(false);
+    setLogsRefreshing(false);
   };
 
   // Client-side search filter (by order id or customer name)
@@ -171,6 +215,9 @@ export default function AdminOrdersPage() {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Update Status
                     </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Trace
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
@@ -216,6 +263,15 @@ export default function AdminOrdersPage() {
                           ))}
                         </select>
                       </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <button
+                          onClick={() => loadOrderLogs(order)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-700 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
+                        >
+                          <ScrollText className="h-3.5 w-3.5" />
+                          Logs
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -247,6 +303,128 @@ export default function AdminOrdersPage() {
           </div>
         )}
       </div>
+
+      {selectedOrder && (
+        <div className="fixed inset-0 z-40">
+          <button
+            aria-label="Close logs panel"
+            onClick={closeLogsPanel}
+            className="absolute inset-0 bg-slate-950/30 backdrop-blur-[1px]"
+          />
+
+          <aside className="absolute right-0 top-0 h-full w-full max-w-2xl overflow-hidden border-l border-slate-200 bg-white shadow-2xl">
+            <div className="flex h-full flex-col">
+              <div className="border-b border-slate-200 bg-white px-6 py-5">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-slate-700">
+                        <ScrollText className="h-5 w-5" />
+                      </span>
+                      <div>
+                        <h2 className="text-lg font-semibold text-slate-900">Order Logs</h2>
+                        <p className="text-sm text-slate-500">
+                          #{selectedOrder.id.slice(-8).toUpperCase()} • {selectedOrder.user?.name ?? 'Customer'}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="mt-4 flex flex-wrap gap-2 text-xs">
+                      <span className="rounded-full bg-slate-100 px-3 py-1 font-medium text-slate-700">
+                        Total {formatCurrency(selectedOrder.total)}
+                      </span>
+                      <span className={`rounded-full px-3 py-1 font-medium ${STATUS_STYLES[selectedOrder.status]}`}>
+                        {selectedOrder.status}
+                      </span>
+                      <span className="rounded-full bg-blue-100 px-3 py-1 font-medium text-blue-700">
+                        {selectedOrder.paymentMethod} • {selectedOrder.paymentStatus}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => loadOrderLogs(selectedOrder, true)}
+                      disabled={logsLoading || logsRefreshing}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 disabled:opacity-50"
+                    >
+                      <RefreshCw className={`h-4 w-4 ${logsRefreshing ? 'animate-spin' : ''}`} />
+                      Refresh
+                    </button>
+                    <button
+                      onClick={closeLogsPanel}
+                      className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-slate-300 text-slate-600 transition-colors hover:bg-slate-50"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex-1 overflow-y-auto bg-slate-50 px-6 py-6">
+                {logsLoading ? (
+                  <div className="flex items-center justify-center py-24">
+                    <div className="h-10 w-10 animate-spin rounded-full border-b-2 border-blue-600" />
+                  </div>
+                ) : orderLogs.length === 0 ? (
+                  <div className="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-16 text-center">
+                    <p className="text-sm font-medium text-slate-900">No logs found for this order.</p>
+                    <p className="mt-1 text-sm text-slate-500">Payment, order, and refund events will appear here when they are recorded.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {orderLogs.map((log) => (
+                      <div key={log.id} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                          <div className="space-y-2">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${LOG_LEVEL_STYLES[log.level]}`}>
+                                {log.level}
+                              </span>
+                              <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${LOG_SCOPE_STYLES[log.scope]}`}>
+                                {log.scope}
+                              </span>
+                              <span className="font-mono text-xs text-slate-500">{log.event}</span>
+                            </div>
+                            <p className="text-sm font-semibold text-slate-900">{log.message}</p>
+                          </div>
+                          <div className="text-xs text-slate-500">
+                            {new Date(log.createdAt).toLocaleString('en-IN')}
+                          </div>
+                        </div>
+
+                        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                          <div className="rounded-xl bg-slate-50 p-3 text-xs text-slate-600">
+                            <p className="mb-1 text-slate-400">Payment Reference</p>
+                            <p className="break-all font-mono">{log.paymentId ?? log.razorpayOrderId ?? '—'}</p>
+                          </div>
+                          <div className="rounded-xl bg-slate-50 p-3 text-xs text-slate-600">
+                            <p className="mb-1 text-slate-400">Customer</p>
+                            <p className="font-medium text-slate-800">{log.user?.name ?? selectedOrder.user?.name ?? '—'}</p>
+                            <p>{log.user?.email ?? selectedOrder.user?.email ?? ''}</p>
+                          </div>
+                        </div>
+
+                        {log.meta && Object.keys(log.meta).length > 0 && (
+                          <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-3">
+                            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">Details</p>
+                            <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs text-slate-600">
+                              {Object.entries(log.meta).map(([key, value]) => (
+                                <div key={key}>
+                                  <span className="text-slate-400">{key}:</span> {value}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </aside>
+        </div>
+      )}
     </div>
   );
 }

@@ -68,6 +68,7 @@ export const API_CONFIG = {
       STATS: `${BASE}/admin/stats`,
       ORDERS: `${BASE}/admin/orders`,
       ORDER_STATUS: (id: string) => `${BASE}/admin/orders/${id}/status`,
+      PAYMENT_LOGS: `${BASE}/admin/payment-logs`,
       USERS: `${BASE}/admin/users`,
       TOGGLE_BLOCK: (id: string) => `${BASE}/admin/users/${id}/toggle-block`,
       RETURNS: `${BASE}/admin/returns`,
@@ -90,5 +91,4 @@ export const API_CONFIG = {
     HEALTH: '/health',
   },
 };
-
 

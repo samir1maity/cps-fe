@@ -9,6 +9,7 @@ import {
   ShoppingCart,
   TrendingUp,
   ClipboardList,
+  ScrollText,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { api } from '@/lib/api';
@@ -121,6 +122,11 @@ const AdminDashboard: React.FC = () => {
               icon={<TrendingUp className="h-5 w-5 text-yellow-600" />}
               label="Manage Categories"
               onClick={() => router.push('/admin/categories')}
+            />
+            <QuickAction
+              icon={<ScrollText className="h-5 w-5 text-slate-600" />}
+              label="Payment Logs"
+              onClick={() => router.push('/admin/payment-logs')}
             />
           </div>
         </div>

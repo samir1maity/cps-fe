@@ -9,6 +9,7 @@ import {
   Coupon,
   CartItem,
   WishlistItem,
+  PaymentAuditLog,
   ApiResponse,
   PaginatedResponse,
 } from '@/lib/types';
@@ -53,6 +54,28 @@ const normalizeOrder = (o: any): any => ({
     },
     price: item.price ?? 0,
   })),
+});
+
+const normalizePaymentAuditLog = (log: any): PaymentAuditLog => ({
+  ...log,
+  id: log.id ?? log._id,
+  order: log.order
+    ? {
+        id: log.order.id ?? log.order._id,
+        status: log.order.status,
+        paymentStatus: log.order.paymentStatus,
+        total: log.order.total,
+        createdAt: log.order.createdAt,
+      }
+    : undefined,
+  user: log.user
+    ? {
+        id: log.user.id ?? log.user._id,
+        name: log.user.name,
+        email: log.user.email,
+      }
+    : undefined,
+  meta: log.meta ? Object.fromEntries(Object.entries(log.meta)) : undefined,
 });
 
 export const api = {
@@ -225,7 +248,7 @@ export const api = {
   }): Promise<ApiResponse<Order>> {
     try {
       const response = await httpClient.post<any>(API_CONFIG.ENDPOINTS.ORDERS.VERIFY_PAYMENT, payload);
-      return { success: true, data: response.data };
+      return { success: true, data: normalizeOrder(response.data) };
     } catch (error: any) {
       return { success: false, error: error.message };
     }
@@ -513,6 +536,42 @@ export const api = {
     }
   },
 
+  async getAdminPaymentLogs(filters?: {
+    page?: number;
+    level?: string;
+    scope?: string;
+    orderId?: string;
+    paymentId?: string;
+    razorpayOrderId?: string;
+    search?: string;
+  }): Promise<ApiResponse<{ logs: PaymentAuditLog[]; pagination: PaginatedResponse<PaymentAuditLog>['pagination'] }>> {
+    try {
+      const params = new URLSearchParams();
+      if (filters?.page) params.set('page', String(filters.page));
+      if (filters?.level) params.set('level', filters.level);
+      if (filters?.scope) params.set('scope', filters.scope);
+      if (filters?.orderId) params.set('orderId', filters.orderId);
+      if (filters?.paymentId) params.set('paymentId', filters.paymentId);
+      if (filters?.razorpayOrderId) params.set('razorpayOrderId', filters.razorpayOrderId);
+      if (filters?.search) params.set('search', filters.search);
+
+      const query = params.toString();
+      const response = await httpClient.get<any>(
+        `${API_CONFIG.ENDPOINTS.ADMIN.PAYMENT_LOGS}${query ? `?${query}` : ''}`
+      );
+
+      return {
+        success: true,
+        data: {
+          logs: (response.data ?? []).map(normalizePaymentAuditLog),
+          pagination: response.pagination,
+        },
+      };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  },
+
   async getAdminUsers(page = 1, search?: string): Promise<ApiResponse<User[]>> {
     try {
       const params = new URLSearchParams({ page: String(page) });
@@ -642,4 +701,3 @@ export const api = {
     }
   },
 };
-

@@ -550,7 +550,8 @@ const CheckoutPage: React.FC = () => {
       if (paymentData.paymentMethod === 'cod') {
         clearCart();
         toast.success('Order placed successfully!');
-        router.push('/profile');
+        const orderId = orderData.id ?? orderData._id ?? orderData?.data?.id ?? orderData?.data?._id;
+        router.push(orderId ? `/checkout/success?orderId=${orderId}&mode=cod` : '/orders');
         return;
       }
 
@@ -580,7 +581,8 @@ const CheckoutPage: React.FC = () => {
             if (verifyResult.success) {
               clearCart();
               toast.success('Payment successful! Order confirmed.');
-              router.push('/profile');
+              const verifiedOrderId = verifyResult.data?.id ?? (verifyResult.data as any)?._id ?? orderData.order?._id;
+              router.push(verifiedOrderId ? `/checkout/success?orderId=${verifiedOrderId}&mode=online` : '/orders');
             } else {
               toast.error(verifyResult.error || 'Payment verification failed');
             }

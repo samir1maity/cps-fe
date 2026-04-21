@@ -89,6 +89,21 @@ export interface Order {
   updatedAt: Date;
 }
 
+export interface PaymentAuditLog {
+  id: string;
+  scope: 'PAYMENT' | 'ORDER' | 'REFUND';
+  event: string;
+  level: 'INFO' | 'WARN' | 'ERROR';
+  message: string;
+  order?: Pick<Order, 'id' | 'status' | 'paymentStatus' | 'total' | 'createdAt'>;
+  user?: Pick<User, 'id' | 'name' | 'email'>;
+  paymentId?: string;
+  razorpayOrderId?: string;
+  refundId?: string;
+  meta?: Record<string, string>;
+  createdAt: Date;
+}
+
 export interface OrderItem {
   id: string;
   orderId: string;
@@ -183,7 +198,6 @@ export interface PaginatedResponse<T> {
     totalPages: number;
   };
 }
-
 
 
 
