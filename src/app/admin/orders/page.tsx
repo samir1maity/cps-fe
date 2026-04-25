@@ -18,9 +18,57 @@ import {
   User as UserIcon,
 } from 'lucide-react';
 import { api } from '@/lib/api';
-import { Order, OrderStatus, PaymentAuditLog } from '@/lib/types';
+import { Order, OrderItem, OrderStatus, PaymentAuditLog } from '@/lib/types';
 import { formatCurrency } from '@/lib/utils/formatters';
+import { useSignedUrls } from '@/lib/hooks/useSignedUrls';
 import toast from 'react-hot-toast';
+
+function OrderItemsList({ items }: { items: OrderItem[] }) {
+  const rawKeys = items.map((i) => {
+    const key = i.image ?? i.product?.images?.[0] ?? '';
+    return key.startsWith('http') ? '' : key;
+  });
+  const signedUrls = useSignedUrls(rawKeys);
+
+  return (
+    <div className="rounded-xl border border-gray-200 overflow-hidden">
+      {items.map((item, idx) => {
+        const rawKey = rawKeys[idx];
+        const rawImage = item.image ?? item.product?.images?.[0] ?? '';
+        const src = rawKey ? signedUrls[idx] : rawImage;
+        return (
+          <div
+            key={item.id ?? idx}
+            className={`flex items-center gap-4 px-4 py-3 ${idx !== 0 ? 'border-t border-gray-100' : ''}`}
+          >
+            {src ? (
+              <img
+                src={src}
+                alt={item.name ?? item.product?.name}
+                className="h-12 w-12 rounded-lg object-cover flex-shrink-0 border border-gray-200"
+              />
+            ) : (
+              <div className="h-12 w-12 rounded-lg bg-gray-100 flex-shrink-0 flex items-center justify-center">
+                <Package className="h-5 w-5 text-gray-400" />
+              </div>
+            )}
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-gray-900 truncate">
+                {item.name ?? item.product?.name ?? `Product #${item.productId?.slice(-6)}`}
+              </p>
+              <p className="text-xs text-gray-500">
+                Qty: {item.quantity} × {formatCurrency(item.price)}
+              </p>
+            </div>
+            <p className="text-sm font-semibold text-gray-900 flex-shrink-0">
+              {formatCurrency(item.quantity * item.price)}
+            </p>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
 const ORDER_STATUSES: OrderStatus[] = [
   'PENDING',
@@ -132,7 +180,8 @@ export default function AdminOrdersPage() {
     setDetailOrder(order);
     const res = await api.getOrder(order.id);
     if (res.success && res.data) {
-      setDetailOrder(res.data);
+      // preserve user from list data if API didn't return it
+      setDetailOrder({ ...res.data, user: res.data.user ?? order.user });
     } else {
       toast.error(res.error ?? 'Failed to load order details');
     }
@@ -425,37 +474,7 @@ export default function AdminOrdersPage() {
                   <h3 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-gray-400 mb-2">
                     <Package className="h-3.5 w-3.5" /> Items ({detailOrder.items?.length ?? 0})
                   </h3>
-                  <div className="rounded-xl border border-gray-200 overflow-hidden">
-                    {(detailOrder.items ?? []).map((item, idx) => (
-                      <div
-                        key={item.id ?? idx}
-                        className={`flex items-center gap-4 px-4 py-3 ${idx !== 0 ? 'border-t border-gray-100' : ''}`}
-                      >
-                        {item.product?.images?.[0] ? (
-                          <img
-                            src={item.product.images[0]}
-                            alt={item.product.name}
-                            className="h-12 w-12 rounded-lg object-cover flex-shrink-0 border border-gray-200"
-                          />
-                        ) : (
-                          <div className="h-12 w-12 rounded-lg bg-gray-100 flex-shrink-0 flex items-center justify-center">
-                            <Package className="h-5 w-5 text-gray-400" />
-                          </div>
-                        )}
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-gray-900 truncate">
-                            {item.product?.name ?? `Product #${item.productId?.slice(-6)}`}
-                          </p>
-                          <p className="text-xs text-gray-500">
-                            Qty: {item.quantity} × {formatCurrency(item.price)}
-                          </p>
-                        </div>
-                        <p className="text-sm font-semibold text-gray-900 flex-shrink-0">
-                          {formatCurrency(item.quantity * item.price)}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
+                  <OrderItemsList items={detailOrder.items ?? []} />
                 </section>
 
                 {/* Price Summary */}

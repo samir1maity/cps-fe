@@ -109,6 +109,8 @@ export interface OrderItem {
   orderId: string;
   productId: string;
   product: Product;
+  name?: string;
+  image?: string;
   quantity: number;
   price: number;
 }
