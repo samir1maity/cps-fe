@@ -261,9 +261,12 @@ const CategoryPageClient: React.FC = () => {
                           className={`${viewMode === 'list' ? 'w-48' : 'w-full'} group-hover:[&_img]:scale-105 [&_img]:transition-transform [&_img]:duration-300`}
                         />
                         {!product.inStock && (
-                          <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-                            <span className="text-white font-semibold">Out of Stock</span>
-                          </div>
+                          <div className="absolute inset-0 bg-black/40" />
+                        )}
+                        {!product.inStock && (
+                          <span className="absolute top-2 left-2 bg-red-600 text-white text-xs font-semibold px-2 py-0.5 rounded">
+                            Out of Stock
+                          </span>
                         )}
                       </div>
                     </Link>
@@ -294,10 +297,10 @@ const CategoryPageClient: React.FC = () => {
                         <button
                           onClick={() => handleAddToCart(product)}
                           disabled={!product.inStock}
-                          className="bg-blue-600 text-white px-3 py-1.5 rounded-md hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center"
+                          className="bg-blue-600 text-white px-3 py-1.5 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center text-sm"
                         >
                           <ShoppingCart className="h-4 w-4 mr-1" />
-                          Add
+                          {product.inStock ? 'Add' : 'Out of Stock'}
                         </button>
                       </div>
                     </div>

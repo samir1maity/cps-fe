@@ -23,6 +23,7 @@ const normalizeProduct = (p: any): Product => ({
   ...p,
   id: p.id ?? p._id,
   images: Array.isArray(p.images) ? p.images : [],
+  inStock: p.inStock === true && (p.stockQuantity ?? 0) > 0,
   category: p.category ? { ...p.category, id: p.category.id ?? p.category._id } : p.category,
   subcategory: p.subcategory ? { ...p.subcategory, id: p.subcategory.id ?? p.subcategory._id } : p.subcategory,
 });

@@ -51,15 +51,23 @@ const Header: React.FC = () => {
           {/* Search Bar - Hidden on mobile and on More page */}
           {shouldShowSearch && (
             <form onSubmit={handleSearch} className="hidden md:flex flex-1 max-w-lg mx-8">
-              <div className="relative w-full">
-                <input
-                  type="text"
-                  placeholder="Search products..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-11 pr-4 py-2.5 bg-gray-50 rounded-full shadow-[0_1px_2px_0_rgba(0,0,0,0.05)] focus:bg-white focus:shadow-[0_1px_3px_0_rgba(0,0,0,0.08)] focus:outline-none focus:ring-2 focus:ring-[var(--brand-600)]/30 transition-all duration-200 text-gray-900 placeholder:text-gray-400"
-                />
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+              <div className="relative flex w-full">
+                <div className="relative flex-1">
+                  <input
+                    type="text"
+                    placeholder="Search products..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full pl-11 pr-4 py-2.5 bg-gray-50 rounded-l-full shadow-[0_1px_2px_0_rgba(0,0,0,0.05)] focus:bg-white focus:shadow-[0_1px_3px_0_rgba(0,0,0,0.08)] focus:outline-none focus:ring-2 focus:ring-[var(--brand-600)]/30 transition-all duration-200 text-gray-900 placeholder:text-gray-400"
+                  />
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+                </div>
+                <button
+                  type="submit"
+                  className="px-4 py-2.5 bg-[var(--brand-600)] hover:bg-[var(--brand-700)] text-white text-sm font-medium rounded-r-full transition-colors"
+                >
+                  Search
+                </button>
               </div>
             </form>
           )}
@@ -139,17 +147,23 @@ const Header: React.FC = () => {
         {/* Mobile Search Bar - hidden on More page */}
         {shouldShowSearch && (
           <div className="md:hidden pb-4 pt-2">
-            <form onSubmit={handleSearch}>
-              <div className="relative">
+            <form onSubmit={handleSearch} className="flex">
+              <div className="relative flex-1">
                 <input
                   type="text"
                   placeholder="Search products..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-11 pr-4 py-2.5 bg-gray-50 rounded-full shadow-[0_1px_2px_0_rgba(0,0,0,0.05)] focus:bg-white focus:shadow-[0_1px_3px_0_rgba(0,0,0,0.08)] focus:outline-none focus:ring-2 focus:ring-[var(--brand-600)]/30 transition-all duration-200 text-gray-900 placeholder:text-gray-400"
+                  className="w-full pl-11 pr-4 py-2.5 bg-gray-50 rounded-l-full shadow-[0_1px_2px_0_rgba(0,0,0,0.05)] focus:bg-white focus:shadow-[0_1px_3px_0_rgba(0,0,0,0.08)] focus:outline-none focus:ring-2 focus:ring-[var(--brand-600)]/30 transition-all duration-200 text-gray-900 placeholder:text-gray-400"
                 />
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
               </div>
+              <button
+                type="submit"
+                className="px-4 py-2.5 bg-[var(--brand-600)] hover:bg-[var(--brand-700)] text-white text-sm font-medium rounded-r-full transition-colors"
+              >
+                Search
+              </button>
             </form>
           </div>
         )}

@@ -10,9 +10,9 @@ import {
   Share2,
   Minus,
   Plus,
-  Truck,
-  Shield,
-  RotateCcw,
+  ShieldCheck,
+  Leaf,
+  HandHeart,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useCart } from '@/contexts/CartContext';
@@ -165,9 +165,15 @@ const ProductPageClient: React.FC = () => {
 
 
             <div className="space-y-4">
+              {!product.inStock && (
+                <div className="inline-flex items-center gap-1.5 bg-red-50 border border-red-200 text-red-700 text-sm font-medium px-3 py-1.5 rounded-lg">
+                  <span className="h-2 w-2 rounded-full bg-red-500 inline-block" />
+                  Out of Stock
+                </div>
+              )}
               <div className="flex items-center space-x-4">
                 <span className="text-sm font-medium text-gray-700">Quantity:</span>
-                <div className="flex items-center border border-gray-300 rounded-lg">
+                <div className={`flex items-center border border-gray-300 rounded-lg ${!product.inStock ? 'opacity-40 pointer-events-none' : ''}`}>
                   <button onClick={() => setQuantity(Math.max(1, quantity - 1))} className="p-2 hover:bg-gray-100 text-gray-800">
                     <Minus className="h-4 w-4" />
                   </button>
@@ -180,17 +186,19 @@ const ProductPageClient: React.FC = () => {
                     <Plus className="h-4 w-4" />
                   </button>
                 </div>
-                <span className="text-sm text-gray-600">{product.stockQuantity} in stock</span>
+                {product.inStock && (
+                  <span className="text-sm text-gray-600">{product.stockQuantity} in stock</span>
+                )}
               </div>
 
               <div className="flex space-x-4">
                 <button
                   onClick={handleAddToCart}
                   disabled={!product.inStock}
-                  className="flex-1 bg-blue-600 text-white py-3 px-6 rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center justify-center"
+                  className="flex-1 py-3 px-6 rounded-lg transition-colors flex items-center justify-center font-medium disabled:opacity-50 disabled:cursor-not-allowed bg-blue-600 text-white hover:bg-blue-700"
                 >
                   <ShoppingCart className="h-5 w-5 mr-2" />
-                  Add to Cart
+                  {product.inStock ? 'Add to Cart' : 'Out of Stock'}
                 </button>
                 <button
                   onClick={handleAddToWishlist}
@@ -205,17 +213,32 @@ const ProductPageClient: React.FC = () => {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-6 border-t border-gray-200">
-              <div className="flex items-center space-x-3">
-                <Truck className="h-5 w-5 text-blue-600" />
-                <span className="text-sm text-gray-600">Free Shipping</span>
+              <div className="flex items-start space-x-3">
+                <div className="flex-shrink-0 h-9 w-9 rounded-full bg-blue-50 flex items-center justify-center">
+                  <ShieldCheck className="h-5 w-5 text-blue-600" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-gray-800">100% Authentic</p>
+                  <p className="text-xs text-gray-500">Handcrafted & certified genuine pottery</p>
+                </div>
               </div>
-              <div className="flex items-center space-x-3">
-                <Shield className="h-5 w-5 text-green-600" />
-                <span className="text-sm text-gray-600">Secure Payment</span>
+              <div className="flex items-start space-x-3">
+                <div className="flex-shrink-0 h-9 w-9 rounded-full bg-green-50 flex items-center justify-center">
+                  <Leaf className="h-5 w-5 text-green-600" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-gray-800">Eco Friendly</p>
+                  <p className="text-xs text-gray-500">Sustainably sourced natural materials</p>
+                </div>
               </div>
-              <div className="flex items-center space-x-3">
-                <RotateCcw className="h-5 w-5 text-purple-600" />
-                <span className="text-sm text-gray-600">30-Day Returns</span>
+              <div className="flex items-start space-x-3">
+                <div className="flex-shrink-0 h-9 w-9 rounded-full bg-purple-50 flex items-center justify-center">
+                  <HandHeart className="h-5 w-5 text-purple-600" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-gray-800">Artisan Made</p>
+                  <p className="text-xs text-gray-500">Supporting local craftspeople & communities</p>
+                </div>
               </div>
             </div>
           </div>
