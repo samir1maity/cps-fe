@@ -10,6 +10,12 @@ import {
   RefreshCw,
   ScrollText,
   X,
+  Eye,
+  MapPin,
+  CreditCard,
+  Package,
+  Hash,
+  User as UserIcon,
 } from 'lucide-react';
 import { api } from '@/lib/api';
 import { Order, OrderStatus, PaymentAuditLog } from '@/lib/types';
@@ -61,6 +67,8 @@ export default function AdminOrdersPage() {
   const [orderLogs, setOrderLogs] = useState<PaymentAuditLog[]>([]);
   const [logsLoading, setLogsLoading] = useState(false);
   const [logsRefreshing, setLogsRefreshing] = useState(false);
+  const [detailOrder, setDetailOrder] = useState<Order | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
 
   const loadOrders = useCallback(async () => {
     setLoading(true);
@@ -117,6 +125,23 @@ export default function AdminOrdersPage() {
     setOrderLogs([]);
     setLogsLoading(false);
     setLogsRefreshing(false);
+  };
+
+  const openOrderDetail = useCallback(async (order: Order) => {
+    setDetailLoading(true);
+    setDetailOrder(order);
+    const res = await api.getOrder(order.id);
+    if (res.success && res.data) {
+      setDetailOrder(res.data);
+    } else {
+      toast.error(res.error ?? 'Failed to load order details');
+    }
+    setDetailLoading(false);
+  }, []);
+
+  const closeDetailModal = () => {
+    setDetailOrder(null);
+    setDetailLoading(false);
   };
 
   // Client-side search filter (by order id or customer name)
@@ -216,6 +241,9 @@ export default function AdminOrdersPage() {
                       Update Status
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Details
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Trace
                     </th>
                   </tr>
@@ -265,6 +293,15 @@ export default function AdminOrdersPage() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <button
+                          onClick={() => openOrderDetail(order)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-blue-700 border border-blue-300 rounded-lg hover:bg-blue-50 transition-colors"
+                        >
+                          <Eye className="h-3.5 w-3.5" />
+                          View
+                        </button>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <button
                           onClick={() => loadOrderLogs(order)}
                           className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-700 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
                         >
@@ -303,6 +340,197 @@ export default function AdminOrdersPage() {
           </div>
         )}
       </div>
+
+      {/* Order Detail Modal */}
+      {detailOrder && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <button
+            aria-label="Close detail modal"
+            onClick={closeDetailModal}
+            className="absolute inset-0 bg-slate-950/40 backdrop-blur-[2px]"
+          />
+          <div className="relative w-full max-w-3xl max-h-[90vh] overflow-hidden rounded-2xl bg-white shadow-2xl flex flex-col">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-white">
+              <div className="flex items-center gap-3">
+                <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-blue-100 text-blue-700">
+                  <Package className="h-5 w-5" />
+                </span>
+                <div>
+                  <h2 className="text-base font-semibold text-gray-900">
+                    Order #{detailOrder.id.slice(-8).toUpperCase()}
+                  </h2>
+                  <p className="text-xs text-gray-500">
+                    {new Date(detailOrder.createdAt).toLocaleString('en-IN', {
+                      day: '2-digit', month: 'short', year: 'numeric',
+                      hour: '2-digit', minute: '2-digit',
+                    })}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={closeDetailModal}
+                className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 transition-colors"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            {detailLoading ? (
+              <div className="flex items-center justify-center py-24">
+                <div className="h-10 w-10 animate-spin rounded-full border-b-2 border-blue-600" />
+              </div>
+            ) : (
+              <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
+                {/* Status badges */}
+                <div className="flex flex-wrap gap-2">
+                  <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${STATUS_STYLES[detailOrder.status] ?? 'bg-gray-100 text-gray-700'}`}>
+                    {detailOrder.status}
+                  </span>
+                  <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700">
+                    {detailOrder.paymentMethod}
+                  </span>
+                  <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${
+                    detailOrder.paymentStatus === 'PAID' ? 'bg-green-100 text-green-700'
+                    : detailOrder.paymentStatus === 'FAILED' ? 'bg-red-100 text-red-700'
+                    : detailOrder.paymentStatus === 'REFUNDED' ? 'bg-gray-100 text-gray-700'
+                    : 'bg-yellow-100 text-yellow-700'
+                  }`}>
+                    Payment: {detailOrder.paymentStatus}
+                  </span>
+                  {detailOrder.trackingNumber && (
+                    <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-purple-100 text-purple-700">
+                      <Hash className="h-3 w-3" />
+                      {detailOrder.trackingNumber}
+                    </span>
+                  )}
+                </div>
+
+                {/* Customer */}
+                <section>
+                  <h3 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-gray-400 mb-2">
+                    <UserIcon className="h-3.5 w-3.5" /> Customer
+                  </h3>
+                  <div className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm">
+                    <p className="font-medium text-gray-900">{detailOrder.user?.name ?? '—'}</p>
+                    <p className="text-gray-500">{detailOrder.user?.email ?? ''}</p>
+                    {detailOrder.user?.phone && (
+                      <p className="text-gray-500">{detailOrder.user.phone}</p>
+                    )}
+                  </div>
+                </section>
+
+                {/* Order Items */}
+                <section>
+                  <h3 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-gray-400 mb-2">
+                    <Package className="h-3.5 w-3.5" /> Items ({detailOrder.items?.length ?? 0})
+                  </h3>
+                  <div className="rounded-xl border border-gray-200 overflow-hidden">
+                    {(detailOrder.items ?? []).map((item, idx) => (
+                      <div
+                        key={item.id ?? idx}
+                        className={`flex items-center gap-4 px-4 py-3 ${idx !== 0 ? 'border-t border-gray-100' : ''}`}
+                      >
+                        {item.product?.images?.[0] ? (
+                          <img
+                            src={item.product.images[0]}
+                            alt={item.product.name}
+                            className="h-12 w-12 rounded-lg object-cover flex-shrink-0 border border-gray-200"
+                          />
+                        ) : (
+                          <div className="h-12 w-12 rounded-lg bg-gray-100 flex-shrink-0 flex items-center justify-center">
+                            <Package className="h-5 w-5 text-gray-400" />
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-900 truncate">
+                            {item.product?.name ?? `Product #${item.productId?.slice(-6)}`}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            Qty: {item.quantity} × {formatCurrency(item.price)}
+                          </p>
+                        </div>
+                        <p className="text-sm font-semibold text-gray-900 flex-shrink-0">
+                          {formatCurrency(item.quantity * item.price)}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+
+                {/* Price Summary */}
+                <section>
+                  <h3 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-gray-400 mb-2">
+                    <CreditCard className="h-3.5 w-3.5" /> Price Summary
+                  </h3>
+                  <div className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 space-y-2 text-sm">
+                    <div className="flex justify-between text-gray-600">
+                      <span>Subtotal</span>
+                      <span>{formatCurrency(detailOrder.subtotal)}</span>
+                    </div>
+                    {detailOrder.discount > 0 && (
+                      <div className="flex justify-between text-green-700">
+                        <span>Discount</span>
+                        <span>-{formatCurrency(detailOrder.discount)}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between text-gray-600">
+                      <span>Tax</span>
+                      <span>{formatCurrency(detailOrder.tax)}</span>
+                    </div>
+                    <div className="flex justify-between text-gray-600">
+                      <span>Shipping</span>
+                      <span>{detailOrder.shipping === 0 ? 'Free' : formatCurrency(detailOrder.shipping)}</span>
+                    </div>
+                    <div className="flex justify-between font-semibold text-gray-900 pt-2 border-t border-gray-200">
+                      <span>Total</span>
+                      <span>{formatCurrency(detailOrder.total)}</span>
+                    </div>
+                  </div>
+                </section>
+
+                {/* Addresses */}
+                <section>
+                  <h3 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-gray-400 mb-2">
+                    <MapPin className="h-3.5 w-3.5" /> Addresses
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {[
+                      { label: 'Shipping Address', addr: detailOrder.shippingAddress },
+                      { label: 'Billing Address', addr: detailOrder.billingAddress },
+                    ].map(({ label, addr }) => (
+                      <div key={label} className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm">
+                        <p className="text-xs font-semibold text-gray-400 mb-1">{label}</p>
+                        {addr ? (
+                          <>
+                            <p className="font-medium text-gray-900">{addr.firstName} {addr.lastName}</p>
+                            <p className="text-gray-600">{addr.address1}</p>
+                            {addr.address2 && <p className="text-gray-600">{addr.address2}</p>}
+                            <p className="text-gray-600">{addr.city}, {addr.state} {addr.zipCode}</p>
+                            <p className="text-gray-600">{addr.country}</p>
+                            {addr.phone && <p className="text-gray-500 mt-1">{addr.phone}</p>}
+                          </>
+                        ) : (
+                          <p className="text-gray-400">—</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </section>
+
+                {detailOrder.notes && (
+                  <section>
+                    <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-2">Notes</h3>
+                    <div className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700">
+                      {detailOrder.notes}
+                    </div>
+                  </section>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {selectedOrder && (
         <div className="fixed inset-0 z-40">
