@@ -23,7 +23,7 @@ import { formatCurrency } from '@/lib/utils/formatters';
 import { useSignedUrls } from '@/lib/hooks/useSignedUrls';
 import toast from 'react-hot-toast';
 
-function OrderItemsList({ items }: { items: OrderItem[] }) {
+function OrderItemsList({ items, onProductClick }: { items: OrderItem[]; onProductClick: (productId: string) => void }) {
   const rawKeys = items.map((i) => {
     const key = i.image ?? i.product?.images?.[0] ?? '';
     return key.startsWith('http') ? '' : key;
@@ -36,10 +36,12 @@ function OrderItemsList({ items }: { items: OrderItem[] }) {
         const rawKey = rawKeys[idx];
         const rawImage = item.image ?? item.product?.images?.[0] ?? '';
         const src = rawKey ? signedUrls[idx] : rawImage;
+        const productId = item.product?.id ?? item.productId;
         return (
           <div
             key={item.id ?? idx}
-            className={`flex items-center gap-4 px-4 py-3 ${idx !== 0 ? 'border-t border-gray-100' : ''}`}
+            className={`flex items-center gap-4 px-4 py-3 cursor-pointer hover:bg-gray-50 transition-colors ${idx !== 0 ? 'border-t border-gray-100' : ''}`}
+            onClick={() => productId && onProductClick(productId)}
           >
             {src ? (
               <img
@@ -53,7 +55,7 @@ function OrderItemsList({ items }: { items: OrderItem[] }) {
               </div>
             )}
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-gray-900 truncate">
+              <p className="text-sm font-medium text-gray-900 truncate group-hover:text-blue-600">
                 {item.name ?? item.product?.name ?? `Product #${item.productId?.slice(-6)}`}
               </p>
               <p className="text-xs text-gray-500">
@@ -474,7 +476,13 @@ export default function AdminOrdersPage() {
                   <h3 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-gray-400 mb-2">
                     <Package className="h-3.5 w-3.5" /> Items ({detailOrder.items?.length ?? 0})
                   </h3>
-                  <OrderItemsList items={detailOrder.items ?? []} />
+                  <OrderItemsList
+                    items={detailOrder.items ?? []}
+                    onProductClick={(productId) => {
+                      closeDetailModal();
+                      router.push(`/products/${productId}`);
+                    }}
+                  />
                 </section>
 
                 {/* Price Summary */}
