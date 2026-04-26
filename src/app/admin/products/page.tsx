@@ -30,6 +30,7 @@ interface ExistingImage { key: string; }
 
 // A color variant in the form. imageKey is set after upload; newFile is the pending file.
 interface ColorEntry {
+  _id?: string;          // existing subdocument id — preserved on edit so MongoDB doesn't regenerate
   name: string;
   imageKey: string;      // stored key (existing or uploaded)
   newFile?: File;        // pending upload
@@ -196,7 +197,7 @@ export default function AdminProductsPage() {
       setExistingImages(imgKeys.map((key) => ({ key })));
       setNewFiles([]);
       setPrimaryIndex(0);
-      const loadedColors = colorVariants.map((c) => ({ name: c.name, imageKey: c.imageKey }));
+      const loadedColors = colorVariants.map((c) => ({ _id: c._id, name: c.name, imageKey: c.imageKey }));
       setColors(loadedColors);
       // Auto-select mode based on existing data
       setImageMode(loadedColors.length > 0 ? 'color' : 'standard');
@@ -360,15 +361,15 @@ export default function AdminProductsPage() {
         : [];
 
       // Upload color images (color mode)
-      const resolvedColors: Array<{ name: string; imageKey: string }> =
+      const resolvedColors: Array<{ _id?: string; name: string; imageKey: string }> =
         imageMode === 'color'
           ? await Promise.all(
               colors.map(async (c) => {
                 if (c.newFile) {
                   const key = await uploadToS3(c.newFile, 'products');
-                  return { name: c.name.trim(), imageKey: key };
+                  return { _id: c._id, name: c.name.trim(), imageKey: key };
                 }
-                return { name: c.name.trim(), imageKey: c.imageKey };
+                return { _id: c._id, name: c.name.trim(), imageKey: c.imageKey };
               }),
             )
           : [];
