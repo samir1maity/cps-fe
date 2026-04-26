@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { useSignedUrls } from '@/lib/hooks/useSignedUrls';
+import { useSignedUrl, useSignedUrls } from '@/lib/hooks/useSignedUrls';
 import {
   Heart,
   ShoppingCart,
@@ -19,37 +19,101 @@ import { useCart } from '@/contexts/CartContext';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
 import { usePendingActions } from '@/hooks/usePendingActions';
 import { api } from '@/lib/api';
-import { Product } from '@/lib/types';
+import { Product, ProductColor } from '@/lib/types';
 import { formatCurrency } from '@/lib/utils/formatters';
+import { hasColorVariants, getColorImageKey, getProductThumbnailKey } from '@/lib/utils/product';
+
+// ── Color swatch — resolves its own signed URL ────────────────────────────────
+
+function ColorSwatch({
+  color,
+  isSelected,
+  onClick,
+}: {
+  color: ProductColor;
+  isSelected: boolean;
+  onClick: () => void;
+}) {
+  const url = useSignedUrl(color.imageKey);
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={color.name}
+      className={`relative h-12 w-12 rounded-xl overflow-hidden border-2 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
+        isSelected
+          ? 'border-blue-600 ring-2 ring-blue-200'
+          : 'border-gray-200 hover:border-gray-400'
+      }`}
+    >
+      {url ? (
+        <img src={url} alt={color.name} className="h-full w-full object-cover" />
+      ) : (
+        <div className="h-full w-full bg-gray-100" />
+      )}
+    </button>
+  );
+}
+
+// ── Main component ────────────────────────────────────────────────────────────
 
 const ProductPageClient: React.FC = () => {
   const params = useParams();
   const { addToCart } = useCart();
   const { requireAuthForCart, requireAuthForWishlist } = useRequireAuth();
+
   const [product, setProduct] = useState<Product | null>(null);
-  const [selectedImage, setSelectedImage] = useState(0);
-  const [quantity, setQuantity] = useState(1);
   const [loading, setLoading] = useState(true);
-  const signedUrls = useSignedUrls(product?.images ?? []);
+  const [quantity, setQuantity] = useState(1);
+
+  // For color-variant products: which color is active
+  const [selectedColor, setSelectedColor] = useState<ProductColor | null>(null);
+  // For standard-image products: which image index is active
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
 
   usePendingActions();
 
+  // Standard-image signed URLs (empty array when using color variants)
+  const standardImageKeys = product && !hasColorVariants(product) ? product.images : [];
+  const standardSignedUrls = useSignedUrls(standardImageKeys);
+
+  // Active image key — either the selected color's image or the selected standard image
+  const activeImageKey =
+    product == null
+      ? ''
+      : hasColorVariants(product) && selectedColor
+      ? getColorImageKey(product, selectedColor)
+      : (standardImageKeys[selectedImageIndex] ?? getProductThumbnailKey(product));
+
+  const activeImageUrl = useSignedUrl(
+    // Only use this hook for color-variant products; standard products use the batch hook above.
+    product && hasColorVariants(product) ? activeImageKey : null,
+  );
+
+  // The URL shown in the main viewer
+  const mainImageUrl =
+    product && hasColorVariants(product)
+      ? activeImageUrl
+      : standardSignedUrls[selectedImageIndex] ?? '';
+
   useEffect(() => {
-    if (params.id) {
-      loadProduct();
-    }
+    if (params.id) loadProduct();
   }, [params.id]);
 
   const loadProduct = async () => {
     try {
       setLoading(true);
-      const productResponse = await api.getProduct(params.id as string);
-
-      if (productResponse.success && productResponse.data) {
-        setProduct(productResponse.data);
+      const res = await api.getProduct(params.id as string);
+      if (res.success && res.data) {
+        const p = res.data;
+        setProduct(p);
+        // Pre-select first color if the product uses color variants
+        if (hasColorVariants(p)) {
+          setSelectedColor(p.colors[0]);
+        }
       }
-    } catch (error) {
-      console.error('Failed to load product:', error);
+    } catch {
+      // handled below via null product check
     } finally {
       setLoading(false);
     }
@@ -58,7 +122,7 @@ const ProductPageClient: React.FC = () => {
   const handleAddToCart = async () => {
     if (!product) return;
     if (!requireAuthForCart(product.id, quantity)) return;
-    await addToCart(product, quantity);
+    await addToCart(product, quantity, selectedColor?._id ?? null);
   };
 
   const handleAddToWishlist = async () => {
@@ -67,10 +131,12 @@ const ProductPageClient: React.FC = () => {
     toast.success('Added to wishlist');
   };
 
+  // ── Loading / error states ────────────────────────────────────────────────
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600" />
       </div>
     );
   }
@@ -88,9 +154,14 @@ const ProductPageClient: React.FC = () => {
     );
   }
 
+  const colorMode = hasColorVariants(product);
+
+  // ── Render ────────────────────────────────────────────────────────────────
+
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Breadcrumb */}
         <div className="flex items-center space-x-2 text-sm text-gray-600 mb-8">
           <Link href="/" className="hover:text-blue-600">Home</Link>
           <span>/</span>
@@ -113,43 +184,68 @@ const ProductPageClient: React.FC = () => {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
-          {/* Image column — sticky on desktop */}
+          {/* ── Image column ─────────────────────────────────────────────── */}
           <div className="lg:sticky lg:top-8 space-y-3">
+            {/* Main viewer */}
             <div className="w-full aspect-square rounded-xl overflow-hidden bg-white shadow-md">
               <img
-                src={signedUrls[selectedImage] || '/images/placeholder.jpg'}
-                alt={product.name}
-                className="w-full h-full object-cover block"
+                src={mainImageUrl || '/images/placeholder.jpg'}
+                alt={colorMode && selectedColor ? `${product.name} — ${selectedColor.name}` : product.name}
+                className="w-full h-full object-cover block transition-opacity duration-200"
               />
             </div>
-            {product.images.length > 1 && (
-              <div className="grid grid-cols-4 gap-2">
-                {product.images.map((_, index) => (
-                  <button
-                    key={index}
-                    onClick={() => setSelectedImage(index)}
-                    className={`rounded-lg overflow-hidden border-2 transition-colors ${
-                      selectedImage === index ? 'border-blue-600' : 'border-transparent hover:border-gray-300'
-                    }`}
-                  >
-                    <img
-                      src={signedUrls[index] || '/images/placeholder.jpg'}
-                      alt={`${product.name} ${index + 1}`}
-                      className="w-full h-20 object-cover block"
+
+            {/* Thumbnails strip */}
+            {colorMode ? (
+              // Color-variant thumbnails — each swatch is also the thumbnail
+              product.colors.length > 1 && (
+                <div className="flex flex-wrap gap-2">
+                  {product.colors.map((color) => (
+                    <ColorSwatch
+                      key={color.name}
+                      color={color}
+                      isSelected={selectedColor?.name === color.name}
+                      onClick={() => setSelectedColor(color)}
                     />
-                  </button>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )
+            ) : (
+              // Standard image strip
+              product.images.length > 1 && (
+                <div className="grid grid-cols-4 gap-2">
+                  {product.images.map((_, index) => (
+                    <button
+                      key={index}
+                      onClick={() => setSelectedImageIndex(index)}
+                      className={`rounded-lg overflow-hidden border-2 transition-colors ${
+                        selectedImageIndex === index
+                          ? 'border-blue-600'
+                          : 'border-transparent hover:border-gray-300'
+                      }`}
+                    >
+                      <img
+                        src={standardSignedUrls[index] || '/images/placeholder.jpg'}
+                        alt={`${product.name} ${index + 1}`}
+                        className="w-full h-20 object-cover block"
+                      />
+                    </button>
+                  ))}
+                </div>
+              )
             )}
           </div>
 
+          {/* ── Info column ──────────────────────────────────────────────── */}
           <div className="space-y-6">
             <div>
               <h1 className="text-3xl font-bold text-gray-900 mb-2">{product.name}</h1>
               <p className="text-lg text-gray-600 mb-4">{product.description}</p>
 
               <div className="flex items-center space-x-4 mb-6">
-                <span className="text-3xl font-bold text-gray-900">{formatCurrency(product.price)}</span>
+                <span className="text-3xl font-bold text-gray-900">
+                  {formatCurrency(product.price)}
+                </span>
                 {product.originalPrice && (
                   <span className="text-xl text-gray-500 line-through">
                     {formatCurrency(product.originalPrice)}
@@ -163,6 +259,28 @@ const ProductPageClient: React.FC = () => {
               </div>
             </div>
 
+            {/* ── Color picker ─────────────────────────────────────────── */}
+            {colorMode && (
+              <div>
+                <p className="text-sm font-medium text-gray-700 mb-2">
+                  Color:{' '}
+                  <span className="font-semibold text-gray-900">{selectedColor?.name}</span>
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {product.colors.map((color) => (
+                    <ColorSwatch
+                      key={color.name}
+                      color={color}
+                      isSelected={selectedColor?.name === color.name}
+                      onClick={() => setSelectedColor(color)}
+                    />
+                  ))}
+                </div>
+                <p className="text-xs text-gray-400 mt-2">
+                  Select a color to preview its image
+                </p>
+              </div>
+            )}
 
             <div className="space-y-4">
               {!product.inStock && (
@@ -171,10 +289,18 @@ const ProductPageClient: React.FC = () => {
                   Out of Stock
                 </div>
               )}
+
               <div className="flex items-center space-x-4">
                 <span className="text-sm font-medium text-gray-700">Quantity:</span>
-                <div className={`flex items-center border border-gray-300 rounded-lg ${!product.inStock ? 'opacity-40 pointer-events-none' : ''}`}>
-                  <button onClick={() => setQuantity(Math.max(1, quantity - 1))} className="p-2 hover:bg-gray-100 text-gray-800">
+                <div
+                  className={`flex items-center border border-gray-300 rounded-lg ${
+                    !product.inStock ? 'opacity-40 pointer-events-none' : ''
+                  }`}
+                >
+                  <button
+                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                    className="p-2 hover:bg-gray-100 text-gray-800"
+                  >
                     <Minus className="h-4 w-4" />
                   </button>
                   <span className="px-4 py-2 text-sm font-semibold text-gray-900">{quantity}</span>
@@ -212,6 +338,7 @@ const ProductPageClient: React.FC = () => {
               </div>
             </div>
 
+            {/* Trust badges */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-6 border-t border-gray-200">
               <div className="flex items-start space-x-3">
                 <div className="flex-shrink-0 h-9 w-9 rounded-full bg-blue-50 flex items-center justify-center">
@@ -244,27 +371,30 @@ const ProductPageClient: React.FC = () => {
           </div>
         </div>
 
-        <div className="mt-16">
-          <div className="bg-white rounded-lg shadow-md">
-            <div className="border-b border-gray-200">
-              <nav className="flex space-x-8 px-6">
-                <button className="py-4 px-1 border-b-2 border-blue-600 text-blue-600 font-medium">
-                  Specifications
-                </button>
-              </nav>
-            </div>
-            <div className="p-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {Object.entries(product.specifications).map(([key, value]) => (
-                  <div key={key} className="flex justify-between py-2 border-b border-gray-100">
-                    <span className="font-medium text-gray-900">{key}</span>
-                    <span className="text-gray-600">{value}</span>
-                  </div>
-                ))}
+        {/* Specifications */}
+        {Object.keys(product.specifications).length > 0 && (
+          <div className="mt-16">
+            <div className="bg-white rounded-lg shadow-md">
+              <div className="border-b border-gray-200">
+                <nav className="flex space-x-8 px-6">
+                  <button className="py-4 px-1 border-b-2 border-blue-600 text-blue-600 font-medium">
+                    Specifications
+                  </button>
+                </nav>
+              </div>
+              <div className="p-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {Object.entries(product.specifications).map(([key, value]) => (
+                    <div key={key} className="flex justify-between py-2 border-b border-gray-100">
+                      <span className="font-medium text-gray-900">{key}</span>
+                      <span className="text-gray-600">{value}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

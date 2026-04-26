@@ -10,7 +10,7 @@ import toast from 'react-hot-toast';
 interface CartContextType {
   items: CartItem[];
   loading: boolean;
-  addToCart: (product: Product, quantity?: number) => Promise<void>;
+  addToCart: (product: Product, quantity?: number, colorId?: string | null) => Promise<void>;
   removeFromCart: (itemId: string) => Promise<void>;
   updateQuantity: (itemId: string, quantity: number) => Promise<void>;
   clearCart: () => void;
@@ -61,7 +61,7 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
     }
   };
 
-  const addToCart = async (product: Product, quantity: number = 1) => {
+  const addToCart = async (product: Product, quantity: number = 1, colorId: string | null = null) => {
     if (!user) {
       toast('Please login to add items to cart', { icon: '🔒' });
       return;
@@ -69,7 +69,7 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
 
     try {
       setLoading(true);
-      const response = await api.addToCart(user.id, product.id, quantity);
+      const response = await api.addToCart(user.id, product.id, quantity, colorId);
 
       if (response.success && response.data) {
         setItems(response.data);

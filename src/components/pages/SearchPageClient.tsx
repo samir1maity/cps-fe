@@ -11,6 +11,7 @@ import { useRequireAuth } from '@/hooks/useRequireAuth';
 import { api } from '@/lib/api';
 import { Category, Product } from '@/lib/types';
 import { formatCurrency } from '@/lib/utils/formatters';
+import { getDefaultColorId } from '@/lib/utils/product';
 
 const SORT_MAP: Record<string, string> = {
   relevance: '-createdAt',
@@ -127,7 +128,7 @@ const SearchPageContent: React.FC = () => {
 
   const handleAddToCart = async (product: Product) => {
     if (!requireAuthForCart(product.id, 1)) return;
-    await addToCart(product);
+    await addToCart(product, 1, getDefaultColorId(product));
   };
 
   const handleAddToWishlist = async (product: Product) => {
@@ -297,7 +298,7 @@ const SearchPageContent: React.FC = () => {
                       <Link href={`/products/${product.id}`}>
                         <div className="relative">
                           <ProductThumb
-                            imageKey={product.images[0]}
+                            product={product}
                             alt={product.name}
                             className="w-full group-hover:[&_img]:scale-105 [&_img]:transition-transform [&_img]:duration-300"
                           />

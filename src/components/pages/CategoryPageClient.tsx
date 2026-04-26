@@ -11,6 +11,7 @@ import { useRequireAuth } from '@/hooks/useRequireAuth';
 import { api } from '@/lib/api';
 import { Category, Product } from '@/lib/types';
 import { formatCurrency } from '@/lib/utils/formatters';
+import { getDefaultColorId } from '@/lib/utils/product';
 
 const SORT_MAP: Record<string, string> = {
   relevance: '-createdAt',
@@ -78,7 +79,7 @@ const CategoryPageClient: React.FC = () => {
 
   const handleAddToCart = async (product: Product) => {
     if (!requireAuthForCart(product.id, 1)) return;
-    await addToCart(product);
+    await addToCart(product, 1, getDefaultColorId(product));
   };
 
   const handleAddToWishlist = (product: Product) => {
@@ -256,13 +257,10 @@ const CategoryPageClient: React.FC = () => {
                     <Link href={`/products/${product.id}`}>
                       <div className="relative">
                         <ProductThumb
-                          imageKey={product.images[0]}
+                          product={product}
                           alt={product.name}
                           className={`${viewMode === 'list' ? 'w-48' : 'w-full'} group-hover:[&_img]:scale-105 [&_img]:transition-transform [&_img]:duration-300`}
                         />
-                        {!product.inStock && (
-                          <div className="absolute inset-0 bg-black/40" />
-                        )}
                         {!product.inStock && (
                           <span className="absolute top-2 left-2 bg-red-600 text-white text-xs font-semibold px-2 py-0.5 rounded">
                             Out of Stock

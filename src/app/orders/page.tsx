@@ -231,13 +231,16 @@ export default function OrdersPage() {
                               className="min-w-[88px] rounded-2xl border border-gray-100 bg-gray-50 p-2"
                             >
                               <ProductThumb
-                                imageKey={item.product.images[0]}
-                                alt={item.product.name}
+                                imageKey={item.image || undefined}
+                                alt={item.name ?? item.product?.name ?? ''}
                                 className="h-16 w-16 rounded-xl mx-auto"
                               />
                               <p className="mt-2 truncate text-xs font-medium text-gray-700">
-                                {item.quantity} x {item.product.name}
+                                {item.quantity} x {item.name ?? item.product?.name}
                               </p>
+                              {item.colorName && (
+                                <p className="truncate text-[10px] text-gray-400">{item.colorName}</p>
+                              )}
                             </div>
                           ))}
                         </div>

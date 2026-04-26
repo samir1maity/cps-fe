@@ -13,7 +13,7 @@ import { Address, Order, OrderStatus } from '@/lib/types';
 import { formatCurrency } from '@/lib/utils/formatters';
 import { uploadToS3 } from '@/lib/hooks/useS3Upload';
 import { useSignedUrl } from '@/lib/hooks/useSignedUrls';
-import Image from 'next/image';
+import ProductThumb from '@/components/ui/ProductThumb';
 import toast from 'react-hot-toast';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -332,15 +332,17 @@ const ProfilePage: React.FC = () => {
                               const p = item.product as any;
                               return (
                                 <div key={item.id} className="flex items-center gap-3">
-                                  <Image
-                                    src={p.images?.[0] || '/images/placeholder.jpg'}
-                                    alt={p.name}
-                                    width={44} height={44}
-                                    className="rounded-lg object-cover border border-gray-100 shrink-0"
+                                  <ProductThumb
+                                    imageKey={item.image || undefined}
+                                    alt={p.name ?? ''}
+                                    className="h-11 w-11 rounded-lg border border-gray-100 shrink-0"
                                   />
                                   <div className="flex-1 min-w-0">
                                     <p className="text-sm font-medium text-gray-800 truncate">{p.name}</p>
-                                    <p className="text-xs text-gray-400">Qty {item.quantity} × {formatCurrency(item.price)}</p>
+                                    <p className="text-xs text-gray-400">
+                                      {item.colorName && <span className="mr-1.5 text-gray-500">{item.colorName} ·</span>}
+                                      Qty {item.quantity} × {formatCurrency(item.price)}
+                                    </p>
                                   </div>
                                   <p className="text-sm font-semibold text-gray-900 shrink-0">
                                     {formatCurrency(item.price * item.quantity)}

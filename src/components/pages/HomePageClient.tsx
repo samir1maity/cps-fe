@@ -12,6 +12,7 @@ import { api } from '@/lib/api';
 import { Product } from '@/lib/types';
 import { formatCurrency } from '@/lib/utils/formatters';
 import ProductThumb from '@/components/ui/ProductThumb';
+import { getDefaultColorId } from '@/lib/utils/product';
 
 const HomePageClient: React.FC = () => {
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
@@ -44,7 +45,7 @@ const HomePageClient: React.FC = () => {
       return;
     }
 
-    await addToCart(product);
+    await addToCart(product, 1, getDefaultColorId(product));
   };
 
   const handleAddToWishlist = async (product: Product) => {
@@ -154,7 +155,7 @@ const HomePageClient: React.FC = () => {
                 <Link href={`/products/${product.id}`}>
                   <div className="relative">
                     <ProductThumb
-                      imageKey={product.images[0]}
+                      product={product}
                       alt={product.name}
                       className="w-full group-hover:[&_img]:scale-105 [&_img]:transition-transform [&_img]:duration-300"
                     />

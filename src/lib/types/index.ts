@@ -27,6 +27,12 @@ export interface Address {
   isDefault: boolean;
 }
 
+export interface ProductColor {
+  _id: string;
+  name: string;
+  imageKey: string;
+}
+
 export interface Product {
   id: string;
   name: string;
@@ -34,6 +40,7 @@ export interface Product {
   price: number;
   originalPrice?: number;
   images: string[];
+  colors: ProductColor[];
   category: Category;
   subcategory?: Category;
   brand: string;
@@ -65,6 +72,7 @@ export interface CartItem {
   productId: string;
   product: Product;
   quantity: number;
+  colorId: string | null;
   userId: string;
 }
 
@@ -111,6 +119,7 @@ export interface OrderItem {
   product: Product;
   name?: string;
   image?: string;
+  colorName?: string | null;
   quantity: number;
   price: number;
 }

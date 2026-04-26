@@ -32,6 +32,7 @@ const normalizeCartItems = (items: any[]): CartItem[] =>
   (items ?? []).map((item: any) => ({
     ...item,
     id: item.id ?? item._id,
+    colorId: item.colorId ?? null,
     product: normalizeProduct(item.product),
   }));
 
@@ -47,10 +48,13 @@ const normalizeOrder = (o: any): any => ({
   items: (o.items ?? []).map((item: any) => ({
     ...item,
     id: item.id ?? item._id,
+    image: item.image ?? '',       // snapshot key — kept on item for direct use
+    colorName: item.colorName ?? null,
     product: {
       id: item.product ?? '',
       name: item.name ?? '',
       images: item.image ? [item.image] : [],
+      colors: [],
       price: item.price ?? 0,
     },
     price: item.price ?? 0,
@@ -152,9 +156,9 @@ export const api = {
     }
   },
 
-  async addToCart(_userId: string, productId: string, quantity: number): Promise<ApiResponse<CartItem[]>> {
+  async addToCart(_userId: string, productId: string, quantity: number, colorId?: string | null): Promise<ApiResponse<CartItem[]>> {
     try {
-      const response = await httpClient.post<any>(API_CONFIG.ENDPOINTS.CART.ADD, { productId, quantity });
+      const response = await httpClient.post<any>(API_CONFIG.ENDPOINTS.CART.ADD, { productId, quantity, colorId: colorId ?? null });
       return { success: true, data: normalizeCartItems(response.data) };
     } catch (error: any) {
       return { success: false, error: error.message };
@@ -719,6 +723,15 @@ export const api = {
   async getSignedUrl(key: string): Promise<ApiResponse<{ url: string }>> {
     try {
       const response = await httpClient.get<any>(API_CONFIG.ENDPOINTS.UPLOAD.SIGN(key));
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  },
+
+  async getSignedUrlBatch(keys: string[]): Promise<ApiResponse<{ results: Record<string, string> }>> {
+    try {
+      const response = await httpClient.post<any>(API_CONFIG.ENDPOINTS.UPLOAD.SIGN_BATCH, { keys });
       return { success: true, data: response.data };
     } catch (error: any) {
       return { success: false, error: error.message };

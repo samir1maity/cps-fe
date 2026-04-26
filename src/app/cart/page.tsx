@@ -8,6 +8,7 @@ import ProductThumb from '@/components/ui/ProductThumb';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { formatCurrency } from '@/lib/utils/formatters';
+import { getCartItemImageKey } from '@/lib/utils/product';
 
 const CartPage: React.FC = () => {
   const { items, updateQuantity, removeFromCart, getTotalPrice, loading } = useCart();
@@ -90,7 +91,7 @@ const CartPage: React.FC = () => {
                     <div className="flex flex-col sm:flex-row sm:items-center gap-4">
                       <div className="flex-shrink-0">
                         <ProductThumb
-                          imageKey={item.product.images[0]}
+                          imageKey={getCartItemImageKey(item)}
                           alt={item.product.name}
                           className="h-20 w-20 sm:h-24 sm:w-24 rounded-xl shrink-0"
                         />
@@ -101,6 +102,11 @@ const CartPage: React.FC = () => {
                         </h3>
                         <p className="text-sm text-gray-500 mt-1">
                           {item.product.brand}
+                          {item.colorId && item.product.colors?.length ? (
+                            <span className="ml-2 text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">
+                              {item.product.colors.find((c) => String(c._id) === String(item.colorId))?.name}
+                            </span>
+                          ) : null}
                         </p>
                         <p className="text-base sm:text-lg font-semibold text-gray-900 mt-2">
                           {formatCurrency(item.product.price)}

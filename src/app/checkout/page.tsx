@@ -14,6 +14,7 @@ import toast from 'react-hot-toast';
 import { formatCurrency } from '@/lib/utils/formatters';
 import { api } from '@/lib/api';
 import { Address } from '@/lib/types';
+import { getCartItemImageKey } from '@/lib/utils/product';
 
 declare global {
   interface Window { Razorpay: any; }
@@ -346,7 +347,7 @@ function ReviewStep({ items, subtotal, discount, tax, total, paymentMethod, load
         {items.map((item) => (
           <div key={item.id} className="flex items-center gap-3">
             <ProductThumb
-              imageKey={item.product.images[0]}
+              imageKey={getCartItemImageKey(item)}
               alt={item.product.name}
               className="h-14 w-14 rounded-lg border border-gray-100 shrink-0"
             />
