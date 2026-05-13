@@ -6,8 +6,9 @@ import { Plus, Pencil, Trash2, ArrowLeft, X, Package, Star, Upload, Palette, Ima
 import { api } from '@/lib/api';
 import { Product, Category, ProductColor, ColorVariantGallery } from '@/lib/types';
 import { formatCurrency } from '@/lib/utils/formatters';
+import { getProductThumbnailKey } from '@/lib/utils/product';
 import { uploadToS3, uploadManyToS3 } from '@/lib/hooks/useS3Upload';
-import { useSignedUrl } from '@/lib/hooks/useSignedUrls';
+import { useSignedUrl, useSignedUrls } from '@/lib/hooks/useSignedUrls';
 import toast from 'react-hot-toast';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -54,13 +55,148 @@ const emptyColor = (): ColorEntry => ({
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 
-function ProductImage({ imageKey, name }: { imageKey?: string; name: string }) {
-  const url = useSignedUrl(imageKey);
-  if (url) return <img src={url} alt={name} className="h-10 w-10 rounded object-cover" />;
+function ProductImage({ product }: { product: Product }) {
+  const thumbnailKey = getProductThumbnailKey(product);
+  const url = useSignedUrl(thumbnailKey || undefined);
+  if (url) return <img src={url} alt={product.name} className="h-10 w-10 rounded-lg object-cover flex-shrink-0" />;
   return (
-    <div className="h-10 w-10 rounded bg-gray-100 flex items-center justify-center flex-shrink-0">
+    <div className="h-10 w-10 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
       <Package className="h-5 w-5 text-gray-400" />
     </div>
+  );
+}
+
+// ── Color variants modal ──────────────────────────────────────────────────────
+
+function ColorVariantModalItem({ color }: { color: Product['colors'][number] }) {
+  const url = useSignedUrl(color.imageKey);
+  return (
+    <div className="flex flex-col items-center gap-1.5">
+      <div className="h-16 w-16 rounded-xl overflow-hidden bg-gray-100 border border-gray-200 flex-shrink-0">
+        {url
+          ? <img src={url} alt={color.name} className="h-full w-full object-cover" />
+          : <div className="h-full w-full flex items-center justify-center">
+              <Palette className="h-6 w-6 text-purple-300" />
+            </div>
+        }
+      </div>
+      <span className="text-xs text-gray-700 font-medium text-center leading-tight max-w-[72px] truncate" title={color.name}>
+        {color.name}
+      </span>
+    </div>
+  );
+}
+
+function ColorVariantsModal({
+  productName,
+  colors,
+  onClose,
+}: {
+  productName: string;
+  colors: Product['colors'];
+  onClose: () => void;
+}) {
+  // Close on Escape
+  React.useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [onClose]);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white rounded-2xl shadow-xl w-full max-w-sm max-h-[80vh] flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+          <div>
+            <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">Color Variants</p>
+            <p className="text-sm font-semibold text-gray-900 mt-0.5 leading-tight">{productName}</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs bg-purple-50 text-purple-600 font-semibold px-2 py-0.5 rounded-full">
+              {colors.length} colors
+            </span>
+            <button
+              onClick={onClose}
+              className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+
+        {/* Grid */}
+        <div className="overflow-y-auto p-5">
+          <div className="grid grid-cols-4 gap-4">
+            {colors.map((c) => (
+              <ColorVariantModalItem key={c._id} color={c} />
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Color swatch stack (table cell) ───────────────────────────────────────────
+
+function ColorSwatchStack({ productName, colors }: { productName: string; colors: Product['colors'] }) {
+  const [modalOpen, setModalOpen] = React.useState(false);
+  const preview = colors.slice(0, 3);
+  const overflow = colors.length - 3;
+  const previewUrls = useSignedUrls(preview.map((c) => c.imageKey));
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setModalOpen(true)}
+        className="flex items-center gap-2 group focus:outline-none"
+        title="View all color variants"
+      >
+        {/* Stacked circles */}
+        <div className="flex -space-x-2">
+          {preview.map((c, i) => (
+            <div
+              key={c._id}
+              className="h-7 w-7 rounded-full border-2 border-white overflow-hidden flex-shrink-0 bg-gray-100 group-hover:border-purple-200 transition-colors"
+              style={{ zIndex: preview.length - i }}
+            >
+              {previewUrls[i]
+                ? <img src={previewUrls[i]} alt={c.name} className="h-full w-full object-cover" />
+                : <div className="h-full w-full bg-purple-100 flex items-center justify-center">
+                    <Palette className="h-3 w-3 text-purple-400" />
+                  </div>
+              }
+            </div>
+          ))}
+          {overflow > 0 && (
+            <div className="h-7 w-7 rounded-full border-2 border-white bg-purple-100 flex items-center justify-center flex-shrink-0 text-[10px] font-semibold text-purple-600 group-hover:bg-purple-200 transition-colors">
+              +{overflow}
+            </div>
+          )}
+        </div>
+
+        {/* Count label */}
+        <span className="text-xs text-gray-500 group-hover:text-purple-600 transition-colors">
+          {colors.length} {colors.length === 1 ? 'color' : 'colors'}
+        </span>
+      </button>
+
+      {modalOpen && (
+        <ColorVariantsModal
+          productName={productName}
+          colors={colors}
+          onClose={() => setModalOpen(false)}
+        />
+      )}
+    </>
   );
 }
 
@@ -1029,7 +1165,7 @@ export default function AdminProductsPage() {
                   <tr key={product.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        <ProductImage imageKey={product.images?.[0]} name={product.name} />
+                        <ProductImage product={product} />
                         <div>
                           <p className="font-medium text-gray-900">{product.name}</p>
                           <p className="text-xs text-gray-500">{product.brand}</p>
@@ -1043,17 +1179,10 @@ export default function AdminProductsPage() {
                       )}
                     </td>
                     <td className="px-4 py-4">
-                      {product.colors?.length > 0 ? (
-                        <div className="flex flex-wrap gap-1">
-                          {product.colors.map((c, ci) => (
-                            <span key={ci} className="inline-flex items-center gap-1 text-xs bg-purple-50 text-purple-700 px-2 py-0.5 rounded-full">
-                              <Palette className="h-2.5 w-2.5" /> {c.name}
-                            </span>
-                          ))}
-                        </div>
-                      ) : (
-                        <span className="text-xs text-gray-400">—</span>
-                      )}
+                      {product.colors?.length > 0
+                        ? <ColorSwatchStack productName={product.name} colors={product.colors} />
+                        : <span className="text-xs text-gray-400">—</span>
+                      }
                     </td>
                     <td className="px-4 py-4 text-gray-900 font-medium">{formatCurrency(product.price)}</td>
                     <td className="px-4 py-4">
