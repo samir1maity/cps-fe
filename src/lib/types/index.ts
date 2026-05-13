@@ -33,6 +33,9 @@ export interface ProductColor {
   imageKey: string;
 }
 
+/** Map of colorId → extra gallery image keys (fetched only on product detail page) */
+export type ColorVariantGallery = Record<string, string[]>;
+
 export interface Product {
   id: string;
   name: string;

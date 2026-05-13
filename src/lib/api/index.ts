@@ -10,6 +10,7 @@ import {
   CartItem,
   WishlistItem,
   PaymentAuditLog,
+  ColorVariantGallery,
   ApiResponse,
   PaginatedResponse,
 } from '@/lib/types';
@@ -124,6 +125,29 @@ export const api = {
       return { success: true, data: response.data };
     } catch (error: any) {
       return { success: false, error: error.message || 'Product not found' };
+    }
+  },
+
+  /** Fetch extra gallery images for all color variants of a product (detail page only). */
+  async getVariantImages(productId: string): Promise<ApiResponse<ColorVariantGallery>> {
+    try {
+      const response = await httpClient.get<any>(API_CONFIG.ENDPOINTS.PRODUCTS.VARIANT_IMAGES(productId));
+      return { success: true, data: response.data ?? {} };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  },
+
+  /** Admin: save gallery images for all color variants of a product. */
+  async saveVariantImages(
+    productId: string,
+    galleries: Array<{ colorId: string; imageKeys: string[] }>,
+  ): Promise<ApiResponse<void>> {
+    try {
+      await httpClient.put(API_CONFIG.ENDPOINTS.PRODUCTS.VARIANT_IMAGES(productId), { galleries });
+      return { success: true };
+    } catch (error: any) {
+      return { success: false, error: error.message };
     }
   },
 

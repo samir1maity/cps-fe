@@ -18,6 +18,7 @@ export const API_CONFIG = {
     PRODUCTS: {
       LIST: `${BASE}/products`,
       DETAIL: (id: string) => `${BASE}/products/${id}`,
+      VARIANT_IMAGES: (id: string) => `${BASE}/products/${id}/variant-images`,
     },
     CATEGORIES: {
       LIST: `${BASE}/categories`,

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { useSignedUrl, useSignedUrls } from '@/lib/hooks/useSignedUrls';
@@ -13,15 +13,17 @@ import {
   ShieldCheck,
   Leaf,
   HandHeart,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useCart } from '@/contexts/CartContext';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
 import { usePendingActions } from '@/hooks/usePendingActions';
 import { api } from '@/lib/api';
-import { Product, ProductColor } from '@/lib/types';
+import { Product, ProductColor, ColorVariantGallery } from '@/lib/types';
 import { formatCurrency } from '@/lib/utils/formatters';
-import { hasColorVariants, getColorImageKey, getProductThumbnailKey } from '@/lib/utils/product';
+import { hasColorVariants, getProductThumbnailKey } from '@/lib/utils/product';
 
 // ── Color swatch — resolves its own signed URL ────────────────────────────────
 
@@ -55,6 +57,38 @@ function ColorSwatch({
   );
 }
 
+// ── Thumbnail strip item ──────────────────────────────────────────────────────
+
+function ThumbItem({
+  imageKey,
+  index,
+  isSelected,
+  onClick,
+  productName,
+}: {
+  imageKey: string;
+  index: number;
+  isSelected: boolean;
+  onClick: () => void;
+  productName: string;
+}) {
+  const url = useSignedUrl(imageKey);
+  return (
+    <button
+      onClick={onClick}
+      className={`rounded-lg overflow-hidden border-2 transition-colors flex-shrink-0 ${
+        isSelected ? 'border-blue-600' : 'border-transparent hover:border-gray-300'
+      }`}
+    >
+      <img
+        src={url || '/images/placeholder.jpg'}
+        alt={`${productName} ${index + 1}`}
+        className="w-full h-20 object-cover block"
+      />
+    </button>
+  );
+}
+
 // ── Main component ────────────────────────────────────────────────────────────
 
 const ProductPageClient: React.FC = () => {
@@ -68,56 +102,67 @@ const ProductPageClient: React.FC = () => {
 
   // For color-variant products: which color is active
   const [selectedColor, setSelectedColor] = useState<ProductColor | null>(null);
-  // For standard-image products: which image index is active
-  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  // Gallery image index within the active color (or standard images)
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
+
+  // Extra gallery images from the separate collection — only loaded once on mount
+  const [variantGallery, setVariantGallery] = useState<ColorVariantGallery>({});
 
   usePendingActions();
 
-  // Standard-image signed URLs (empty array when using color variants)
+  // Build the ordered list of image keys for the current view:
+  //   color mode  → [color.imageKey, ...variantGallery[colorId]]
+  //   standard    → product.images
+  const activeImageKeys: string[] = React.useMemo(() => {
+    if (!product) return [];
+    if (hasColorVariants(product) && selectedColor) {
+      const extras = variantGallery[selectedColor._id] ?? [];
+      return [selectedColor.imageKey, ...extras];
+    }
+    return product.images ?? [];
+  }, [product, selectedColor, variantGallery]);
+
+  // Batch-sign all keys in the current active set
+  const activeSignedUrls = useSignedUrls(activeImageKeys);
+
+  // Standard product images (used only for standard products)
   const standardImageKeys = product && !hasColorVariants(product) ? product.images : [];
-  const standardSignedUrls = useSignedUrls(standardImageKeys);
+  useSignedUrls(standardImageKeys); // pre-warm cache
 
-  // Active image key — either the selected color's image or the selected standard image
-  const activeImageKey =
-    product == null
-      ? ''
-      : hasColorVariants(product) && selectedColor
-      ? getColorImageKey(product, selectedColor)
-      : (standardImageKeys[selectedImageIndex] ?? getProductThumbnailKey(product));
+  const mainImageUrl = activeSignedUrls[activeImageIndex] ?? '';
 
-  const activeImageUrl = useSignedUrl(
-    // Only use this hook for color-variant products; standard products use the batch hook above.
-    product && hasColorVariants(product) ? activeImageKey : null,
-  );
-
-  // The URL shown in the main viewer
-  const mainImageUrl =
-    product && hasColorVariants(product)
-      ? activeImageUrl
-      : standardSignedUrls[selectedImageIndex] ?? '';
-
-  useEffect(() => {
-    if (params.id) loadProduct();
-  }, [params.id]);
-
-  const loadProduct = async () => {
+  const loadProduct = useCallback(async () => {
+    if (!params.id) return;
     try {
       setLoading(true);
       const res = await api.getProduct(params.id as string);
       if (res.success && res.data) {
         const p = res.data;
         setProduct(p);
-        // Pre-select first color if the product uses color variants
         if (hasColorVariants(p)) {
           setSelectedColor(p.colors[0]);
         }
       }
-    } catch {
-      // handled below via null product check
     } finally {
       setLoading(false);
     }
-  };
+  }, [params.id]);
+
+  const loadVariantGallery = useCallback(async () => {
+    if (!params.id) return;
+    const res = await api.getVariantImages(params.id as string);
+    if (res.success && res.data) setVariantGallery(res.data);
+  }, [params.id]);
+
+  useEffect(() => {
+    loadProduct();
+    loadVariantGallery();
+  }, [loadProduct, loadVariantGallery]);
+
+  // Reset gallery index when color changes
+  useEffect(() => {
+    setActiveImageIndex(0);
+  }, [selectedColor?._id]);
 
   const handleAddToCart = async () => {
     if (!product) return;
@@ -130,6 +175,11 @@ const ProductPageClient: React.FC = () => {
     if (!requireAuthForWishlist(product.id)) return;
     toast.success('Added to wishlist');
   };
+
+  const handlePrevImage = () =>
+    setActiveImageIndex((i) => (i > 0 ? i - 1 : activeImageKeys.length - 1));
+  const handleNextImage = () =>
+    setActiveImageIndex((i) => (i < activeImageKeys.length - 1 ? i + 1 : 0));
 
   // ── Loading / error states ────────────────────────────────────────────────
 
@@ -155,6 +205,7 @@ const ProductPageClient: React.FC = () => {
   }
 
   const colorMode = hasColorVariants(product);
+  const hasMultipleImages = activeImageKeys.length > 1;
 
   // ── Render ────────────────────────────────────────────────────────────────
 
@@ -186,53 +237,70 @@ const ProductPageClient: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
           {/* ── Image column ─────────────────────────────────────────────── */}
           <div className="lg:sticky lg:top-8 space-y-3">
-            {/* Main viewer */}
-            <div className="w-full aspect-square rounded-xl overflow-hidden bg-white shadow-md">
+            {/* Main viewer with prev/next arrows when multiple images */}
+            <div className="relative w-full aspect-square rounded-xl overflow-hidden bg-white shadow-md group">
               <img
+                key={activeImageKeys[activeImageIndex]}
                 src={mainImageUrl || '/images/placeholder.jpg'}
-                alt={colorMode && selectedColor ? `${product.name} — ${selectedColor.name}` : product.name}
+                alt={
+                  colorMode && selectedColor
+                    ? `${product.name} — ${selectedColor.name}`
+                    : product.name
+                }
                 className="w-full h-full object-cover block transition-opacity duration-200"
               />
+
+              {/* Prev / Next arrows — only shown when there are multiple images */}
+              {hasMultipleImages && (
+                <>
+                  <button
+                    onClick={handlePrevImage}
+                    aria-label="Previous image"
+                    className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white text-gray-800 rounded-full p-1.5 shadow opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <ChevronLeft className="h-5 w-5" />
+                  </button>
+                  <button
+                    onClick={handleNextImage}
+                    aria-label="Next image"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white text-gray-800 rounded-full p-1.5 shadow opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <ChevronRight className="h-5 w-5" />
+                  </button>
+
+                  {/* Dot indicators */}
+                  <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
+                    {activeImageKeys.map((_, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => setActiveImageIndex(idx)}
+                        aria-label={`Image ${idx + 1}`}
+                        className={`h-1.5 rounded-full transition-all ${
+                          idx === activeImageIndex
+                            ? 'w-4 bg-blue-600'
+                            : 'w-1.5 bg-white/70 hover:bg-white'
+                        }`}
+                      />
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
 
-            {/* Thumbnails strip */}
-            {colorMode ? (
-              // Color-variant thumbnails — each swatch is also the thumbnail
-              product.colors.length > 1 && (
-                <div className="flex flex-wrap gap-2">
-                  {product.colors.map((color) => (
-                    <ColorSwatch
-                      key={color.name}
-                      color={color}
-                      isSelected={selectedColor?.name === color.name}
-                      onClick={() => setSelectedColor(color)}
-                    />
-                  ))}
-                </div>
-              )
-            ) : (
-              // Standard image strip
-              product.images.length > 1 && (
-                <div className="grid grid-cols-4 gap-2">
-                  {product.images.map((_, index) => (
-                    <button
-                      key={index}
-                      onClick={() => setSelectedImageIndex(index)}
-                      className={`rounded-lg overflow-hidden border-2 transition-colors ${
-                        selectedImageIndex === index
-                          ? 'border-blue-600'
-                          : 'border-transparent hover:border-gray-300'
-                      }`}
-                    >
-                      <img
-                        src={standardSignedUrls[index] || '/images/placeholder.jpg'}
-                        alt={`${product.name} ${index + 1}`}
-                        className="w-full h-20 object-cover block"
-                      />
-                    </button>
-                  ))}
-                </div>
-              )
+            {/* Thumbnail strip — unified for both color-variant and standard products */}
+            {hasMultipleImages && (
+              <div className="grid grid-cols-4 gap-2">
+                {activeImageKeys.map((key, idx) => (
+                  <ThumbItem
+                    key={key}
+                    imageKey={key}
+                    index={idx}
+                    isSelected={activeImageIndex === idx}
+                    onClick={() => setActiveImageIndex(idx)}
+                    productName={product.name}
+                  />
+                ))}
+              </div>
             )}
           </div>
 
@@ -269,16 +337,18 @@ const ProductPageClient: React.FC = () => {
                 <div className="flex flex-wrap gap-2">
                   {product.colors.map((color) => (
                     <ColorSwatch
-                      key={color.name}
+                      key={color._id}
                       color={color}
-                      isSelected={selectedColor?.name === color.name}
+                      isSelected={selectedColor?._id === color._id}
                       onClick={() => setSelectedColor(color)}
                     />
                   ))}
                 </div>
-                <p className="text-xs text-gray-400 mt-2">
-                  Select a color to preview its image
-                </p>
+                {activeImageKeys.length > 1 && (
+                  <p className="text-xs text-gray-400 mt-2">
+                    {activeImageKeys.length} photos for this color
+                  </p>
+                )}
               </div>
             )}
 

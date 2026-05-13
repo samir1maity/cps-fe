@@ -2,9 +2,9 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Plus, Pencil, Trash2, ArrowLeft, X, Package, Star, Upload, Palette } from 'lucide-react';
+import { Plus, Pencil, Trash2, ArrowLeft, X, Package, Star, Upload, Palette, Images } from 'lucide-react';
 import { api } from '@/lib/api';
-import { Product, Category, ProductColor } from '@/lib/types';
+import { Product, Category, ProductColor, ColorVariantGallery } from '@/lib/types';
 import { formatCurrency } from '@/lib/utils/formatters';
 import { uploadToS3, uploadManyToS3 } from '@/lib/hooks/useS3Upload';
 import { useSignedUrl } from '@/lib/hooks/useSignedUrls';
@@ -28,13 +28,17 @@ interface ProductFormData {
 interface SpecEntry { key: string; value: string; }
 interface ExistingImage { key: string; }
 
-// A color variant in the form. imageKey is set after upload; newFile is the pending file.
 interface ColorEntry {
-  _id?: string;          // existing subdocument id — preserved on edit so MongoDB doesn't regenerate
+  _id?: string;
   name: string;
-  imageKey: string;      // stored key (existing or uploaded)
-  newFile?: File;        // pending upload
-  previewUrl?: string;   // local object URL for new file
+  imageKey: string;       // primary thumbnail — stored on Product doc
+  newFile?: File;         // pending primary image upload
+  previewUrl?: string;    // local object URL for primary image
+
+  // Extra gallery images for this color (stored in ColorVariantImages collection)
+  extraExistingKeys: string[];   // already saved S3 keys
+  extraNewFiles: File[];         // pending extra uploads
+  extraPreviewUrls: string[];    // local object URLs for extra new files
 }
 
 const emptyForm: ProductFormData = {
@@ -42,6 +46,11 @@ const emptyForm: ProductFormData = {
   categoryId: '', subcategoryId: '', brand: '', stockQuantity: '', tags: '',
   isFeatured: false,
 };
+
+const emptyColor = (): ColorEntry => ({
+  name: '', imageKey: '',
+  extraExistingKeys: [], extraNewFiles: [], extraPreviewUrls: [],
+});
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 
@@ -111,6 +120,40 @@ function ColorImagePreview({ imageKey, previewUrl }: { imageKey?: string; previe
   return <img src={src} alt="color" className="w-12 h-12 rounded-lg object-cover flex-shrink-0 border border-gray-200" />;
 }
 
+function ExtraImageThumb({ imgKey, onRemove }: { imgKey: string; onRemove: () => void }) {
+  const url = useSignedUrl(imgKey);
+  return (
+    <div className="relative group w-14 h-14 rounded-lg overflow-hidden border border-gray-200 flex-shrink-0">
+      {url
+        ? <img src={url} alt="" className="w-full h-full object-cover" />
+        : <div className="w-full h-full bg-gray-100" />
+      }
+      <button
+        type="button"
+        onClick={onRemove}
+        className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+      >
+        <X className="h-3.5 w-3.5 text-white" />
+      </button>
+    </div>
+  );
+}
+
+function ExtraImagePreviewThumb({ src, onRemove }: { src: string; onRemove: () => void }) {
+  return (
+    <div className="relative group w-14 h-14 rounded-lg overflow-hidden border border-gray-200 flex-shrink-0">
+      <img src={src} alt="" className="w-full h-full object-cover" />
+      <button
+        type="button"
+        onClick={onRemove}
+        className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+      >
+        <X className="h-3.5 w-3.5 text-white" />
+      </button>
+    </div>
+  );
+}
+
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function AdminProductsPage() {
@@ -118,7 +161,9 @@ export default function AdminProductsPage() {
   const searchParams = useSearchParams();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const colorFileInputRef = useRef<HTMLInputElement>(null);
+  const colorExtraFileInputRef = useRef<HTMLInputElement>(null);
   const pendingColorIndexRef = useRef<number>(-1);
+  const pendingExtraColorIndexRef = useRef<number>(-1);
 
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -129,15 +174,11 @@ export default function AdminProductsPage() {
   const [specs, setSpecs] = useState<SpecEntry[]>([]);
   const [submitting, setSubmitting] = useState(false);
 
-  // Product images
   const [existingImages, setExistingImages] = useState<ExistingImage[]>([]);
   const [primaryIndex, setPrimaryIndex] = useState(0);
   const [newFiles, setNewFiles] = useState<File[]>([]);
 
-  // Color variants
   const [colors, setColors] = useState<ColorEntry[]>([]);
-
-  // Image mode: 'standard' = plain images, 'color' = per-color images
   const [imageMode, setImageMode] = useState<'standard' | 'color'>('standard');
 
   const topLevelCategories = categories.filter((c) => !c.parentId);
@@ -188,6 +229,7 @@ export default function AdminProductsPage() {
     specEntries: SpecEntry[] = [],
     imgKeys: string[] = [],
     colorVariants: ProductColor[] = [],
+    variantGallery: ColorVariantGallery = {},
   ) => {
     setShowForm(false);
     setTimeout(() => {
@@ -197,9 +239,15 @@ export default function AdminProductsPage() {
       setExistingImages(imgKeys.map((key) => ({ key })));
       setNewFiles([]);
       setPrimaryIndex(0);
-      const loadedColors = colorVariants.map((c) => ({ _id: c._id, name: c.name, imageKey: c.imageKey }));
+      const loadedColors = colorVariants.map((c) => ({
+        _id: c._id,
+        name: c.name,
+        imageKey: c.imageKey,
+        extraExistingKeys: variantGallery[c._id] ?? [],
+        extraNewFiles: [],
+        extraPreviewUrls: [],
+      }));
       setColors(loadedColors);
-      // Auto-select mode based on existing data
       setImageMode(loadedColors.length > 0 ? 'color' : 'standard');
       if (fileInputRef.current) fileInputRef.current.value = '';
       setShowForm(true);
@@ -209,12 +257,20 @@ export default function AdminProductsPage() {
 
   const openCreate = () => openForm(emptyForm, null, [], [], []);
 
-  const openEdit = (product: Product) => {
+  const openEdit = async (product: Product) => {
     const catId = (product.category as any)?._id ?? product.category?.id ?? '';
     const subId = (product.subcategory as any)?._id ?? product.subcategory?.id ?? '';
     const specEntries: SpecEntry[] = Object.entries(product.specifications ?? {}).map(
       ([key, value]) => ({ key, value }),
     );
+
+    // Load existing variant gallery images for color products
+    let variantGallery: ColorVariantGallery = {};
+    if ((product.colors ?? []).length > 0) {
+      const res = await api.getVariantImages(product.id);
+      if (res.success && res.data) variantGallery = res.data;
+    }
+
     openForm(
       {
         name: product.name,
@@ -232,17 +288,19 @@ export default function AdminProductsPage() {
       specEntries,
       product.images ?? [],
       product.colors ?? [],
+      variantGallery,
     );
   };
 
   const switchImageMode = (mode: 'standard' | 'color') => {
     if (mode === imageMode) return;
     if (mode === 'standard') {
-      // clear color state
-      colors.forEach((c) => { if (c.previewUrl) URL.revokeObjectURL(c.previewUrl); });
+      colors.forEach((c) => {
+        if (c.previewUrl) URL.revokeObjectURL(c.previewUrl);
+        c.extraPreviewUrls.forEach((u) => URL.revokeObjectURL(u));
+      });
       setColors([]);
     } else {
-      // clear standard image state
       resetImageState();
     }
     setImageMode(mode);
@@ -254,7 +312,7 @@ export default function AdminProductsPage() {
   const updateSpec = (i: number, field: 'key' | 'value', val: string) =>
     setSpecs((prev) => prev.map((s, idx) => (idx === i ? { ...s, [field]: val } : s)));
 
-  // ── Image helpers ─────────────────────────────────────────────────────────
+  // ── Standard image helpers ─────────────────────────────────────────────────
   const handleAddFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = Array.from(e.target.files ?? []);
     if (!selected.length) return;
@@ -274,14 +332,14 @@ export default function AdminProductsPage() {
     else if (primaryIndex > absIndex) setPrimaryIndex((p) => p - 1);
   };
 
-  // ── Color helpers ─────────────────────────────────────────────────────────
-  const addColor = () =>
-    setColors((prev) => [...prev, { name: '', imageKey: '', previewUrl: undefined }]);
+  // ── Color primary image helpers ────────────────────────────────────────────
+  const addColor = () => setColors((prev) => [...prev, emptyColor()]);
 
   const removeColor = (i: number) => {
     setColors((prev) => {
       const entry = prev[i];
       if (entry.previewUrl) URL.revokeObjectURL(entry.previewUrl);
+      entry.extraPreviewUrls.forEach((u) => URL.revokeObjectURL(u));
       return prev.filter((_, idx) => idx !== i);
     });
   };
@@ -299,16 +357,72 @@ export default function AdminProductsPage() {
     const idx = pendingColorIndexRef.current;
     e.target.value = '';
     if (!file || idx < 0) return;
-    if (file.size > 250 * 1024) {
-      toast.error('Color image must not exceed 250 KB');
-      return;
-    }
+    if (file.size > 250 * 1024) { toast.error('Color image must not exceed 250 KB'); return; }
     const previewUrl = URL.createObjectURL(file);
     setColors((prev) =>
       prev.map((c, i) => {
         if (i !== idx) return c;
         if (c.previewUrl) URL.revokeObjectURL(c.previewUrl);
         return { ...c, newFile: file, previewUrl, imageKey: '' };
+      }),
+    );
+  };
+
+  // ── Color extra gallery image helpers ─────────────────────────────────────
+  const triggerExtraFileInput = (i: number) => {
+    pendingExtraColorIndexRef.current = i;
+    colorExtraFileInputRef.current?.click();
+  };
+
+  const handleExtraFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []);
+    const idx = pendingExtraColorIndexRef.current;
+    e.target.value = '';
+    if (!files.length || idx < 0) return;
+
+    const color = colors[idx];
+    const currentTotal = color.extraExistingKeys.length + color.extraNewFiles.length;
+    const allowed = Math.min(files.length, 5 - currentTotal);
+    if (allowed <= 0) { toast.error('Maximum 5 extra images per color'); return; }
+
+    const toAdd = files.slice(0, allowed);
+    const oversized = toAdd.filter((f) => f.size > 250 * 1024);
+    if (oversized.length) { toast.error('Each extra image must not exceed 250 KB'); return; }
+
+    const previews = toAdd.map((f) => URL.createObjectURL(f));
+    setColors((prev) =>
+      prev.map((c, i) =>
+        i !== idx
+          ? c
+          : {
+              ...c,
+              extraNewFiles: [...c.extraNewFiles, ...toAdd],
+              extraPreviewUrls: [...c.extraPreviewUrls, ...previews],
+            },
+      ),
+    );
+  };
+
+  const removeExtraExisting = (colorIdx: number, keyIdx: number) => {
+    setColors((prev) =>
+      prev.map((c, i) =>
+        i !== colorIdx
+          ? c
+          : { ...c, extraExistingKeys: c.extraExistingKeys.filter((_, k) => k !== keyIdx) },
+      ),
+    );
+  };
+
+  const removeExtraNew = (colorIdx: number, fileIdx: number) => {
+    setColors((prev) =>
+      prev.map((c, i) => {
+        if (i !== colorIdx) return c;
+        URL.revokeObjectURL(c.extraPreviewUrls[fileIdx]);
+        return {
+          ...c,
+          extraNewFiles: c.extraNewFiles.filter((_, k) => k !== fileIdx),
+          extraPreviewUrls: c.extraPreviewUrls.filter((_, k) => k !== fileIdx),
+        };
       }),
     );
   };
@@ -343,14 +457,14 @@ export default function AdminProductsPage() {
             return;
           }
           if (!c.imageKey && !c.newFile) {
-            toast.error(`Color "${c.name || 'unnamed'}" is missing an image`);
+            toast.error(`Color "${c.name || 'unnamed'}" is missing a primary image`);
             setSubmitting(false);
             return;
           }
         }
       }
 
-      // Upload product images (standard mode)
+      // Upload standard images
       const newKeys = imageMode === 'standard' && newFiles.length > 0
         ? await uploadManyToS3(newFiles, 'products')
         : [];
@@ -360,7 +474,7 @@ export default function AdminProductsPage() {
         ? [allKeys[primaryIndex], ...allKeys.filter((_, i) => i !== primaryIndex)]
         : [];
 
-      // Upload color images (color mode)
+      // Upload color primary images
       const resolvedColors: Array<{ _id?: string; name: string; imageKey: string }> =
         imageMode === 'color'
           ? await Promise.all(
@@ -398,10 +512,7 @@ export default function AdminProductsPage() {
         specs.filter((s) => s.key.trim()).map((s) => [s.key.trim(), s.value.trim()]),
       );
       body.specifications = JSON.stringify(specsObj);
-
-      if (editingId) {
-        body.orderedImageKeys = JSON.stringify(orderedKeys);
-      }
+      if (editingId) body.orderedImageKeys = JSON.stringify(orderedKeys);
 
       const accessToken = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
       const url = editingId
@@ -418,6 +529,39 @@ export default function AdminProductsPage() {
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.message || json.error || 'Request failed');
+
+      const savedProductId: string = json.data?.id ?? editingId;
+
+      // Save extra gallery images for color variants (separate collection)
+      if (imageMode === 'color' && savedProductId) {
+        // Match resolved colors back to the color form entries by index to get the final colorId
+        const savedColors: Array<{ _id: string }> = json.data?.colors ?? [];
+
+        const galleries = await Promise.all(
+          colors.map(async (c, idx) => {
+            const colorId = savedColors[idx]?._id ?? c._id ?? '';
+            if (!colorId) return null;
+
+            // Upload any new extra images
+            const newExtraKeys = c.extraNewFiles.length > 0
+              ? await uploadManyToS3(c.extraNewFiles, 'products')
+              : [];
+
+            return {
+              colorId,
+              imageKeys: [...c.extraExistingKeys, ...newExtraKeys],
+            };
+          }),
+        );
+
+        const validGalleries = galleries.filter(Boolean) as Array<{ colorId: string; imageKeys: string[] }>;
+        if (validGalleries.length > 0) {
+          const galRes = await api.saveVariantImages(savedProductId, validGalleries);
+          if (!galRes.success) {
+            toast.error('Product saved but gallery images failed: ' + galRes.error);
+          }
+        }
+      }
 
       toast.success(editingId ? 'Product updated' : 'Product created');
       setShowForm(false);
@@ -650,7 +794,7 @@ export default function AdminProductsPage() {
                 )}
               </div>
 
-              {/* ── Images / Color Variants (mutually exclusive) ───────── */}
+              {/* ── Images / Color Variants ────────────────────────────────── */}
               <div className="md:col-span-2">
                 {/* Tab switcher */}
                 <div className="flex items-center gap-1 p-1 bg-gray-100 rounded-xl w-fit mb-4">
@@ -658,9 +802,7 @@ export default function AdminProductsPage() {
                     type="button"
                     onClick={() => switchImageMode('standard')}
                     className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                      imageMode === 'standard'
-                        ? 'bg-white text-gray-900 shadow-sm'
-                        : 'text-gray-500 hover:text-gray-700'
+                      imageMode === 'standard' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
                     }`}
                   >
                     <Upload className="h-3.5 w-3.5" /> Standard Images
@@ -669,9 +811,7 @@ export default function AdminProductsPage() {
                     type="button"
                     onClick={() => switchImageMode('color')}
                     className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                      imageMode === 'color'
-                        ? 'bg-white text-gray-900 shadow-sm'
-                        : 'text-gray-500 hover:text-gray-700'
+                      imageMode === 'color' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
                     }`}
                   >
                     <Palette className="h-3.5 w-3.5" /> Color Variants
@@ -681,12 +821,7 @@ export default function AdminProductsPage() {
                 {/* Standard images panel */}
                 {imageMode === 'standard' && (
                   <>
-                    <input
-                      ref={fileInputRef}
-                      type="file" multiple accept="image/jpeg,image/png,image/webp"
-                      onChange={handleAddFiles}
-                      className="hidden"
-                    />
+                    <input ref={fileInputRef} type="file" multiple accept="image/jpeg,image/png,image/webp" onChange={handleAddFiles} className="hidden" />
                     <div className="flex items-center justify-between mb-2">
                       <p className="text-xs text-gray-500">
                         {totalImageCount > 0
@@ -694,22 +829,15 @@ export default function AdminProductsPage() {
                           : 'Upload up to 6 images. JPEG, PNG, WebP · max 250 KB each.'}
                       </p>
                       {totalImageCount > 0 && totalImageCount < 6 && (
-                        <button
-                          type="button"
-                          onClick={() => fileInputRef.current?.click()}
-                          className="flex items-center gap-1.5 text-xs bg-blue-50 text-blue-600 hover:bg-blue-100 px-3 py-1.5 rounded-lg font-medium transition-colors"
-                        >
+                        <button type="button" onClick={() => fileInputRef.current?.click()}
+                          className="flex items-center gap-1.5 text-xs bg-blue-50 text-blue-600 hover:bg-blue-100 px-3 py-1.5 rounded-lg font-medium transition-colors">
                           <Upload className="h-3.5 w-3.5" /> Add Images
                         </button>
                       )}
                     </div>
-
                     {combinedImages.length === 0 ? (
-                      <button
-                        type="button"
-                        onClick={() => fileInputRef.current?.click()}
-                        className="w-full border-2 border-dashed border-gray-300 rounded-xl py-10 flex flex-col items-center gap-2 text-gray-400 hover:border-blue-400 hover:text-blue-500 transition-colors"
-                      >
+                      <button type="button" onClick={() => fileInputRef.current?.click()}
+                        className="w-full border-2 border-dashed border-gray-300 rounded-xl py-10 flex flex-col items-center gap-2 text-gray-400 hover:border-blue-400 hover:text-blue-500 transition-colors">
                         <Upload className="h-8 w-8" />
                         <span className="text-sm font-medium">Click to upload images</span>
                         <span className="text-xs">JPEG, PNG, WebP · max 250 KB each · up to 6</span>
@@ -741,11 +869,8 @@ export default function AdminProductsPage() {
                           )
                         )}
                         {totalImageCount < 6 && (
-                          <button
-                            type="button"
-                            onClick={() => fileInputRef.current?.click()}
-                            className="aspect-square border-2 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center gap-1 text-gray-400 hover:border-blue-400 hover:text-blue-500 transition-colors"
-                          >
+                          <button type="button" onClick={() => fileInputRef.current?.click()}
+                            className="aspect-square border-2 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center gap-1 text-gray-400 hover:border-blue-400 hover:text-blue-500 transition-colors">
                             <Plus className="h-5 w-5" />
                             <span className="text-[10px]">Add</span>
                           </button>
@@ -761,65 +886,97 @@ export default function AdminProductsPage() {
                 {/* Color variants panel */}
                 {imageMode === 'color' && (
                   <>
-                    <input
-                      ref={colorFileInputRef}
-                      type="file"
-                      accept="image/jpeg,image/png,image/webp"
-                      onChange={handleColorFileChange}
-                      className="hidden"
-                    />
+                    {/* Hidden inputs for primary + extra file picks */}
+                    <input ref={colorFileInputRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={handleColorFileChange} className="hidden" />
+                    <input ref={colorExtraFileInputRef} type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={handleExtraFileChange} className="hidden" />
+
                     <div className="flex items-center justify-between mb-2">
-                      <p className="text-xs text-gray-500">Each color variant has its own image. Customers can pick a color on the product page.</p>
-                      <button
-                        type="button"
-                        onClick={addColor}
-                        className="flex items-center gap-1.5 text-xs bg-purple-50 text-purple-600 hover:bg-purple-100 px-3 py-1.5 rounded-lg font-medium transition-colors"
-                      >
+                      <p className="text-xs text-gray-500">
+                        Each color has a primary image (shown in listings) and up to 5 extra gallery photos (shown on product page).
+                      </p>
+                      <button type="button" onClick={addColor}
+                        className="flex items-center gap-1.5 text-xs bg-purple-50 text-purple-600 hover:bg-purple-100 px-3 py-1.5 rounded-lg font-medium transition-colors">
                         <Plus className="h-3.5 w-3.5" /> Add Color
                       </button>
                     </div>
 
                     {colors.length === 0 ? (
-                      <button
-                        type="button"
-                        onClick={addColor}
-                        className="w-full border-2 border-dashed border-gray-200 rounded-xl py-10 flex flex-col items-center gap-2 text-gray-400 hover:border-purple-300 hover:text-purple-500 transition-colors"
-                      >
+                      <button type="button" onClick={addColor}
+                        className="w-full border-2 border-dashed border-gray-200 rounded-xl py-10 flex flex-col items-center gap-2 text-gray-400 hover:border-purple-300 hover:text-purple-500 transition-colors">
                         <Palette className="h-8 w-8" />
                         <span className="text-sm font-medium">Click to add a color variant</span>
-                        <span className="text-xs">Name each color and upload its image</span>
+                        <span className="text-xs">Name each color, upload its primary image and optional gallery photos</span>
                       </button>
                     ) : (
-                      <div className="space-y-2">
-                        {colors.map((color, i) => (
-                          <div key={i} className="flex items-center gap-3 bg-gray-50 rounded-xl px-3 py-2.5 border border-gray-200">
-                            <ColorImagePreview
-                              imageKey={color.previewUrl ? undefined : color.imageKey}
-                              previewUrl={color.previewUrl}
-                            />
-                            <input
-                              value={color.name}
-                              onChange={(e) => updateColorName(i, e.target.value)}
-                              placeholder="Color name (e.g. Terracotta)"
-                              className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => triggerColorFileInput(i)}
-                              className="flex items-center gap-1.5 text-xs bg-white border border-gray-300 text-gray-600 hover:border-purple-400 hover:text-purple-600 px-3 py-2 rounded-lg font-medium transition-colors whitespace-nowrap"
-                            >
-                              <Upload className="h-3.5 w-3.5" />
-                              {color.imageKey || color.newFile ? 'Change' : 'Upload'}
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => removeColor(i)}
-                              className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                            >
-                              <X className="h-4 w-4" />
-                            </button>
-                          </div>
-                        ))}
+                      <div className="space-y-3">
+                        {colors.map((color, i) => {
+                          const extraTotal = color.extraExistingKeys.length + color.extraNewFiles.length;
+                          const canAddMore = extraTotal < 5;
+                          return (
+                            <div key={i} className="bg-gray-50 rounded-xl border border-gray-200 p-3">
+                              {/* Row 1: primary image + name + upload + delete */}
+                              <div className="flex items-center gap-3">
+                                <ColorImagePreview
+                                  imageKey={color.previewUrl ? undefined : color.imageKey}
+                                  previewUrl={color.previewUrl}
+                                />
+                                <input
+                                  value={color.name}
+                                  onChange={(e) => updateColorName(i, e.target.value)}
+                                  placeholder="Color name (e.g. Terracotta)"
+                                  className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white"
+                                />
+                                <button type="button" onClick={() => triggerColorFileInput(i)}
+                                  className="flex items-center gap-1.5 text-xs bg-white border border-gray-300 text-gray-600 hover:border-purple-400 hover:text-purple-600 px-3 py-2 rounded-lg font-medium transition-colors whitespace-nowrap">
+                                  <Upload className="h-3.5 w-3.5" />
+                                  {color.imageKey || color.newFile ? 'Change' : 'Primary'}
+                                </button>
+                                <button type="button" onClick={() => removeColor(i)}
+                                  className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
+                                  <X className="h-4 w-4" />
+                                </button>
+                              </div>
+
+                              {/* Row 2: extra gallery images */}
+                              <div className="mt-4 flex items-center gap-2 flex-wrap">
+                                <span className="text-[11px] text-gray-400 font-medium whitespace-nowrap flex items-center gap-1">
+                                  <Images className="h-3 w-3" /> Extra photos:
+                                </span>
+
+                                {/* Existing saved extra images */}
+                                {color.extraExistingKeys.map((key, ki) => (
+                                  <ExtraImageThumb
+                                    key={key}
+                                    imgKey={key}
+                                    onRemove={() => removeExtraExisting(i, ki)}
+                                  />
+                                ))}
+
+                                {/* New extra images pending upload */}
+                                {color.extraNewFiles.map((_, fi) => (
+                                  <ExtraImagePreviewThumb
+                                    key={fi}
+                                    src={color.extraPreviewUrls[fi]}
+                                    onRemove={() => removeExtraNew(i, fi)}
+                                  />
+                                ))}
+
+                                {/* Add more button */}
+                                {canAddMore && (
+                                  <button type="button" onClick={() => triggerExtraFileInput(i)}
+                                    className="w-14 h-14 rounded-lg border-2 border-dashed border-gray-300 flex flex-col items-center justify-center gap-0.5 text-gray-400 hover:border-purple-400 hover:text-purple-500 transition-colors flex-shrink-0">
+                                    <Plus className="h-4 w-4" />
+                                    <span className="text-[9px]">{5 - extraTotal} left</span>
+                                  </button>
+                                )}
+
+                                {extraTotal === 0 && (
+                                  <span className="text-[11px] text-gray-400 italic">None — add up to 5</span>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
                     )}
                     {colors.length === 0 && (
@@ -831,17 +988,13 @@ export default function AdminProductsPage() {
 
               {/* Submit / Cancel */}
               <div className="md:col-span-2 flex gap-3 pt-2">
-                <button
-                  type="submit" disabled={submitting}
-                  className="bg-blue-600 text-white px-5 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
-                >
+                <button type="submit" disabled={submitting}
+                  className="bg-blue-600 text-white px-5 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors">
                   {submitting ? 'Uploading & Saving…' : editingId ? 'Save Changes' : 'Create Product'}
                 </button>
-                <button
-                  type="button"
+                <button type="button"
                   onClick={() => { setShowForm(false); setEditingId(null); setForm(emptyForm); setSpecs([]); setColors([]); setImageMode('standard'); resetImageState(); }}
-                  className="border border-gray-300 text-gray-700 px-5 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors"
-                >
+                  className="border border-gray-300 text-gray-700 px-5 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors">
                   Cancel
                 </button>
               </div>
@@ -892,8 +1045,8 @@ export default function AdminProductsPage() {
                     <td className="px-4 py-4">
                       {product.colors?.length > 0 ? (
                         <div className="flex flex-wrap gap-1">
-                          {product.colors.map((c, i) => (
-                            <span key={i} className="inline-flex items-center gap-1 text-xs bg-purple-50 text-purple-700 px-2 py-0.5 rounded-full">
+                          {product.colors.map((c, ci) => (
+                            <span key={ci} className="inline-flex items-center gap-1 text-xs bg-purple-50 text-purple-700 px-2 py-0.5 rounded-full">
                               <Palette className="h-2.5 w-2.5" /> {c.name}
                             </span>
                           ))}
