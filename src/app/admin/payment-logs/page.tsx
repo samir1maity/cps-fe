@@ -70,12 +70,9 @@ export default function AdminPaymentLogsPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => router.push('/admin')}
-              className="text-gray-500 hover:text-gray-800 transition-colors"
-            >
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center gap-4 h-16">
+          <div className="flex items-center gap-3 shrink-0">
+            <button onClick={() => router.push('/admin')} className="text-gray-500 hover:text-gray-800 transition-colors">
               <ArrowLeft className="h-5 w-5" />
             </button>
             <div className="flex items-center gap-2">
@@ -83,66 +80,56 @@ export default function AdminPaymentLogsPage() {
               <h1 className="text-xl font-bold text-gray-900">Payment Logs</h1>
             </div>
           </div>
-          <button
-            onClick={() => loadLogs(page)}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-          >
-            <RefreshCw className="h-4 w-4" />
-            Refresh
-          </button>
+
+          <div className="flex items-center gap-2 flex-1 justify-end">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') handleApplySearch(); }}
+                placeholder="Event, message, payment ID…"
+                className="pl-9 pr-4 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 w-56"
+              />
+            </div>
+            <select
+              value={scope}
+              onChange={(e) => { setScope(e.target.value); setPage(1); }}
+              className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">All Scopes</option>
+              <option value="PAYMENT">Payment</option>
+              <option value="ORDER">Order</option>
+              <option value="REFUND">Refund</option>
+            </select>
+            <select
+              value={level}
+              onChange={(e) => { setLevel(e.target.value); setPage(1); }}
+              className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">All Levels</option>
+              <option value="INFO">Info</option>
+              <option value="WARN">Warn</option>
+              <option value="ERROR">Error</option>
+            </select>
+            <button
+              onClick={handleApplySearch}
+              className="px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors shrink-0"
+            >
+              Search
+            </button>
+            <button
+              onClick={() => loadLogs(page)}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors shrink-0"
+            >
+              <RefreshCw className="h-4 w-4" />
+              Refresh
+            </button>
+          </div>
         </div>
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-4">
-        <div className="flex flex-col lg:flex-row gap-3">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <input
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter') {
-                  handleApplySearch();
-                }
-              }}
-              placeholder="Search event, message, payment ID, or Razorpay order ID"
-              className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-          <select
-            value={scope}
-            onChange={(event) => {
-              setScope(event.target.value);
-              setPage(1);
-            }}
-            className="px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="">All Scopes</option>
-            <option value="PAYMENT">Payment</option>
-            <option value="ORDER">Order</option>
-            <option value="REFUND">Refund</option>
-          </select>
-          <select
-            value={level}
-            onChange={(event) => {
-              setLevel(event.target.value);
-              setPage(1);
-            }}
-            className="px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="">All Levels</option>
-            <option value="INFO">Info</option>
-            <option value="WARN">Warn</option>
-            <option value="ERROR">Error</option>
-          </select>
-          <button
-            onClick={handleApplySearch}
-            className="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition-colors"
-          >
-            Apply
-          </button>
-        </div>
-
         <div className="bg-white rounded-lg shadow-md overflow-hidden">
           {loading ? (
             <div className="flex items-center justify-center py-24">

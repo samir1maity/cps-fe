@@ -564,13 +564,13 @@ export const api = {
     }
   },
 
-  async getAdminOrders(page = 1, status?: string): Promise<ApiResponse<Order[]>> {
+  async getAdminOrders(page = 1, status?: string): Promise<ApiResponse<Order[]> & { pagination?: { page: number; limit: number; total: number; totalPages: number } }> {
     try {
       const params = new URLSearchParams({ page: String(page) });
       if (status) params.set('status', status);
       const response = await httpClient.get<any>(`${API_CONFIG.ENDPOINTS.ADMIN.ORDERS}?${params}`);
       const orders = (response.data ?? []).map((o: any) => ({ ...o, id: o.id ?? o._id }));
-      return { success: true, data: orders };
+      return { success: true, data: orders, pagination: response.pagination };
     } catch (error: any) {
       return { success: false, error: error.message };
     }

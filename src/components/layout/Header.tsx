@@ -17,7 +17,8 @@ const Header: React.FC = () => {
   const router = useRouter();
   const pathname = usePathname();
   const isMorePage = pathname?.startsWith('/more');
-  const shouldShowSearch = !isMorePage;
+  const isAdminPage = pathname?.startsWith('/admin');
+  const shouldShowSearch = !isMorePage && !isAdminPage;
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();

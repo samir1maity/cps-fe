@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Plus, Pencil, Trash2, ArrowLeft, X, Package, Star, Upload, Palette, Images } from 'lucide-react';
+import { Plus, Pencil, Trash2, ArrowLeft, X, Package, Star, Upload, Palette, Images, Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import { api } from '@/lib/api';
 import { Product, Category, ProductColor, ColorVariantGallery } from '@/lib/types';
 import { formatCurrency } from '@/lib/utils/formatters';
@@ -314,6 +314,11 @@ export default function AdminProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [search, setSearch] = useState('');
+  const [searchInput, setSearchInput] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<ProductFormData>(emptyForm);
@@ -335,18 +340,25 @@ export default function AdminProductsPage() {
   const keptExisting = existingImages;
   const totalImageCount = keptExisting.length + newFiles.length;
 
-  useEffect(() => {
-    Promise.all([loadProducts(), loadCategories()]).then(() => {
-      if (searchParams.get('action') === 'new') openCreate();
-    });
-  }, []);
-
-  const loadProducts = async () => {
+  const loadProducts = useCallback(async () => {
     setLoading(true);
-    const res = await api.getProducts({ limit: 50 });
-    if (res.data) setProducts(res.data);
+    const res = await api.getProducts({ page, limit: 20, search: search || undefined });
+    if (res.data) {
+      setProducts(res.data);
+      setTotalPages(res.pagination.totalPages);
+      setTotal(res.pagination.total);
+    }
     setLoading(false);
-  };
+  }, [page, search]);
+
+  useEffect(() => {
+    loadProducts();
+  }, [loadProducts]);
+
+  useEffect(() => {
+    loadCategories();
+    if (searchParams.get('action') === 'new') openCreate();
+  }, []);
 
   const loadCategories = async () => {
     const res = await api.getAdminCategories();
@@ -723,12 +735,25 @@ export default function AdminProductsPage() {
       setColors([]);
       setImageMode('standard');
       resetImageState();
+      if (!editingId) setPage(1);
       loadProducts();
     } catch (err: any) {
       toast.error(err.message ?? 'Something went wrong');
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    setPage(1);
+    setSearch(searchInput.trim());
+  };
+
+  const clearSearch = () => {
+    setSearchInput('');
+    setSearch('');
+    setPage(1);
   };
 
   const handleDelete = async (product: Product) => {
@@ -752,19 +777,43 @@ export default function AdminProductsPage() {
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <div className="bg-white shadow-sm border-b">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16">
-          <div className="flex items-center gap-3">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center gap-4 h-16">
+          <div className="flex items-center gap-3 shrink-0">
             <button onClick={() => router.push('/admin')} className="text-gray-500 hover:text-gray-800">
               <ArrowLeft className="h-5 w-5" />
             </button>
             <h1 className="text-xl font-bold text-gray-900">Manage Products</h1>
           </div>
-          <button
-            onClick={openCreate}
-            className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
-          >
-            <Plus className="h-4 w-4" /> Add Product
-          </button>
+
+          <div className="flex items-center gap-2 flex-1 justify-end">
+            {!showForm && (
+              <form onSubmit={handleSearch} className="flex items-center gap-2">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+                  <input
+                    value={searchInput}
+                    onChange={(e) => setSearchInput(e.target.value)}
+                    placeholder="Search products…"
+                    className="pl-9 pr-8 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 w-52"
+                  />
+                  {searchInput && (
+                    <button type="button" onClick={clearSearch} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
+                <button type="submit" className="px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors shrink-0">
+                  Search
+                </button>
+              </form>
+            )}
+            <button
+              onClick={openCreate}
+              className="flex items-center gap-2 bg-blue-600 text-white px-4 py-1.5 rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium shrink-0"
+            >
+              <Plus className="h-4 w-4" /> Add Product
+            </button>
+          </div>
         </div>
       </div>
 
@@ -1181,7 +1230,7 @@ export default function AdminProductsPage() {
           </div>
         ) : products.length === 0 ? (
           <div className="bg-white rounded-lg shadow-md p-12 text-center text-gray-500">
-            No products yet. Click "Add Product" to create one.
+            {search ? `No products found for "${search}".` : 'No products yet. Click "Add Product" to create one.'}
           </div>
         ) : (
           <div className="bg-white rounded-lg shadow-md overflow-hidden">
@@ -1255,6 +1304,35 @@ export default function AdminProductsPage() {
                 ))}
               </tbody>
             </table>
+          </div>
+        )}
+
+        {/* Pagination */}
+        {!loading && totalPages > 1 && (
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-gray-500">
+              {total} product{total !== 1 ? 's' : ''}
+              {search && <span className="ml-1">for "{search}"</span>}
+            </p>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page === 1}
+                className="flex items-center gap-1 px-3 py-1.5 text-sm text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                <ChevronLeft className="h-4 w-4" />
+                Previous
+              </button>
+              <span className="text-sm text-gray-500">Page {page} of {totalPages}</span>
+              <button
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={page >= totalPages}
+                className="flex items-center gap-1 px-3 py-1.5 text-sm text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                Next
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
           </div>
         )}
       </div>

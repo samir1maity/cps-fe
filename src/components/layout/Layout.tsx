@@ -21,6 +21,7 @@ const AUTH_PAGES = ['/login', '/register', '/forgot-password'];
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const pathname = usePathname();
   const isAuthPage = pathname && AUTH_PAGES.includes(pathname);
+  const isAdminPage = pathname?.startsWith('/admin');
   const { loading } = useAuth();
 
   // Show loading indicator only during initial auth check
@@ -39,7 +40,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     <div className="min-h-screen bg-gray-50">
       <PendingActionsHandler />
       {isAuthPage ? <AuthHeader /> : <Header />}
-      {!isAuthPage && <CategoryBar />}
+      {!isAuthPage && !isAdminPage && <CategoryBar />}
       <main className="overflow-x-hidden">
         {children}
       </main>
