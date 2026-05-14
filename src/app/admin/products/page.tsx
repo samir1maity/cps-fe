@@ -33,6 +33,7 @@ interface ColorEntry {
   _id?: string;
   name: string;
   imageKey: string;       // primary thumbnail — stored on Product doc
+  stock: number;          // per-variant stock quantity
   newFile?: File;         // pending primary image upload
   previewUrl?: string;    // local object URL for primary image
 
@@ -49,7 +50,7 @@ const emptyForm: ProductFormData = {
 };
 
 const emptyColor = (): ColorEntry => ({
-  name: '', imageKey: '',
+  name: '', imageKey: '', stock: 0,
   extraExistingKeys: [], extraNewFiles: [], extraPreviewUrls: [],
 });
 
@@ -70,18 +71,27 @@ function ProductImage({ product }: { product: Product }) {
 
 function ColorVariantModalItem({ color }: { color: Product['colors'][number] }) {
   const url = useSignedUrl(color.imageKey);
+  const inStock = color.stock > 0;
   return (
     <div className="flex flex-col items-center gap-1.5">
-      <div className="h-16 w-16 rounded-xl overflow-hidden bg-gray-100 border border-gray-200 flex-shrink-0">
+      <div className="relative h-16 w-16 rounded-xl overflow-hidden bg-gray-100 border border-gray-200 flex-shrink-0">
         {url
           ? <img src={url} alt={color.name} className="h-full w-full object-cover" />
           : <div className="h-full w-full flex items-center justify-center">
               <Palette className="h-6 w-6 text-purple-300" />
             </div>
         }
+        {!inStock && (
+          <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+            <span className="text-[9px] font-bold text-white leading-tight text-center">OUT OF{'\n'}STOCK</span>
+          </div>
+        )}
       </div>
       <span className="text-xs text-gray-700 font-medium text-center leading-tight max-w-[72px] truncate" title={color.name}>
         {color.name}
+      </span>
+      <span className={`text-[10px] font-semibold ${inStock ? 'text-green-600' : 'text-red-500'}`}>
+        {inStock ? `${color.stock} left` : 'Out'}
       </span>
     </div>
   );
@@ -379,6 +389,7 @@ export default function AdminProductsPage() {
         _id: c._id,
         name: c.name,
         imageKey: c.imageKey,
+        stock: c.stock ?? 0,
         extraExistingKeys: variantGallery[c._id] ?? [],
         extraNewFiles: [],
         extraPreviewUrls: [],
@@ -482,6 +493,11 @@ export default function AdminProductsPage() {
 
   const updateColorName = (i: number, val: string) =>
     setColors((prev) => prev.map((c, idx) => (idx === i ? { ...c, name: val } : c)));
+
+  const updateColorStock = (i: number, val: string) => {
+    const n = Math.max(0, parseInt(val, 10) || 0);
+    setColors((prev) => prev.map((c, idx) => (idx === i ? { ...c, stock: n } : c)));
+  };
 
   const triggerColorFileInput = (i: number) => {
     pendingColorIndexRef.current = i;
@@ -611,15 +627,15 @@ export default function AdminProductsPage() {
         : [];
 
       // Upload color primary images
-      const resolvedColors: Array<{ _id?: string; name: string; imageKey: string }> =
+      const resolvedColors: Array<{ _id?: string; name: string; imageKey: string; stock: number }> =
         imageMode === 'color'
           ? await Promise.all(
               colors.map(async (c) => {
                 if (c.newFile) {
                   const key = await uploadToS3(c.newFile, 'products');
-                  return { _id: c._id, name: c.name.trim(), imageKey: key };
+                  return { _id: c._id, name: c.name.trim(), imageKey: key, stock: c.stock };
                 }
-                return { _id: c._id, name: c.name.trim(), imageKey: c.imageKey };
+                return { _id: c._id, name: c.name.trim(), imageKey: c.imageKey, stock: c.stock };
               }),
             )
           : [];
@@ -856,16 +872,26 @@ export default function AdminProductsPage() {
                 />
               </div>
 
-              {/* Stock */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Stock Quantity *</label>
-                <input
-                  required type="number" min="0"
-                  value={form.stockQuantity}
-                  onChange={(e) => setForm({ ...form, stockQuantity: e.target.value })}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
+              {/* Stock — hidden for color-variant products (derived from variant stocks) */}
+              {imageMode === 'standard' ? (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Stock Quantity *</label>
+                  <input
+                    required type="number" min="0"
+                    value={form.stockQuantity}
+                    onChange={(e) => setForm({ ...form, stockQuantity: e.target.value })}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              ) : (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Total Stock</label>
+                  <div className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-500 bg-gray-50">
+                    {colors.reduce((s, c) => s + c.stock, 0)} units
+                    <span className="ml-2 text-xs text-gray-400">(sum of variant stocks)</span>
+                  </div>
+                </div>
+              )}
 
               {/* Tags */}
               <div className="md:col-span-2">
@@ -1050,7 +1076,7 @@ export default function AdminProductsPage() {
                           const canAddMore = extraTotal < 5;
                           return (
                             <div key={i} className="bg-gray-50 rounded-xl border border-gray-200 p-3">
-                              {/* Row 1: primary image + name + upload + delete */}
+                              {/* Row 1: primary image + name + stock + upload + delete */}
                               <div className="flex items-center gap-3">
                                 <ColorImagePreview
                                   imageKey={color.previewUrl ? undefined : color.imageKey}
@@ -1062,6 +1088,16 @@ export default function AdminProductsPage() {
                                   placeholder="Color name (e.g. Terracotta)"
                                   className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white"
                                 />
+                                <div className="flex flex-col gap-0.5 flex-shrink-0">
+                                  <label className="text-[10px] text-gray-400 font-medium text-center">Stock</label>
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    value={color.stock}
+                                    onChange={(e) => updateColorStock(i, e.target.value)}
+                                    className="w-16 border border-gray-300 rounded-lg px-2 py-2 text-sm text-gray-900 text-center focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white"
+                                  />
+                                </div>
                                 <button type="button" onClick={() => triggerColorFileInput(i)}
                                   className="flex items-center gap-1.5 text-xs bg-white border border-gray-300 text-gray-600 hover:border-purple-400 hover:text-purple-600 px-3 py-2 rounded-lg font-medium transition-colors whitespace-nowrap">
                                   <Upload className="h-3.5 w-3.5" />
@@ -1186,11 +1222,24 @@ export default function AdminProductsPage() {
                     </td>
                     <td className="px-4 py-4 text-gray-900 font-medium">{formatCurrency(product.price)}</td>
                     <td className="px-4 py-4">
-                      <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                        product.inStock ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'
-                      }`}>
-                        {product.inStock ? `${product.stockQuantity} in stock` : 'Out of stock'}
-                      </span>
+                      {product.colors?.length > 0 ? (
+                        <div className="flex flex-col gap-0.5">
+                          <span className={`text-xs font-medium px-2 py-0.5 rounded-full w-fit ${
+                            product.inStock ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'
+                          }`}>
+                            {product.stockQuantity} total
+                          </span>
+                          <span className="text-[10px] text-gray-400">
+                            {product.colors.filter((c) => c.stock > 0).length}/{product.colors.length} variants in stock
+                          </span>
+                        </div>
+                      ) : (
+                        <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                          product.inStock ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'
+                        }`}>
+                          {product.inStock ? `${product.stockQuantity} in stock` : 'Out of stock'}
+                        </span>
+                      )}
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-2">

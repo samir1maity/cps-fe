@@ -31,6 +31,7 @@ export interface ProductColor {
   _id: string;
   name: string;
   imageKey: string;
+  stock: number;
 }
 
 /** Map of colorId → extra gallery image keys (fetched only on product detail page) */

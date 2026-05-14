@@ -37,13 +37,16 @@ function ColorSwatch({
   onClick: () => void;
 }) {
   const url = useSignedUrl(color.imageKey);
+  const outOfStock = color.stock === 0;
   return (
     <button
       type="button"
       onClick={onClick}
-      title={color.name}
+      title={outOfStock ? `${color.name} — Out of stock` : color.name}
       className={`relative h-12 w-12 rounded-xl overflow-hidden border-2 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
-        isSelected
+        outOfStock
+          ? 'opacity-40 cursor-default border-gray-200'
+          : isSelected
           ? 'border-blue-600 ring-2 ring-blue-200'
           : 'border-gray-200 hover:border-gray-400'
       }`}
@@ -52,6 +55,12 @@ function ColorSwatch({
         <img src={url} alt={color.name} className="h-full w-full object-cover" />
       ) : (
         <div className="h-full w-full bg-gray-100" />
+      )}
+      {/* Diagonal strike for out-of-stock swatches */}
+      {outOfStock && (
+        <svg className="absolute inset-0 w-full h-full" viewBox="0 0 48 48">
+          <line x1="0" y1="48" x2="48" y2="0" stroke="#ef4444" strokeWidth="2" />
+        </svg>
       )}
     </button>
   );
@@ -207,6 +216,13 @@ const ProductPageClient: React.FC = () => {
   const colorMode = hasColorVariants(product);
   const hasMultipleImages = activeImageKeys.length > 1;
 
+  // Effective stock: for color products use the selected variant's stock,
+  // for plain products use product.stockQuantity
+  const effectiveStock = colorMode && selectedColor
+    ? selectedColor.stock
+    : product.stockQuantity;
+  const effectiveInStock = effectiveStock > 0;
+
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
@@ -333,6 +349,13 @@ const ProductPageClient: React.FC = () => {
                 <p className="text-sm font-medium text-gray-700 mb-2">
                   Color:{' '}
                   <span className="font-semibold text-gray-900">{selectedColor?.name}</span>
+                  {selectedColor && (
+                    <span className={`ml-2 text-xs font-medium ${
+                      selectedColor.stock > 0 ? 'text-green-600' : 'text-red-500'
+                    }`}>
+                      {selectedColor.stock > 0 ? `${selectedColor.stock} left` : '· Out of stock'}
+                    </span>
+                  )}
                 </p>
                 <div className="flex flex-wrap gap-2">
                   {product.colors.map((color) => (
@@ -340,7 +363,10 @@ const ProductPageClient: React.FC = () => {
                       key={color._id}
                       color={color}
                       isSelected={selectedColor?._id === color._id}
-                      onClick={() => setSelectedColor(color)}
+                      onClick={() => {
+                        setSelectedColor(color);
+                        setQuantity(1);
+                      }}
                     />
                   ))}
                 </div>
@@ -353,10 +379,10 @@ const ProductPageClient: React.FC = () => {
             )}
 
             <div className="space-y-4">
-              {!product.inStock && (
+              {!effectiveInStock && (
                 <div className="inline-flex items-center gap-1.5 bg-red-50 border border-red-200 text-red-700 text-sm font-medium px-3 py-1.5 rounded-lg">
                   <span className="h-2 w-2 rounded-full bg-red-500 inline-block" />
-                  Out of Stock
+                  {colorMode ? 'This color is out of stock' : 'Out of Stock'}
                 </div>
               )}
 
@@ -364,7 +390,7 @@ const ProductPageClient: React.FC = () => {
                 <span className="text-sm font-medium text-gray-700">Quantity:</span>
                 <div
                   className={`flex items-center border border-gray-300 rounded-lg ${
-                    !product.inStock ? 'opacity-40 pointer-events-none' : ''
+                    !effectiveInStock ? 'opacity-40 pointer-events-none' : ''
                   }`}
                 >
                   <button
@@ -375,26 +401,26 @@ const ProductPageClient: React.FC = () => {
                   </button>
                   <span className="px-4 py-2 text-sm font-semibold text-gray-900">{quantity}</span>
                   <button
-                    onClick={() => setQuantity(Math.min(product.stockQuantity, quantity + 1))}
-                    disabled={quantity >= product.stockQuantity}
+                    onClick={() => setQuantity(Math.min(effectiveStock, quantity + 1))}
+                    disabled={quantity >= effectiveStock}
                     className="p-2 hover:bg-gray-100 disabled:opacity-30 text-gray-800"
                   >
                     <Plus className="h-4 w-4" />
                   </button>
                 </div>
-                {product.inStock && (
-                  <span className="text-sm text-gray-600">{product.stockQuantity} in stock</span>
+                {effectiveInStock && (
+                  <span className="text-sm text-gray-600">{effectiveStock} in stock</span>
                 )}
               </div>
 
               <div className="flex space-x-4">
                 <button
                   onClick={handleAddToCart}
-                  disabled={!product.inStock}
+                  disabled={!effectiveInStock}
                   className="flex-1 py-3 px-6 rounded-lg transition-colors flex items-center justify-center font-medium disabled:opacity-50 disabled:cursor-not-allowed bg-blue-600 text-white hover:bg-blue-700"
                 >
                   <ShoppingCart className="h-5 w-5 mr-2" />
-                  {product.inStock ? 'Add to Cart' : 'Out of Stock'}
+                  {effectiveInStock ? 'Add to Cart' : 'Out of Stock'}
                 </button>
                 <button
                   onClick={handleAddToWishlist}
