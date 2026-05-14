@@ -104,12 +104,197 @@ const LOG_SCOPE_STYLES: Record<PaymentAuditLog['scope'], string> = {
   REFUND: 'bg-fuchsia-100 text-fuchsia-700',
 };
 
+// Human-readable labels for each event code
+const EVENT_LABELS: Record<string, string> = {
+  ORDER_CREATED_COD:               'Order placed (Cash on Delivery)',
+  ORDER_STATUS_UPDATED:            'Status updated by admin',
+  ORDER_CANCELLED:                 'Order cancelled by customer',
+  RAZORPAY_ORDER_CREATED:          'Razorpay checkout initiated',
+  PAYMENT_VERIFIED:                'Payment verified',
+  PAYMENT_CAPTURED_WEBHOOK:        'Payment captured (webhook)',
+  PAYMENT_AUTHORIZED_WEBHOOK:      'Payment authorised (webhook)',
+  PAYMENT_FAILED_WEBHOOK:          'Payment failed (webhook)',
+  PAYMENT_VERIFICATION_REJECTED:   'Payment verification rejected',
+  PAYMENT_SIGNATURE_INVALID:       'Invalid payment signature',
+  PAYMENT_PROVIDER_STATE_INVALID:  'Provider state mismatch',
+  PAYMENT_CAPTURE_WEBHOOK_MISMATCH:'Webhook amount mismatch',
+  REFUND_COMPLETED:                'Refund processed',
+  REFUND_FAILED:                   'Refund failed',
+};
+
+// Meta key labels for display
+const META_KEY_LABELS: Record<string, string> = {
+  total:           'Amount',
+  amount:          'Amount',
+  amountInPaise:   'Amount (paise)',
+  itemCount:       'Items',
+  status:          'New status',
+  source:          'Source',
+  reason:          'Reason',
+  paymentStatus:   'Payment status',
+  trackingNumber:  'Tracking #',
+  updatedBy:       'Updated by',
+  currency:        'Currency',
+  providerStatus:  'Provider status',
+  providerAmount:  'Provider amount',
+  expectedAmount:  'Expected amount',
+};
+
+function InfoCell({ label, value, mono = false }: { label: string; value: string; mono?: boolean }) {
+  return (
+    <div className="rounded-lg bg-slate-50 border border-slate-100 px-3 py-2.5 text-xs">
+      <p className="text-slate-400 mb-0.5">{label}</p>
+      <p className={`text-slate-700 break-all ${mono ? 'font-mono' : 'font-medium'}`}>{value}</p>
+    </div>
+  );
+}
+
+function LogCard({ log }: { log: PaymentAuditLog }) {
+  const isPayment = log.scope === 'PAYMENT';
+  const isRefund  = log.scope === 'REFUND';
+
+  const hasPaymentRef = !!(log.paymentId || log.razorpayOrderId);
+  const hasRefundRef  = !!log.refundId;
+
+
+  const metaEntries = log.meta ? Object.entries(log.meta).filter(([, v]) => v != null && v !== '') : [];
+
+  return (
+    <div className="rounded-xl border border-slate-200 bg-white overflow-hidden shadow-sm">
+      {/* Header row */}
+      <div className="flex items-start justify-between gap-3 px-4 py-3 border-b border-slate-100">
+        <p className="text-sm font-semibold text-slate-900 leading-snug">
+          {EVENT_LABELS[log.event] ?? log.message}
+        </p>
+        <div className="flex items-center gap-1.5 shrink-0">
+          {log.level !== 'INFO' && (
+            <span className={`rounded-md px-2 py-0.5 text-[10px] font-bold tracking-wide ${LOG_LEVEL_STYLES[log.level]}`}>
+              {log.level}
+            </span>
+          )}
+          <span className={`rounded-md px-2 py-0.5 text-[10px] font-bold tracking-wide ${LOG_SCOPE_STYLES[log.scope]}`}>
+            {log.scope}
+          </span>
+          <time className="text-[11px] text-slate-400">
+            {new Date(log.createdAt).toLocaleString('en-IN', {
+              day: '2-digit', month: 'short',
+              hour: '2-digit', minute: '2-digit',
+            })}
+          </time>
+        </div>
+      </div>
+
+      {/* Context cells — only shown when relevant */}
+      {(hasPaymentRef || hasRefundRef || metaEntries.length > 0) && (
+        <div className="px-4 py-3 space-y-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {/* Payment reference — only for PAYMENT scope */}
+            {isPayment && hasPaymentRef && (
+              <InfoCell
+                label={log.paymentId ? 'Payment ID' : 'Razorpay Order ID'}
+                value={(log.paymentId ?? log.razorpayOrderId)!}
+                mono
+              />
+            )}
+
+            {/* Both IDs when both present (e.g. verified event) */}
+            {isPayment && log.paymentId && log.razorpayOrderId && (
+              <InfoCell label="Razorpay Order ID" value={log.razorpayOrderId} mono />
+            )}
+
+            {/* Refund ID — only for REFUND scope */}
+            {isRefund && hasRefundRef && (
+              <InfoCell label="Refund ID" value={log.refundId!} mono />
+            )}
+
+
+          </div>
+
+          {/* Meta details */}
+          {metaEntries.length > 0 && (
+            <div className="rounded-lg bg-slate-50 border border-slate-100 px-3 py-2.5">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-2">Details</p>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-1.5 text-xs">
+                {metaEntries.map(([key, value]) => (
+                  <div key={key}>
+                    <span className="text-slate-400">{META_KEY_LABELS[key] ?? key}:</span>{' '}
+                    <span className="font-medium text-slate-700">{String(value)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function StatusConfirmModal({
+  order,
+  newStatus,
+  onConfirm,
+  onCancel,
+}: {
+  order: Order;
+  newStatus: string;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  React.useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onCancel(); };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [onCancel]);
+
+  const from = order.status.charAt(0) + order.status.slice(1).toLowerCase();
+  const to   = newStatus.charAt(0) + newStatus.slice(1).toLowerCase();
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+      <button aria-label="Cancel" onClick={onCancel} className="absolute inset-0 bg-slate-950/40 backdrop-blur-[2px]" />
+      <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 space-y-4">
+        <div className="space-y-1">
+          <h3 className="text-base font-semibold text-gray-900">Update order status?</h3>
+          <p className="text-sm text-gray-500">
+            Order <span className="font-mono font-medium text-gray-700">#{order.id.slice(-8).toUpperCase()}</span>
+          </p>
+        </div>
+        <div className="flex items-center gap-3 rounded-xl bg-gray-50 border border-gray-200 px-4 py-3 text-sm">
+          <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${STATUS_STYLES[order.status] ?? 'bg-gray-100 text-gray-700'}`}>
+            {from}
+          </span>
+          <span className="text-gray-400">→</span>
+          <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${STATUS_STYLES[newStatus as OrderStatus] ?? 'bg-gray-100 text-gray-700'}`}>
+            {to}
+          </span>
+        </div>
+        <div className="flex gap-3 pt-1">
+          <button
+            onClick={onCancel}
+            className="flex-1 px-4 py-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            className="flex-1 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-xl hover:bg-blue-700 transition-colors"
+          >
+            Confirm
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function AdminOrdersPage() {
   const router = useRouter();
 
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState<string | null>(null);
+  const [pendingStatus, setPendingStatus] = useState<{ order: Order; newStatus: string } | null>(null);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
@@ -140,14 +325,22 @@ export default function AdminOrdersPage() {
     loadOrders();
   }, [loadOrders]);
 
-  const handleStatusChange = async (order: Order, newStatus: string) => {
+  const requestStatusChange = (order: Order, newStatus: string) => {
     if (newStatus === order.status) return;
+    setPendingStatus({ order, newStatus });
+  };
+
+  const confirmStatusChange = async () => {
+    if (!pendingStatus) return;
+    const { order, newStatus } = pendingStatus;
+    setPendingStatus(null);
     setUpdating(order.id);
     const res = await api.updateOrderStatus(order.id, newStatus);
-    if (res.success) {
+    if (res.success && res.data) {
       toast.success('Order status updated');
+      const updated = res.data;
       setOrders((prev) =>
-        prev.map((o) => (o.id === order.id ? { ...o, status: newStatus as OrderStatus } : o)),
+        prev.map((o) => (o.id === order.id ? { ...o, status: updated.status, paymentStatus: updated.paymentStatus } : o)),
       );
     } else {
       toast.error(res.error ?? 'Failed to update status');
@@ -208,6 +401,11 @@ export default function AdminOrdersPage() {
     setSearchInput('');
     setSearch('');
   };
+
+  // Always derive the logs panel order from live data so status/payment badges stay current
+  const liveSelectedOrder = selectedOrder
+    ? (orders.find((o) => o.id === selectedOrder.id) ?? selectedOrder)
+    : null;
 
   // Client-side search filter (by order id or customer name)
   const visible = search
@@ -360,7 +558,7 @@ export default function AdminOrdersPage() {
                         <select
                           value={order.status}
                           disabled={updating === order.id}
-                          onChange={(e) => handleStatusChange(order, e.target.value)}
+                          onChange={(e) => requestStatusChange(order, e.target.value)}
                           className="border border-gray-300 rounded-md px-2 py-1 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
                         >
                           {ORDER_STATUSES.map((s) => (
@@ -422,6 +620,16 @@ export default function AdminOrdersPage() {
           </div>
         )}
       </div>
+
+      {/* Status Confirmation Modal */}
+      {pendingStatus && (
+        <StatusConfirmModal
+          order={pendingStatus.order}
+          newStatus={pendingStatus.newStatus}
+          onConfirm={confirmStatusChange}
+          onCancel={() => setPendingStatus(null)}
+        />
+      )}
 
       {/* Order Detail Modal */}
       {detailOrder && (
@@ -604,7 +812,7 @@ export default function AdminOrdersPage() {
         </div>
       )}
 
-      {selectedOrder && (
+      {liveSelectedOrder && (
         <div className="fixed inset-0 z-40">
           <button
             aria-label="Close logs panel"
@@ -624,26 +832,26 @@ export default function AdminOrdersPage() {
                       <div>
                         <h2 className="text-lg font-semibold text-slate-900">Order Logs</h2>
                         <p className="text-sm text-slate-500">
-                          #{selectedOrder.id.slice(-8).toUpperCase()} • {selectedOrder.user?.name ?? 'Customer'}
+                          #{liveSelectedOrder.id.slice(-8).toUpperCase()} • {liveSelectedOrder.user?.name ?? 'Customer'}
                         </p>
                       </div>
                     </div>
                     <div className="mt-4 flex flex-wrap gap-2 text-xs">
                       <span className="rounded-full bg-slate-100 px-3 py-1 font-medium text-slate-700">
-                        Total {formatCurrency(selectedOrder.total)}
+                        Total {formatCurrency(liveSelectedOrder.total)}
                       </span>
-                      <span className={`rounded-full px-3 py-1 font-medium ${STATUS_STYLES[selectedOrder.status]}`}>
-                        {selectedOrder.status}
+                      <span className={`rounded-full px-3 py-1 font-medium ${STATUS_STYLES[liveSelectedOrder.status]}`}>
+                        {liveSelectedOrder.status}
                       </span>
                       <span className="rounded-full bg-blue-100 px-3 py-1 font-medium text-blue-700">
-                        {selectedOrder.paymentMethod} • {selectedOrder.paymentStatus}
+                        {liveSelectedOrder.paymentMethod} • {liveSelectedOrder.paymentStatus}
                       </span>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-2">
                     <button
-                      onClick={() => loadOrderLogs(selectedOrder, true)}
+                      onClick={() => loadOrderLogs(liveSelectedOrder, true)}
                       disabled={logsLoading || logsRefreshing}
                       className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 disabled:opacity-50"
                     >
@@ -671,52 +879,9 @@ export default function AdminOrdersPage() {
                     <p className="mt-1 text-sm text-slate-500">Payment, order, and refund events will appear here when they are recorded.</p>
                   </div>
                 ) : (
-                  <div className="space-y-4">
+                  <div className="space-y-3">
                     {orderLogs.map((log) => (
-                      <div key={log.id} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                          <div className="space-y-2">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${LOG_LEVEL_STYLES[log.level]}`}>
-                                {log.level}
-                              </span>
-                              <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${LOG_SCOPE_STYLES[log.scope]}`}>
-                                {log.scope}
-                              </span>
-                              <span className="font-mono text-xs text-slate-500">{log.event}</span>
-                            </div>
-                            <p className="text-sm font-semibold text-slate-900">{log.message}</p>
-                          </div>
-                          <div className="text-xs text-slate-500">
-                            {new Date(log.createdAt).toLocaleString('en-IN')}
-                          </div>
-                        </div>
-
-                        <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                          <div className="rounded-xl bg-slate-50 p-3 text-xs text-slate-600">
-                            <p className="mb-1 text-slate-400">Payment Reference</p>
-                            <p className="break-all font-mono">{log.paymentId ?? log.razorpayOrderId ?? '—'}</p>
-                          </div>
-                          <div className="rounded-xl bg-slate-50 p-3 text-xs text-slate-600">
-                            <p className="mb-1 text-slate-400">Customer</p>
-                            <p className="font-medium text-slate-800">{log.user?.name ?? selectedOrder.user?.name ?? '—'}</p>
-                            <p>{log.user?.email ?? selectedOrder.user?.email ?? ''}</p>
-                          </div>
-                        </div>
-
-                        {log.meta && Object.keys(log.meta).length > 0 && (
-                          <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-3">
-                            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">Details</p>
-                            <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs text-slate-600">
-                              {Object.entries(log.meta).map(([key, value]) => (
-                                <div key={key}>
-                                  <span className="text-slate-400">{key}:</span> {value}
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </div>
+                      <LogCard key={log.id} log={log} />
                     ))}
                   </div>
                 )}
