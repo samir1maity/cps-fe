@@ -16,6 +16,7 @@ import {
   Package,
   Hash,
   User as UserIcon,
+  ShieldCheck,
 } from 'lucide-react';
 import { api } from '@/lib/api';
 import { Order, OrderItem, OrderStatus, PaymentAuditLog } from '@/lib/types';
@@ -325,7 +326,15 @@ export default function AdminOrdersPage() {
                         #{order.id.slice(-8).toUpperCase()}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <p className="font-medium text-gray-900">{order.user?.name ?? '—'}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium text-gray-900">{order.user?.name ?? '—'}</p>
+                          {order.isAdminOrder && (
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-100 text-amber-700 border border-amber-200">
+                              <ShieldCheck className="h-3 w-3" />
+                              Admin
+                            </span>
+                          )}
+                        </div>
                         <p className="text-xs text-gray-500">{order.user?.email ?? ''}</p>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-gray-600">
@@ -463,6 +472,12 @@ export default function AdminOrdersPage() {
                   <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700">
                     {detailOrder.paymentMethod}
                   </span>
+                  {detailOrder.isAdminOrder && (
+                    <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-700">
+                      <ShieldCheck className="h-3 w-3" />
+                      Admin Order
+                    </span>
+                  )}
                   <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${
                     detailOrder.paymentStatus === 'PAID' ? 'bg-green-100 text-green-700'
                     : detailOrder.paymentStatus === 'FAILED' ? 'bg-red-100 text-red-700'
@@ -484,8 +499,16 @@ export default function AdminOrdersPage() {
                   <h3 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-gray-400 mb-2">
                     <UserIcon className="h-3.5 w-3.5" /> Customer
                   </h3>
-                  <div className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm">
-                    <p className="font-medium text-gray-900">{detailOrder.user?.name ?? '—'}</p>
+                  <div className={`rounded-xl border px-4 py-3 text-sm ${detailOrder.isAdminOrder ? 'border-amber-200 bg-amber-50' : 'border-gray-200 bg-gray-50'}`}>
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <p className="font-medium text-gray-900">{detailOrder.user?.name ?? '—'}</p>
+                      {detailOrder.isAdminOrder && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-100 text-amber-700 border border-amber-200">
+                          <ShieldCheck className="h-3 w-3" />
+                          Admin Order
+                        </span>
+                      )}
+                    </div>
                     <p className="text-gray-500">{detailOrder.user?.email ?? ''}</p>
                     {detailOrder.user?.phone && (
                       <p className="text-gray-500">{detailOrder.user.phone}</p>

@@ -83,7 +83,8 @@ export interface CartItem {
 export interface Order {
   id: string;
   userId: string;
-  user: User;
+  user: User | null;
+  isAdminOrder?: boolean;
   items: OrderItem[];
   status: OrderStatus;
   total: number;
