@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google';
 import './globals.css';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { CartProvider } from '@/contexts/CartContext';
+import { WishlistProvider } from '@/contexts/WishlistContext';
 import Layout from '@/components/layout/Layout';
 import { absoluteUrl, getSiteUrl, siteConfig } from '@/lib/seo';
 
@@ -84,9 +85,11 @@ export default function RootLayout({
         />
         <AuthProvider>
           <CartProvider>
-            <Layout>
-              {children}
-            </Layout>
+            <WishlistProvider>
+              <Layout>
+                {children}
+              </Layout>
+            </WishlistProvider>
           </CartProvider>
         </AuthProvider>
       </body>

@@ -5,6 +5,7 @@ import { useEffect, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCart } from '@/contexts/CartContext';
+import { useWishlist } from '@/contexts/WishlistContext';
 import { getAndClearPendingAction } from '@/lib/auth/redirects';
 import { api } from '@/lib/api';
 import toast from 'react-hot-toast';
@@ -15,6 +16,7 @@ import toast from 'react-hot-toast';
 export const usePendingActions = () => {
   const { user } = useAuth();
   const { addToCart } = useCart();
+  const { addToWishlist } = useWishlist();
   const router = useRouter();
   const pathname = usePathname();
   const hasProcessed = useRef(false);
@@ -52,7 +54,7 @@ export const usePendingActions = () => {
 
           case 'add_to_wishlist':
             if (pendingAction.productId) {
-              // Add to wishlist logic
+              await addToWishlist(pendingAction.productId);
               toast.success('Item added to wishlist!', {
                 icon: '❤️',
                 duration: 4000,
@@ -80,7 +82,7 @@ export const usePendingActions = () => {
     }, 500);
 
     return () => clearTimeout(timer);
-  }, [user, addToCart, router, pathname]);
+  }, [user, addToCart, addToWishlist, router, pathname]);
 };
 
 

@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useCart } from '@/contexts/CartContext';
+import { useWishlist } from '@/contexts/WishlistContext';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
 import { usePendingActions } from '@/hooks/usePendingActions';
 import { api } from '@/lib/api';
@@ -121,6 +122,7 @@ const ProductPageClient: React.FC = () => {
   const params = useParams();
   const { addToCart } = useCart();
   const { requireAuthForCart, requireAuthForWishlist } = useRequireAuth();
+  const { toggleWishlist, isInWishlist } = useWishlist();
 
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
@@ -196,10 +198,11 @@ const ProductPageClient: React.FC = () => {
     await addToCart(product, quantity, selectedColor?._id ?? null);
   };
 
-  const handleAddToWishlist = async () => {
+  const handleToggleWishlist = async () => {
     if (!product) return;
     if (!requireAuthForWishlist(product.id)) return;
-    toast.success('Added to wishlist');
+    const added = await toggleWishlist(product);
+    toast.success(added ? 'Added to wishlist' : 'Removed from wishlist');
   };
 
   const handlePrevImage = () =>
@@ -455,10 +458,10 @@ const ProductPageClient: React.FC = () => {
                   {effectiveInStock ? 'Add to Cart' : 'Out of Stock'}
                 </button>
                 <button
-                  onClick={handleAddToWishlist}
-                  className="p-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-gray-700 hover:text-red-500"
+                  onClick={handleToggleWishlist}
+                  className={`p-3 border rounded-lg transition-colors ${product && isInWishlist(product.id) ? 'border-red-300 text-red-500 bg-red-50 hover:bg-red-100' : 'border-gray-300 text-gray-700 hover:bg-gray-50 hover:text-red-500'}`}
                 >
-                  <Heart className="h-5 w-5" />
+                  <Heart className="h-5 w-5" fill={product && isInWishlist(product.id) ? 'currentColor' : 'none'} />
                 </button>
                 <button className="p-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-gray-700 hover:text-blue-500">
                   <Share2 className="h-5 w-5" />

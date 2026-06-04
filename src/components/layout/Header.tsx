@@ -5,15 +5,17 @@ import React, { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Search, ShoppingCart, User, Menu, X } from 'lucide-react';
+import { Search, ShoppingCart, Heart, User, Menu, X } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCart } from '@/contexts/CartContext';
+import { useWishlist } from '@/contexts/WishlistContext';
 
 const Header: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const { user, logout } = useAuth();
   const { getTotalItems } = useCart();
+  const { getCount } = useWishlist();
   const router = useRouter();
   const pathname = usePathname();
   const isMorePage = pathname?.startsWith('/more');
@@ -75,6 +77,19 @@ const Header: React.FC = () => {
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-1">
+            {/* Wishlist */}
+            <Link
+              href="/wishlist"
+              className="relative p-2.5 rounded-xl text-gray-500 hover:text-red-500 hover:bg-red-50 transition-colors"
+              title="Wishlist"
+            >
+              <Heart className="h-5 w-5" />
+              {getCount() > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-[10px] font-bold rounded-full h-4 w-4 flex items-center justify-center">
+                  {getCount()}
+                </span>
+              )}
+            </Link>
             {/* Cart */}
             <Link
               href="/cart"
@@ -189,6 +204,13 @@ const Header: React.FC = () => {
                       onClick={() => setIsMenuOpen(false)}
                     >
                       Profile
+                    </Link>
+                    <Link
+                      href="/wishlist"
+                      className="block py-2 text-gray-600 hover:text-[var(--brand-600)] transition-colors"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      Wishlist
                     </Link>
                     <Link
                       href="/orders"

@@ -7,6 +7,7 @@ import toast from 'react-hot-toast';
 import Carousel, { CarouselSlide } from '@/components/ui/Carousel';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCart } from '@/contexts/CartContext';
+import { useWishlist } from '@/contexts/WishlistContext';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
 import { api } from '@/lib/api';
 import { Product } from '@/lib/types';
@@ -20,6 +21,7 @@ const HomePageClient: React.FC = () => {
   const { addToCart } = useCart();
   const { user } = useAuth();
   const { requireAuthForCart, requireAuthForWishlist } = useRequireAuth();
+  const { toggleWishlist, isInWishlist } = useWishlist();
 
   useEffect(() => {
     loadData();
@@ -48,12 +50,10 @@ const HomePageClient: React.FC = () => {
     await addToCart(product, 1, getDefaultColorId(product));
   };
 
-  const handleAddToWishlist = async (product: Product) => {
-    if (!requireAuthForWishlist(product.id)) {
-      return;
-    }
-
-    toast.success('Added to wishlist');
+  const handleToggleWishlist = async (product: Product) => {
+    if (!requireAuthForWishlist(product.id)) return;
+    const added = await toggleWishlist(product);
+    toast.success(added ? 'Added to wishlist' : 'Removed from wishlist');
   };
 
   if (loading) {
@@ -173,10 +173,10 @@ const HomePageClient: React.FC = () => {
                   <div className="flex justify-between items-start mb-2">
                     <h3 className="font-semibold text-gray-900 line-clamp-2">{product.name}</h3>
                     <button
-                      onClick={() => handleAddToWishlist(product)}
-                      className="text-gray-400 hover:text-red-500 transition-colors"
+                      onClick={() => handleToggleWishlist(product)}
+                      className={`transition-colors ${isInWishlist(product.id) ? 'text-red-500' : 'text-gray-400 hover:text-red-500'}`}
                     >
-                      <Heart className="h-5 w-5" />
+                      <Heart className="h-5 w-5" fill={isInWishlist(product.id) ? 'currentColor' : 'none'} />
                     </button>
                   </div>
                   <p className="text-sm text-gray-600 mb-2 line-clamp-2">{product.description}</p>

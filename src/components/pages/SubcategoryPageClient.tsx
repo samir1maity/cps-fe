@@ -7,6 +7,7 @@ import { ShoppingCart, Heart, Filter, Grid, List } from 'lucide-react';
 import ProductThumb from '@/components/ui/ProductThumb';
 import toast from 'react-hot-toast';
 import { useCart } from '@/contexts/CartContext';
+import { useWishlist } from '@/contexts/WishlistContext';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
 import { api } from '@/lib/api';
 import { Category, Product } from '@/lib/types';
@@ -19,6 +20,7 @@ const SubcategoryPageClient: React.FC = () => {
   const subcategorySlug = params.subcategory as string | undefined;
   const { addToCart } = useCart();
   const { requireAuthForCart, requireAuthForWishlist } = useRequireAuth();
+  const { toggleWishlist, isInWishlist } = useWishlist();
   const [category, setCategory] = useState<Category | null>(null);
   const [subcategory, setSubcategory] = useState<Category | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
@@ -65,9 +67,10 @@ const SubcategoryPageClient: React.FC = () => {
     await addToCart(product, 1, getDefaultColorId(product));
   };
 
-  const handleAddToWishlist = async (product: Product) => {
+  const handleToggleWishlist = async (product: Product) => {
     if (!requireAuthForWishlist(product.id)) return;
-    toast.success('Added to wishlist');
+    const added = await toggleWishlist(product);
+    toast.success(added ? 'Added to wishlist' : 'Removed from wishlist');
   };
 
   const clearFilters = () => {
@@ -229,10 +232,10 @@ const SubcategoryPageClient: React.FC = () => {
                           {product.name}
                         </h3>
                         <button
-                          onClick={() => handleAddToWishlist(product)}
-                          className="text-gray-400 hover:text-red-500 transition-colors"
+                          onClick={() => handleToggleWishlist(product)}
+                          className={`transition-colors ${isInWishlist(product.id) ? 'text-red-500' : 'text-gray-400 hover:text-red-500'}`}
                         >
-                          <Heart className="h-5 w-5" />
+                          <Heart className="h-5 w-5" fill={isInWishlist(product.id) ? 'currentColor' : 'none'} />
                         </button>
                       </div>
                       <p className={`text-gray-600 mb-2 ${viewMode === 'grid' ? 'line-clamp-2' : 'line-clamp-1'}`}>
