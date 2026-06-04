@@ -77,6 +77,7 @@ export const API_CONFIG = {
       RETURNS: `${BASE}/admin/returns`,
       COUPONS: `${BASE}/admin/coupons`,
       CATEGORIES: `${BASE}/admin/categories`,
+      CATEGORIES_REORDER: `${BASE}/admin/categories/reorder`,
       CATEGORY: (id: string) => `${BASE}/admin/categories/${id}`,
     },
     ADMIN_PRODUCTS: {

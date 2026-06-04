@@ -1,8 +1,11 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, Pencil, Trash2, ChevronDown, ChevronRight, ArrowLeft } from 'lucide-react';
+import {
+  Plus, Pencil, Trash2, ChevronDown, ChevronRight,
+  ArrowLeft, GripVertical, ArrowUp, ArrowDown, Save,
+} from 'lucide-react';
 import { api } from '@/lib/api';
 import { Category } from '@/lib/types';
 import toast from 'react-hot-toast';
@@ -26,31 +29,41 @@ export default function AdminCategoriesPage() {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [editingIsActive, setEditingIsActive] = useState(true);
 
+  // Reorder state
+  const [reorderMode, setReorderMode] = useState(false);
+  const [orderedTopLevel, setOrderedTopLevel] = useState<Category[]>([]);
+  const [savingOrder, setSavingOrder] = useState(false);
+  const dragIndex = useRef<number | null>(null);
+  const dragOverIndex = useRef<number | null>(null);
+
   useEffect(() => { loadCategories(); }, []);
 
   const loadCategories = async () => {
     setLoading(true);
     const res = await api.getAdminCategories();
-    if (res.success && res.data) setCategories(res.data);
+    if (res.success && res.data) {
+      setCategories(res.data);
+      setOrderedTopLevel(res.data.filter((c) => !c.parentId));
+    }
     setLoading(false);
   };
+
+  // ── Form handlers ─────────────────────────────────────────────────────────
 
   const openCreate = (parentId = '') => {
     setEditingId(null);
     setForm({ ...emptyForm, parentId });
     setShowForm(true);
+    setReorderMode(false);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const openEdit = (cat: Category) => {
     setEditingId(cat.id);
     setEditingIsActive(cat.isActive);
-    setForm({
-      name: cat.name,
-      description: cat.description ?? '',
-      parentId: cat.parentId ?? '',
-    });
+    setForm({ name: cat.name, description: cat.description ?? '', parentId: cat.parentId ?? '' });
     setShowForm(true);
+    setReorderMode(false);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -79,11 +92,9 @@ export default function AdminCategoriesPage() {
         description: form.description || undefined,
         parentId: form.parentId || null,
       };
-
       const res = editingId
         ? await api.updateAdminCategory(editingId, payload)
         : await api.createAdminCategory(payload);
-
       if (res.success) {
         toast.success(editingId ? 'Category updated' : 'Category created');
         setShowForm(false);
@@ -111,6 +122,54 @@ export default function AdminCategoriesPage() {
     }
   };
 
+  // ── Reorder helpers ───────────────────────────────────────────────────────
+
+  const moveCategory = (index: number, direction: 'up' | 'down') => {
+    const next = [...orderedTopLevel];
+    const swapIndex = direction === 'up' ? index - 1 : index + 1;
+    if (swapIndex < 0 || swapIndex >= next.length) return;
+    [next[index], next[swapIndex]] = [next[swapIndex], next[index]];
+    setOrderedTopLevel(next);
+  };
+
+  // Drag-and-drop handlers
+  const onDragStart = (index: number) => { dragIndex.current = index; };
+  const onDragEnter = (index: number) => { dragOverIndex.current = index; };
+  const onDragEnd = () => {
+    const from = dragIndex.current;
+    const to = dragOverIndex.current;
+    if (from === null || to === null || from === to) {
+      dragIndex.current = null;
+      dragOverIndex.current = null;
+      return;
+    }
+    const next = [...orderedTopLevel];
+    const [moved] = next.splice(from, 1);
+    next.splice(to, 0, moved);
+    setOrderedTopLevel(next);
+    dragIndex.current = null;
+    dragOverIndex.current = null;
+  };
+
+  const saveOrder = async () => {
+    setSavingOrder(true);
+    const items = orderedTopLevel.map((cat, i) => ({ id: cat.id, sortOrder: i }));
+    const res = await api.reorderAdminCategories(items);
+    if (res.success) {
+      toast.success('Category order saved');
+      setReorderMode(false);
+      loadCategories();
+    } else {
+      toast.error(res.error ?? 'Failed to save order');
+    }
+    setSavingOrder(false);
+  };
+
+  const cancelReorder = () => {
+    setOrderedTopLevel(categories.filter((c) => !c.parentId));
+    setReorderMode(false);
+  };
+
   const topLevel = categories.filter((c) => !c.parentId);
 
   return (
@@ -124,17 +183,54 @@ export default function AdminCategoriesPage() {
             </button>
             <h1 className="text-xl font-bold text-gray-900">Manage Categories</h1>
           </div>
-          <button
-            onClick={() => openCreate()}
-            className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
-          >
-            <Plus className="h-4 w-4" /> Add Category
-          </button>
+          <div className="flex items-center gap-2">
+            {!reorderMode ? (
+              <>
+                <button
+                  onClick={() => { setReorderMode(true); setShowForm(false); }}
+                  className="flex items-center gap-2 border border-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium"
+                >
+                  <GripVertical className="h-4 w-4" /> Reorder
+                </button>
+                <button
+                  onClick={() => openCreate()}
+                  className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                >
+                  <Plus className="h-4 w-4" /> Add Category
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  onClick={cancelReorder}
+                  className="border border-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={saveOrder}
+                  disabled={savingOrder}
+                  className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors text-sm font-medium"
+                >
+                  <Save className="h-4 w-4" />
+                  {savingOrder ? 'Saving…' : 'Save Order'}
+                </button>
+              </>
+            )}
+          </div>
         </div>
       </div>
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
-        {/* Form */}
+
+        {/* ── Reorder mode banner ── */}
+        {reorderMode && (
+          <div className="rounded-lg bg-blue-50 border border-blue-200 px-4 py-3 text-sm text-blue-800">
+            <strong>Reorder mode:</strong> Drag rows or use the arrow buttons to change the category order in the navigation bar. Click <strong>Save Order</strong> when done.
+          </div>
+        )}
+
+        {/* ── Create / Edit form ── */}
         {showForm && (
           <div className="bg-white rounded-lg shadow-md p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">
@@ -205,7 +301,7 @@ export default function AdminCategoriesPage() {
           </div>
         )}
 
-        {/* Category List */}
+        {/* ── Category list ── */}
         {loading ? (
           <div className="flex justify-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
@@ -214,7 +310,59 @@ export default function AdminCategoriesPage() {
           <div className="bg-white rounded-lg shadow-md p-12 text-center text-gray-500">
             No categories yet. Click "Add Category" to create one.
           </div>
+        ) : reorderMode ? (
+          /* ── Reorder list ── */
+          <div className="bg-white rounded-lg shadow-md divide-y divide-gray-100">
+            {orderedTopLevel.map((cat, index) => (
+              <div
+                key={cat.id}
+                draggable
+                onDragStart={() => onDragStart(index)}
+                onDragEnter={() => onDragEnter(index)}
+                onDragEnd={onDragEnd}
+                onDragOver={(e) => e.preventDefault()}
+                className="flex items-center gap-3 px-4 py-3 hover:bg-blue-50 cursor-grab active:cursor-grabbing select-none transition-colors"
+              >
+                {/* Drag handle */}
+                <GripVertical className="h-5 w-5 text-gray-400 shrink-0" />
+
+                {/* Position badge */}
+                <span className="w-6 text-center text-xs font-bold text-gray-400">{index + 1}</span>
+
+                {/* Name + meta */}
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-gray-900 truncate">{cat.name}</p>
+                  <p className="text-xs text-gray-400">{cat.slug} · {cat.productCount} products · {(cat.children ?? []).length} subcategories</p>
+                </div>
+
+                {!cat.isActive && (
+                  <span className="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded-full shrink-0">Inactive</span>
+                )}
+
+                {/* Up / Down buttons */}
+                <div className="flex items-center gap-1 shrink-0">
+                  <button
+                    onClick={() => moveCategory(index, 'up')}
+                    disabled={index === 0}
+                    className="p-1 rounded hover:bg-gray-100 disabled:opacity-30 transition-colors"
+                    title="Move up"
+                  >
+                    <ArrowUp className="h-4 w-4 text-gray-600" />
+                  </button>
+                  <button
+                    onClick={() => moveCategory(index, 'down')}
+                    disabled={index === orderedTopLevel.length - 1}
+                    className="p-1 rounded hover:bg-gray-100 disabled:opacity-30 transition-colors"
+                    title="Move down"
+                  >
+                    <ArrowDown className="h-4 w-4 text-gray-600" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
         ) : (
+          /* ── Normal view ── */
           <div className="bg-white rounded-lg shadow-md divide-y divide-gray-100">
             {topLevel.map((cat) => {
               const subs = cat.children ?? [];
@@ -234,7 +382,7 @@ export default function AdminCategoriesPage() {
                       </button>
                       <div>
                         <p className="font-medium text-gray-900">{cat.name}</p>
-                        <p className="text-xs text-gray-500">{cat.slug} · {cat.productCount} products · {subs.length} subcategories</p>
+                        <p className="text-xs text-gray-500">{cat.slug} · {cat.productCount} products · {subs.length} subcategories · order #{cat.sortOrder}</p>
                       </div>
                       {!cat.isActive && (
                         <span className="ml-2 text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded-full">Inactive</span>

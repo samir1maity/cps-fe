@@ -67,6 +67,7 @@ export interface Category {
   image?: string;
   parentId?: string;
   isActive: boolean;
+  sortOrder: number;
   children?: Category[];
   productCount: number;
 }

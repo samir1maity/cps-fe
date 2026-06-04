@@ -167,13 +167,13 @@ const CartPage: React.FC = () => {
                   <span className="font-medium text-gray-900">Free</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Tax</span>
-                  <span className="font-medium text-gray-900">{formatCurrency(getTotalPrice() * 0.08)}</span>
+                  <span className="text-gray-600">GST (5%)</span>
+                  <span className="font-medium text-gray-900">{formatCurrency(getTotalPrice() * 0.05)}</span>
                 </div>
                 <div className="border-t border-gray-200 pt-3">
                   <div className="flex justify-between text-lg font-semibold text-gray-900">
                     <span>Total</span>
-                    <span>{formatCurrency(getTotalPrice() * 1.08)}</span>
+                    <span>{formatCurrency(getTotalPrice() * 1.05)}</span>
                   </div>
                 </div>
               </div>

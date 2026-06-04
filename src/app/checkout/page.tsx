@@ -359,7 +359,7 @@ function ReviewStep({ items, subtotal, discount, tax, total, loading, onBack }: 
       <div className="border-t border-gray-100 pt-4 space-y-2">
         <Row label="Subtotal" value={formatCurrency(subtotal)} />
         {discount > 0 && <Row label="Discount" value={`-${formatCurrency(discount)}`} valueClass="text-green-600" />}
-        <Row label="GST (18%)" value={formatCurrency(tax)} />
+        <Row label="GST (5%)" value={formatCurrency(tax)} />
         <Row label="Shipping" value="Free" />
         <div className="flex justify-between text-base font-bold text-gray-900 border-t border-gray-100 pt-2 mt-1">
           <span>Total</span>
@@ -409,7 +409,7 @@ function OrderSummary({ subtotal, discount, tax, total }: { subtotal: number; di
       <div className="space-y-2.5 mb-6">
         <Row label="Subtotal" value={formatCurrency(subtotal)} />
         {discount > 0 && <Row label="Discount" value={`-${formatCurrency(discount)}`} valueClass="text-green-600" />}
-        <Row label="GST (18%)" value={formatCurrency(tax)} />
+        <Row label="GST (5%)" value={formatCurrency(tax)} />
         <Row label="Shipping" value="Free" />
         <div className="flex justify-between text-base font-bold text-gray-900 border-t border-gray-100 pt-2 mt-1">
           <span>Total</span>
@@ -453,7 +453,7 @@ const CheckoutPage: React.FC = () => {
   });
 
   const subtotal = getTotalPrice();
-  const tax = (subtotal - discount) * 0.18;
+  const tax = (subtotal - discount) * 0.05;
   const total = subtotal - discount + tax;
 
   // Load saved addresses on mount

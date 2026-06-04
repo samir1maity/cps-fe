@@ -682,6 +682,15 @@ export const api = {
     }
   },
 
+  async reorderAdminCategories(items: { id: string; sortOrder: number }[]): Promise<ApiResponse<void>> {
+    try {
+      await httpClient.patch(API_CONFIG.ENDPOINTS.ADMIN.CATEGORIES_REORDER, items);
+      return { success: true };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  },
+
   // Admin Products
   async deleteAdminProduct(id: string): Promise<ApiResponse<void>> {
     try {

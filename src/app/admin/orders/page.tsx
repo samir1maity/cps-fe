@@ -125,7 +125,7 @@ const EVENT_LABELS: Record<string, string> = {
 const META_KEY_LABELS: Record<string, string> = {
   total:           'Amount',
   amount:          'Amount',
-  amountInPaise:   'Amount (paise)',
+  amountInPaise:   'Amount',
   itemCount:       'Items',
   status:          'New status',
   source:          'Source',
@@ -138,6 +138,18 @@ const META_KEY_LABELS: Record<string, string> = {
   providerAmount:  'Provider amount',
   expectedAmount:  'Expected amount',
 };
+
+// Keys whose raw value is in paise (Razorpay) — divide by 100 before display
+const PAISE_KEYS = new Set(['amountInPaise', 'providerAmount', 'expectedAmount']);
+// Keys whose raw value is already in rupees — format directly
+const RUPEE_KEYS = new Set(['total', 'amount']);
+
+function formatMetaValue(key: string, value: unknown): string {
+  const num = Number(value);
+  if (!isNaN(num) && PAISE_KEYS.has(key)) return formatCurrency(num / 100);
+  if (!isNaN(num) && RUPEE_KEYS.has(key)) return formatCurrency(num);
+  return String(value);
+}
 
 function InfoCell({ label, value, mono = false }: { label: string; value: string; mono?: boolean }) {
   return (
@@ -217,7 +229,7 @@ function LogCard({ log }: { log: PaymentAuditLog }) {
                 {metaEntries.map(([key, value]) => (
                   <div key={key}>
                     <span className="text-slate-400">{META_KEY_LABELS[key] ?? key}:</span>{' '}
-                    <span className="font-medium text-slate-700">{String(value)}</span>
+                    <span className="font-medium text-slate-700">{formatMetaValue(key, value)}</span>
                   </div>
                 ))}
               </div>
