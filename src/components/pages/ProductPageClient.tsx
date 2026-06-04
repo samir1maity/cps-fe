@@ -42,13 +42,14 @@ function ColorSwatch({
     <button
       type="button"
       onClick={onClick}
+      disabled={outOfStock}
       title={outOfStock ? `${color.name} — Out of stock` : color.name}
-      className={`relative h-12 w-12 rounded-xl overflow-hidden border-2 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
+      className={`group relative w-full aspect-square rounded-2xl overflow-hidden transition-all duration-200 focus:outline-none ${
         outOfStock
-          ? 'opacity-40 cursor-default border-gray-200'
+          ? 'opacity-40 cursor-not-allowed'
           : isSelected
-          ? 'border-blue-600 ring-2 ring-blue-200'
-          : 'border-gray-200 hover:border-gray-400'
+          ? 'ring-2 ring-offset-2 ring-gray-900 scale-105 shadow-lg'
+          : 'hover:scale-105 hover:shadow-md'
       }`}
     >
       {url ? (
@@ -56,7 +57,23 @@ function ColorSwatch({
       ) : (
         <div className="h-full w-full bg-gray-100" />
       )}
-      {/* Diagonal strike for out-of-stock swatches */}
+
+      {/* Gradient + name */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+      <p className="absolute bottom-1.5 inset-x-0 text-[11px] font-medium text-white text-center px-1 truncate leading-tight drop-shadow">
+        {color.name}
+      </p>
+
+      {/* Selected checkmark */}
+      {isSelected && (
+        <div className="absolute top-1.5 right-1.5 h-5 w-5 rounded-full bg-white flex items-center justify-center shadow">
+          <svg className="h-3 w-3 text-gray-900" viewBox="0 0 12 12" fill="none">
+            <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </div>
+      )}
+
+      {/* Diagonal strike for out-of-stock */}
       {outOfStock && (
         <svg className="absolute inset-0 w-full h-full" viewBox="0 0 48 48">
           <line x1="0" y1="48" x2="48" y2="0" stroke="#ef4444" strokeWidth="2" />
@@ -92,7 +109,7 @@ function ThumbItem({
       <img
         src={url || '/images/placeholder.jpg'}
         alt={`${productName} ${index + 1}`}
-        className="w-full h-20 object-cover block"
+        className="w-full h-24 sm:h-28 object-cover block"
       />
     </button>
   );
@@ -254,7 +271,7 @@ const ProductPageClient: React.FC = () => {
           {/* ── Image column ─────────────────────────────────────────────── */}
           <div className="lg:sticky lg:top-8 space-y-3">
             {/* Main viewer with prev/next arrows when multiple images */}
-            <div className="relative w-full aspect-square rounded-xl overflow-hidden bg-white shadow-md group">
+            <div className="relative w-full rounded-xl overflow-hidden bg-white shadow-md group">
               <img
                 key={activeImageKeys[activeImageIndex]}
                 src={mainImageUrl || '/images/placeholder.jpg'}
@@ -263,7 +280,7 @@ const ProductPageClient: React.FC = () => {
                     ? `${product.name} — ${selectedColor.name}`
                     : product.name
                 }
-                className="w-full h-full object-cover block transition-opacity duration-200"
+                className="w-full h-auto object-contain block transition-opacity duration-200"
               />
 
               {/* Prev / Next arrows — only shown when there are multiple images */}
@@ -343,21 +360,31 @@ const ProductPageClient: React.FC = () => {
               </div>
             </div>
 
-            {/* ── Color picker ─────────────────────────────────────────── */}
+            {/* ── Similar Items ─────────────────────────────────────────── */}
             {colorMode && (
-              <div>
-                <p className="text-sm font-medium text-gray-700 mb-2">
-                  Color:{' '}
-                  <span className="font-semibold text-gray-900">{selectedColor?.name}</span>
+              <div className="rounded-2xl bg-gray-50 border border-gray-100 p-5">
+                {/* Header */}
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <p className="text-base font-semibold text-gray-900 tracking-tight">Similar Items</p>
+                    {selectedColor && (
+                      <p className="text-sm text-gray-500 mt-0.5">{selectedColor.name}</p>
+                    )}
+                  </div>
                   {selectedColor && (
-                    <span className={`ml-2 text-xs font-medium ${
-                      selectedColor.stock > 0 ? 'text-green-600' : 'text-red-500'
+                    <span className={`inline-flex items-center gap-1.5 text-xs font-semibold rounded-full ${
+                      selectedColor.stock > 0
+                        ? 'text-emerald-700'
+                        : 'text-red-600'
                     }`}>
-                      {selectedColor.stock > 0 ? `${selectedColor.stock} left` : '· Out of stock'}
+                      <span className={`h-1.5 w-1.5 rounded-full ${selectedColor.stock > 0 ? 'bg-emerald-500' : 'bg-red-500'}`} />
+                      {selectedColor.stock > 0 ? `${selectedColor.stock} left` : 'Sold out'}
                     </span>
                   )}
-                </p>
-                <div className="flex flex-wrap gap-2">
+                </div>
+
+                {/* Grid */}
+                <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
                   {product.colors.map((color) => (
                     <ColorSwatch
                       key={color._id}
@@ -370,10 +397,15 @@ const ProductPageClient: React.FC = () => {
                     />
                   ))}
                 </div>
-                {activeImageKeys.length > 1 && (
-                  <p className="text-xs text-gray-400 mt-2">
-                    {activeImageKeys.length} photos for this color
-                  </p>
+
+                {/* Footer */}
+                {selectedColor && activeImageKeys.length > 1 && (
+                  <div className="mt-4 pt-3 border-t border-gray-200 flex items-center gap-1.5">
+                    <span className="h-1 w-4 rounded-full bg-gray-400 inline-block" />
+                    <p className="text-xs text-gray-400">
+                      {activeImageKeys.length} photos for <span className="font-medium text-gray-600">{selectedColor.name}</span>
+                    </p>
+                  </div>
                 )}
               </div>
             )}
