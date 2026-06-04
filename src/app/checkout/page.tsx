@@ -35,7 +35,7 @@ interface ShippingForm {
 }
 
 interface PaymentForm {
-  paymentMethod: 'razorpay' | 'cod';
+  paymentMethod: 'razorpay';
   couponCode: string;
 }
 
@@ -268,21 +268,16 @@ function PaymentStep({ form, discount, couponApplied, onApplyCoupon, onBack, onN
       </div>
 
       <div className="space-y-3">
-        {[
-          { value: 'razorpay', label: 'Razorpay', sub: 'UPI, Cards, Wallets, Net Banking', badge: 'R', color: 'bg-blue-600' },
-          { value: 'cod',      label: 'Cash on Delivery', sub: 'Pay when you receive', badge: '₹', color: 'bg-green-600' },
-        ].map(({ value, label, sub, badge, color }) => (
-          <label key={value} className="flex items-center gap-4 p-4 border-2 border-gray-200 rounded-xl cursor-pointer hover:border-blue-300 transition-colors has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50">
-            <input {...register('paymentMethod')} type="radio" value={value} className="accent-blue-600" />
-            <div className={`w-8 h-8 ${color} rounded-lg flex items-center justify-center shrink-0`}>
-              <span className="text-white text-xs font-bold">{badge}</span>
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-gray-900">{label}</p>
-              <p className="text-xs text-gray-500">{sub}</p>
-            </div>
-          </label>
-        ))}
+        <label className="flex items-center gap-4 p-4 border-2 border-blue-500 bg-blue-50 rounded-xl cursor-pointer">
+          <input {...register('paymentMethod')} type="radio" value="razorpay" className="accent-blue-600" defaultChecked />
+          <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center shrink-0">
+            <span className="text-white text-xs font-bold">R</span>
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-gray-900">Razorpay</p>
+            <p className="text-xs text-gray-500">UPI, Cards, Wallets, Net Banking</p>
+          </div>
+        </label>
       </div>
 
       {/* Coupon */}
@@ -330,12 +325,11 @@ interface ReviewStepProps {
   discount: number;
   tax: number;
   total: number;
-  paymentMethod: string;
   loading: boolean;
   onBack: () => void;
 }
 
-function ReviewStep({ items, subtotal, discount, tax, total, paymentMethod, loading, onBack }: ReviewStepProps) {
+function ReviewStep({ items, subtotal, discount, tax, total, loading, onBack }: ReviewStepProps) {
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 space-y-6">
       <div className="flex items-center gap-3">
@@ -374,8 +368,7 @@ function ReviewStep({ items, subtotal, discount, tax, total, paymentMethod, load
       </div>
 
       <div className="bg-gray-50 rounded-lg px-4 py-3 text-sm text-gray-600">
-        <span className="font-medium">Payment:</span>{' '}
-        {paymentMethod === 'cod' ? 'Cash on Delivery' : 'Razorpay (Online)'}
+        <span className="font-medium">Payment:</span>{' '}Razorpay (Online)
       </div>
 
       <div className="flex justify-between pt-2">
@@ -391,7 +384,7 @@ function ReviewStep({ items, subtotal, discount, tax, total, paymentMethod, load
             ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
             : <Lock className="h-4 w-4" />
           }
-          {paymentMethod === 'cod' ? 'Place Order' : 'Proceed to Pay'}
+          Proceed to Pay
         </button>
       </div>
     </div>
@@ -459,7 +452,6 @@ const CheckoutPage: React.FC = () => {
     defaultValues: { paymentMethod: 'razorpay', couponCode: '' },
   });
 
-  const paymentMethod = paymentForm.watch('paymentMethod');
   const subtotal = getTotalPrice();
   const tax = (subtotal - discount) * 0.18;
   const total = subtotal - discount + tax;
@@ -537,7 +529,7 @@ const CheckoutPage: React.FC = () => {
 
       const orderResult = await api.createOrder({
         ...orderPayload,
-        paymentMethod: paymentData.paymentMethod === 'cod' ? 'CASH_ON_DELIVERY' : 'RAZORPAY',
+        paymentMethod: 'RAZORPAY',
         couponCode: couponApplied || undefined,
       });
 
@@ -547,14 +539,6 @@ const CheckoutPage: React.FC = () => {
       }
 
       const orderData = orderResult.data;
-
-      if (paymentData.paymentMethod === 'cod') {
-        clearCart();
-        toast.success('Order placed successfully!');
-        const orderId = orderData.id ?? orderData._id ?? orderData?.data?.id ?? orderData?.data?._id;
-        router.push(orderId ? `/checkout/success?orderId=${orderId}&mode=cod` : '/orders');
-        return;
-      }
 
       const loaded = await loadRazorpay();
       if (!loaded) { toast.error('Failed to load payment gateway.'); return; }
@@ -646,7 +630,6 @@ const CheckoutPage: React.FC = () => {
                   discount={discount}
                   tax={tax}
                   total={total}
-                  paymentMethod={paymentMethod}
                   loading={loading}
                   onBack={() => setStep(2)}
                 />

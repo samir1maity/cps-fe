@@ -19,27 +19,16 @@ import { Order } from '@/lib/types';
 import { formatCurrency } from '@/lib/utils/formatters';
 import ProductThumb from '@/components/ui/ProductThumb';
 
-const statusCopy = (mode: string | null) => {
-  if (mode === 'cod') {
-    return {
-      headline: 'Order placed successfully',
-      subline: 'Your order is confirmed. Pay when it arrives at your doorstep.',
-      accent: 'Cash on Delivery',
-    };
-  }
-
-  return {
-    headline: 'Payment successful',
-    subline: 'Your payment is complete and the order is now confirmed.',
-    accent: 'Paid Online',
-  };
-};
+const statusCopy = () => ({
+  headline: 'Payment successful',
+  subline: 'Your payment is complete and the order is now confirmed.',
+  accent: 'Paid Online',
+});
 
 export default function CheckoutSuccessPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const orderId = searchParams.get('orderId');
-  const mode = searchParams.get('mode');
 
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
@@ -82,7 +71,7 @@ export default function CheckoutSuccessPage() {
     return null;
   }
 
-  const copy = statusCopy(mode);
+  const copy = statusCopy();
   const shippingAddress = order.shippingAddress as any;
 
   return (

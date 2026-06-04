@@ -106,7 +106,6 @@ const LOG_SCOPE_STYLES: Record<PaymentAuditLog['scope'], string> = {
 
 // Human-readable labels for each event code
 const EVENT_LABELS: Record<string, string> = {
-  ORDER_CREATED_COD:               'Order placed (Cash on Delivery)',
   ORDER_STATUS_UPDATED:            'Status updated by admin',
   ORDER_CANCELLED:                 'Order cancelled by customer',
   RAZORPAY_ORDER_CREATED:          'Razorpay checkout initiated',

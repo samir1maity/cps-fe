@@ -214,10 +214,10 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       if (response.success && response.data) {
         setItems(response.data);
       } else {
-        toast.error('Failed to update quantity');
+        toast.error(response.message || response.error || 'Failed to update quantity');
       }
-    } catch {
-      toast.error('An error occurred');
+    } catch (err: any) {
+      toast.error(err?.message || 'An error occurred');
     } finally {
       setLoading(false);
     }

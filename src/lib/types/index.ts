@@ -145,8 +145,7 @@ export type PaymentStatus =
   | 'REFUNDED';
 
 export type PaymentMethod =
-  | 'RAZORPAY'
-  | 'CASH_ON_DELIVERY';
+  | 'RAZORPAY';
 
 export interface WishlistItem {
   id: string;

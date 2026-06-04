@@ -72,7 +72,6 @@ const STATUS_CONFIG: Record<
 
 const PAYMENT_METHOD_LABEL: Record<Order['paymentMethod'], string> = {
   RAZORPAY: 'Paid online',
-  CASH_ON_DELIVERY: 'Cash on delivery',
 };
 
 const PAYMENT_STATUS_LABEL: Record<Order['paymentStatus'], string> = {
