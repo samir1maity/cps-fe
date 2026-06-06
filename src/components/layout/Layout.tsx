@@ -41,7 +41,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       <PendingActionsHandler />
       {isAuthPage ? <AuthHeader /> : <Header />}
       {!isAuthPage && !isAdminPage && <CategoryBar />}
-      <main className="overflow-x-hidden">
+      <main className="overflow-x-hidden pb-24 md:pb-0">
         {children}
       </main>
       {!isAuthPage && <BottomNavigation />}

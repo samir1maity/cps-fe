@@ -2,6 +2,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
@@ -9,9 +10,12 @@ import { Search, ShoppingCart, Heart, User, Menu, X } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCart } from '@/contexts/CartContext';
 import { useWishlist } from '@/contexts/WishlistContext';
+import { useScrollLock } from '@/lib/hooks/useScrollLock';
 
 const Header: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  useScrollLock(isMenuOpen);
   const [searchQuery, setSearchQuery] = useState('');
   const { user, logout } = useAuth();
   const { getTotalItems } = useCart();
@@ -36,6 +40,7 @@ const Header: React.FC = () => {
   };
 
   return (
+    <>
     <header className="bg-white shadow-sm border-b sticky top-0 z-40">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
@@ -139,18 +144,7 @@ const Header: React.FC = () => {
           </div>
 
           {/* Mobile Menu Button */}
-          <div className="md:hidden flex items-center space-x-2">
-            <Link
-              href="/cart"
-              className="relative p-2 text-gray-600 hover:text-[var(--brand-600)] transition-colors"
-            >
-              <ShoppingCart className="h-6 w-6" />
-              {getTotalItems() > 0 && (
-                <span className="absolute -top-1 -right-1 bg-[var(--brand-600)] text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                  {getTotalItems()}
-                </span>
-              )}
-            </Link>
+          <div className="md:hidden flex items-center">
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
               className="p-2 text-gray-600 hover:text-blue-600 transition-colors"
@@ -184,72 +178,86 @@ const Header: React.FC = () => {
           </div>
         )}
 
-        {/* Mobile Menu */}
-        {isMenuOpen && (
-          <div className="md:hidden border-t border-gray-200 py-4">
-            <div className="space-y-4">
-              {user ? (
-                <>
-                  <div className="flex items-center space-x-3">
-                    <User className="h-6 w-6 text-gray-400" />
-                    <div>
-                      <p className="font-medium text-gray-900">{user.name}</p>
-                      <p className="text-sm text-gray-500">{user.email}</p>
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Link
-                      href={user.role === 'ADMIN' ? '/admin' : '/profile'}
-                      className="block py-2 text-gray-600 hover:text-[var(--brand-600)] transition-colors"
-                      onClick={() => setIsMenuOpen(false)}
-                    >
-                      Profile
-                    </Link>
-                    <Link
-                      href="/wishlist"
-                      className="block py-2 text-gray-600 hover:text-[var(--brand-600)] transition-colors"
-                      onClick={() => setIsMenuOpen(false)}
-                    >
-                      Wishlist
-                    </Link>
-                    <Link
-                      href="/orders"
-                      className="block py-2 text-gray-600 hover:text-[var(--brand-600)] transition-colors"
-                      onClick={() => setIsMenuOpen(false)}
-                    >
-                      Orders
-                    </Link>
-                    <button
-                      onClick={handleLogout}
-                      className="block py-2 text-gray-600 hover:text-[var(--brand-600)] transition-colors"
-                    >
-                      Logout
-                    </button>
-                  </div>
-                </>
-              ) : (
-                <div className="space-y-2">
-                  <Link
-                    href="/login"
-                    className="block py-2 text-gray-600 hover:text-blue-600 transition-colors"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    Login
-                  </Link>
-                  <Link
-                    href="/register"
-                    className="block py-2 text-gray-600 hover:text-blue-600 transition-colors"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    Sign Up
-                  </Link>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
       </div>
     </header>
+
+    {/* Mobile Menu — rendered in a portal so it's never clipped by sticky header */}
+    {isMenuOpen && typeof document !== 'undefined' && createPortal(
+      <div className="md:hidden">
+        {/* Full-screen backdrop */}
+        <div
+          className="fixed inset-x-0 bottom-0 top-16 bg-black/40 z-[999]"
+          onClick={() => setIsMenuOpen(false)}
+        />
+        {/* Menu panel */}
+        <div className="fixed left-0 right-0 top-16 z-[1000] bg-white shadow-2xl rounded-b-2xl overflow-hidden">
+          {user ? (
+            <>
+              {/* User info */}
+              <div className="flex items-center gap-3 px-5 py-4 bg-gray-50 border-b border-gray-100">
+                <div className="h-10 w-10 rounded-full bg-[var(--brand-100)] flex items-center justify-center shrink-0">
+                  <User className="h-5 w-5 text-[var(--brand-600)]" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-gray-900 truncate">{user.name}</p>
+                  <p className="text-xs text-gray-500 truncate">{user.email}</p>
+                </div>
+              </div>
+
+              {/* Nav links */}
+              <nav className="px-3 py-2">
+                {(user.role === 'ADMIN'
+                  ? [{ href: '/admin', label: 'Admin Dashboard' }]
+                  : [
+                      { href: '/profile', label: 'Profile' },
+                      { href: '/orders', label: 'My Orders' },
+                      { href: '/wishlist', label: 'Wishlist' },
+                    ]
+                ).map(({ href, label }) => (
+                  <Link
+                    key={href}
+                    href={href}
+                    onClick={() => setIsMenuOpen(false)}
+                    className="flex items-center px-3 py-3.5 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 hover:text-[var(--brand-600)] transition-colors"
+                  >
+                    {label}
+                  </Link>
+                ))}
+              </nav>
+
+              {/* Logout */}
+              <div className="px-3 pb-5 pt-1 border-t border-gray-100 mt-1">
+                <button
+                  onClick={handleLogout}
+                  className="w-full flex items-center justify-center px-3 py-3 rounded-xl text-sm font-semibold text-red-600 hover:bg-red-50 transition-colors"
+                >
+                  Logout
+                </button>
+              </div>
+            </>
+          ) : (
+            <div className="px-3 py-3 space-y-2">
+              <Link
+                href="/login"
+                onClick={() => setIsMenuOpen(false)}
+                className="flex items-center justify-center w-full py-3 rounded-xl text-sm font-semibold text-white bg-[var(--brand-600)] hover:bg-[var(--brand-700)] transition-colors"
+              >
+                Login
+              </Link>
+              <Link
+                href="/register"
+                onClick={() => setIsMenuOpen(false)}
+                className="flex items-center justify-center w-full py-3 rounded-xl text-sm font-semibold text-[var(--brand-600)] border border-[var(--brand-200)] hover:bg-[var(--brand-50)] transition-colors"
+              >
+                Sign Up
+              </Link>
+            </div>
+          )}
+        </div>
+      </div>,
+      document.body
+    )}
+    </>
   );
 };
 

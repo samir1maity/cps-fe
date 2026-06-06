@@ -81,6 +81,12 @@ export interface CartItem {
   userId: string;
 }
 
+export interface OrderMessage {
+  id: string;
+  message: string;
+  timestamp: Date;
+}
+
 export interface Order {
   id: string;
   userId: string;
@@ -99,6 +105,7 @@ export interface Order {
   paymentStatus: PaymentStatus;
   trackingNumber?: string;
   notes?: string;
+  messages?: OrderMessage[];
   createdAt: Date;
   updatedAt: Date;
 }

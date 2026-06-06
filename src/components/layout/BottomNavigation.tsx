@@ -1,4 +1,3 @@
-// src/components/layout/BottomNavigation.tsx
 'use client';
 
 import React from 'react';
@@ -32,6 +31,7 @@ const BottomNavigation: React.FC = () => {
       label: 'Cart',
       active: pathname.startsWith('/cart'),
       badge: getTotalItems(),
+      badgeColor: 'bg-[var(--brand-600)]',
     },
     {
       href: '/wishlist',
@@ -50,41 +50,52 @@ const BottomNavigation: React.FC = () => {
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50 md:hidden">
-      <div className="grid grid-cols-4 h-16">
-        {navItems.map((item) => {
-          const Icon = item.icon;
-          const isActive = item.active;
-          
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`flex flex-col items-center justify-center space-y-1 transition-colors ${
-                isActive
-                  ? 'text-[var(--brand-600)]'
-                  : 'text-gray-500 hover:text-[var(--brand-600)]'
-              }`}
-            >
-              <div className="relative">
-                <Icon className="h-6 w-6" />
-                {item.badge && item.badge > 0 && (
-                  <span className={`absolute -top-2 -right-2 ${(item as any).badgeColor ?? 'bg-[var(--brand-600)]'} text-white text-xs rounded-full h-5 w-5 flex items-center justify-center`}>
-                    {item.badge}
-                  </span>
-                )}
-              </div>
-              <span className="text-xs font-medium">{item.label}</span>
-            </Link>
-          );
-        })}
+    <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden">
+      {/* frosted glass bar */}
+      <div className="mx-3 mb-3 rounded-2xl bg-white/90 backdrop-blur-md shadow-[0_-2px_24px_rgba(0,0,0,0.10)] border border-gray-100">
+        <div className="grid grid-cols-5 h-16 px-1">
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = item.active;
+
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="flex flex-col items-center justify-center gap-1 transition-all"
+              >
+                <div className="relative">
+                  {/* active pill behind icon */}
+                  <div className={`absolute inset-0 -m-2 rounded-xl transition-all duration-200 ${
+                    isActive ? 'bg-[var(--brand-600)]/10 scale-100' : 'scale-75 opacity-0'
+                  }`} />
+                  <Icon
+                    className={`relative h-[22px] w-[22px] transition-all duration-200 ${
+                      isActive
+                        ? 'text-[var(--brand-600)] scale-110'
+                        : 'text-gray-400'
+                    }`}
+                    strokeWidth={isActive ? 2.2 : 1.8}
+                  />
+                  {/* notification badge */}
+                  {!!item.badge && item.badge > 0 && (
+                    <span className={`absolute -top-1.5 -right-1.5 ${item.badgeColor} text-white text-[9px] font-bold rounded-full min-w-[16px] h-4 px-0.5 flex items-center justify-center leading-none`}>
+                      {item.badge > 99 ? '99+' : item.badge}
+                    </span>
+                  )}
+                </div>
+                <span className={`text-[10px] font-semibold tracking-wide transition-colors duration-200 ${
+                  isActive ? 'text-[var(--brand-600)]' : 'text-gray-400'
+                }`}>
+                  {item.label}
+                </span>
+              </Link>
+            );
+          })}
+        </div>
       </div>
     </nav>
   );
 };
 
 export default BottomNavigation;
-
-
-
-

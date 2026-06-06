@@ -71,6 +71,7 @@ export const API_CONFIG = {
       STATS: `${BASE}/admin/stats`,
       ORDERS: `${BASE}/admin/orders`,
       ORDER_STATUS: (id: string) => `${BASE}/admin/orders/${id}/status`,
+      ORDER_STATUS_UPDATES: (id: string) => `${BASE}/admin/orders/${id}/status-updates`,
       PAYMENT_LOGS: `${BASE}/admin/payment-logs`,
       USERS: `${BASE}/admin/users`,
       TOGGLE_BLOCK: (id: string) => `${BASE}/admin/users/${id}/toggle-block`,

@@ -134,23 +134,23 @@ const HomePageClient: React.FC = () => {
         </div>
       </section> */}
 
-      <section className="py-16 bg-gray-50">
+      <section className="py-8 sm:py-16 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center mb-8">
-            <h2 className="text-3xl font-bold text-gray-900">Featured Products</h2>
+          <div className="flex justify-between items-center mb-5 sm:mb-8">
+            <h2 className="text-lg sm:text-3xl font-bold text-gray-900">Featured Products</h2>
             <Link
               href="/search?featured=true"
-              className="text-blue-600 hover:text-blue-700 font-semibold flex items-center"
+              className="text-blue-600 hover:text-blue-700 font-semibold flex items-center text-sm sm:text-base"
             >
               View All
-              <ChevronRight className="ml-1 h-4 w-4" />
+              <ChevronRight className="ml-0.5 h-4 w-4" />
             </Link>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
             {featuredProducts.map((product) => (
               <div
                 key={product.id}
-                className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow overflow-hidden group"
+                className="bg-white rounded-lg shadow-sm sm:shadow-md hover:shadow-lg transition-shadow overflow-hidden group"
               >
                 <Link href={`/products/${product.id}`}>
                   <div className="relative">
@@ -163,30 +163,30 @@ const HomePageClient: React.FC = () => {
                       <div className="absolute inset-0 bg-black/40" />
                     )}
                     {!product.inStock && (
-                      <span className="absolute top-2 left-2 bg-red-600 text-white text-xs font-semibold px-2 py-0.5 rounded">
+                      <span className="absolute top-2 left-2 bg-red-600 text-white text-[10px] sm:text-xs font-semibold px-1.5 py-0.5 rounded">
                         Out of Stock
                       </span>
                     )}
                   </div>
                 </Link>
-                <div className="p-4">
-                  <div className="flex justify-between items-start mb-2">
-                    <h3 className="font-semibold text-gray-900 line-clamp-2">{product.name}</h3>
+                <div className="p-2.5 sm:p-4">
+                  <div className="flex justify-between items-start mb-1.5 sm:mb-2">
+                    <h3 className="text-xs sm:text-sm font-semibold text-gray-900 line-clamp-2 leading-tight">{product.name}</h3>
                     <button
                       onClick={() => handleToggleWishlist(product)}
-                      className={`transition-colors ${isInWishlist(product.id) ? 'text-red-500' : 'text-gray-400 hover:text-red-500'}`}
+                      className={`ml-1 shrink-0 transition-colors ${isInWishlist(product.id) ? 'text-red-500' : 'text-gray-400 hover:text-red-500'}`}
                     >
-                      <Heart className="h-5 w-5" fill={isInWishlist(product.id) ? 'currentColor' : 'none'} />
+                      <Heart className="h-4 w-4 sm:h-5 sm:w-5" fill={isInWishlist(product.id) ? 'currentColor' : 'none'} />
                     </button>
                   </div>
-                  <p className="text-sm text-gray-600 mb-2 line-clamp-2">{product.description}</p>
-                  <div className="flex justify-between items-center">
-                    <div className="flex items-center space-x-2">
-                      <span className="text-lg font-bold text-gray-900">
+                  <p className="hidden sm:block text-sm text-gray-600 mb-2 line-clamp-2">{product.description}</p>
+                  <div className="flex justify-between items-center gap-1">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-2">
+                      <span className="text-sm sm:text-lg font-bold text-gray-900">
                         {formatCurrency(product.price)}
                       </span>
                       {product.originalPrice && (
-                        <span className="text-sm text-gray-500 line-through">
+                        <span className="text-[10px] sm:text-sm text-gray-500 line-through">
                           {formatCurrency(product.originalPrice)}
                         </span>
                       )}
@@ -194,10 +194,11 @@ const HomePageClient: React.FC = () => {
                     <button
                       onClick={() => handleAddToCart(product)}
                       disabled={!product.inStock}
-                      className="bg-[var(--brand-600)] text-white px-3 py-1.5 rounded-md hover:bg-[var(--brand-700)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center text-sm"
+                      className="bg-[var(--brand-600)] text-white px-2 sm:px-3 py-1 sm:py-1.5 rounded-md hover:bg-[var(--brand-700)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center text-[10px] sm:text-sm shrink-0"
                     >
-                      <ShoppingCart className="h-4 w-4 mr-1" />
-                      {product.inStock ? 'Add' : 'Out of Stock'}
+                      <ShoppingCart className="h-3 w-3 sm:h-4 sm:w-4 mr-0.5 sm:mr-1" />
+                      <span className="hidden sm:inline">{product.inStock ? 'Add' : 'Out of Stock'}</span>
+                      <span className="sm:hidden">{product.inStock ? 'Add' : '—'}</span>
                     </button>
                   </div>
                 </div>
@@ -207,22 +208,22 @@ const HomePageClient: React.FC = () => {
         </div>
       </section>
 
-      <section className="bg-[var(--brand-600)] text-white py-16">
+      <section className="bg-[var(--brand-600)] text-white py-10 sm:py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           {user ? (
             <>
-              <h2 className="text-3xl font-bold mb-4">Welcome back, {user.name}!</h2>
-              <p className="text-xl opacity-90 mb-8">Continue exploring our handcrafted collection</p>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <h2 className="text-xl sm:text-3xl font-bold mb-3 sm:mb-4">Welcome back, {user.name}!</h2>
+              <p className="text-sm sm:text-xl opacity-90 mb-6 sm:mb-8">Continue exploring our handcrafted collection</p>
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center">
                 <Link
                   href="/search"
-                  className="bg-white text-[var(--brand-600)] px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors"
+                  className="bg-white text-[var(--brand-600)] px-6 py-2.5 sm:px-8 sm:py-3 rounded-lg text-sm sm:text-base font-semibold hover:bg-gray-100 transition-colors"
                 >
                   Browse Products
                 </Link>
                 <Link
                   href="/profile"
-                  className="border-2 border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-white hover:text-[var(--brand-600)] transition-colors"
+                  className="border-2 border-white text-white px-6 py-2.5 sm:px-8 sm:py-3 rounded-lg text-sm sm:text-base font-semibold hover:bg-white hover:text-[var(--brand-600)] transition-colors"
                 >
                   View Profile
                 </Link>
@@ -230,18 +231,18 @@ const HomePageClient: React.FC = () => {
             </>
           ) : (
             <>
-              <h2 className="text-3xl font-bold mb-4">Ready to start shopping?</h2>
-              <p className="text-xl opacity-90 mb-8">Join thousands of satisfied customers</p>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <h2 className="text-xl sm:text-3xl font-bold mb-3 sm:mb-4">Ready to start shopping?</h2>
+              <p className="text-sm sm:text-xl opacity-90 mb-6 sm:mb-8">Join thousands of satisfied customers</p>
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center">
                 <Link
                   href="/register"
-                  className="bg-white text-[var(--brand-600)] px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors"
+                  className="bg-white text-[var(--brand-600)] px-6 py-2.5 sm:px-8 sm:py-3 rounded-lg text-sm sm:text-base font-semibold hover:bg-gray-100 transition-colors"
                 >
                   Create Account
                 </Link>
                 <Link
                   href="/search"
-                  className="border-2 border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-white hover:text-[var(--brand-600)] transition-colors"
+                  className="border-2 border-white text-white px-6 py-2.5 sm:px-8 sm:py-3 rounded-lg text-sm sm:text-base font-semibold hover:bg-white hover:text-[var(--brand-600)] transition-colors"
                 >
                   Browse Products
                 </Link>

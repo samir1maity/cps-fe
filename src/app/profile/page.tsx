@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
   User, MapPin, Package, Settings, LogOut,
-  Edit2, Plus, Trash2, Clock, Truck, CheckCircle, XCircle,
+  Edit2, Plus, Trash2, Clock, Truck, CheckCircle, XCircle, ChevronRight,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { api } from '@/lib/api';
@@ -303,72 +303,31 @@ const ProfilePage: React.FC = () => {
                     <Link href="/" className="text-sm text-blue-600 hover:underline">Start shopping</Link>
                   </div>
                 ) : (
-                  <div className="divide-y divide-gray-50">
+                  <div className="divide-y divide-gray-100">
                     {orders.map((order) => {
-                      const addr = order.shippingAddress as Address | undefined;
+                      const firstName = order.items[0]?.name ?? order.items[0]?.product?.name ?? 'Order';
+                      const extraCount = order.items.length - 1;
+                      const summary = extraCount > 0 ? `${firstName} +${extraCount} more` : firstName;
                       return (
-                        <div key={order.id} className="p-6 space-y-4">
-                          {/* Order header */}
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <p className="text-sm font-semibold text-gray-800">
-                                #{(order.id as string).slice(-8).toUpperCase()}
-                              </p>
-                              <p className="text-xs text-gray-400 mt-0.5">
-                                {new Date(order.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
-                              </p>
-                            </div>
-                            <div className="flex items-center gap-1.5">
-                              {STATUS_ICON[order.status]}
-                              <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_BADGE[order.status]}`}>
-                                {order.status}
-                              </span>
-                            </div>
+                        <Link
+                          key={order.id}
+                          href={`/orders/${order.id}`}
+                          className="flex items-center justify-between gap-4 px-6 py-4 hover:bg-gray-50 transition-colors"
+                        >
+                          <div className="min-w-0">
+                            <p className="text-sm font-semibold text-gray-800 truncate">{summary}</p>
+                            <p className="text-xs text-gray-400 mt-0.5">
+                              {new Date(order.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                            </p>
                           </div>
-
-                          {/* Items */}
-                          <div className="space-y-2">
-                            {order.items.map((item) => {
-                              const p = item.product as any;
-                              return (
-                                <div key={item.id} className="flex items-center gap-3">
-                                  <ProductThumb
-                                    imageKey={item.image || undefined}
-                                    alt={p.name ?? ''}
-                                    className="h-11 w-11 rounded-lg border border-gray-100 shrink-0"
-                                  />
-                                  <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-medium text-gray-800 truncate">{p.name}</p>
-                                    <p className="text-xs text-gray-400">
-                                      {item.colorName && <span className="mr-1.5 text-gray-500">{item.colorName} ·</span>}
-                                      Qty {item.quantity} × {formatCurrency(item.price)}
-                                    </p>
-                                  </div>
-                                  <p className="text-sm font-semibold text-gray-900 shrink-0">
-                                    {formatCurrency(item.price * item.quantity)}
-                                  </p>
-                                </div>
-                              );
-                            })}
+                          <div className="flex items-center gap-3 shrink-0">
+                            <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_BADGE[order.status]}`}>
+                              {order.status.charAt(0) + order.status.slice(1).toLowerCase()}
+                            </span>
+                            <p className="text-sm font-bold text-gray-900">{formatCurrency(order.total)}</p>
+                            <ChevronRight className="h-4 w-4 text-gray-400" />
                           </div>
-
-                          {/* Footer: address + total */}
-                          <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 pt-3 border-t border-gray-50">
-                            {addr && (
-                              <div className="text-xs text-gray-400 leading-5">
-                                <p className="font-medium text-gray-600 mb-0.5">Ship to</p>
-                                <p>{addr.firstName} {addr.lastName}</p>
-                                <p>{addr.address1}{addr.address2 ? `, ${addr.address2}` : ''}</p>
-                                <p>{addr.city}, {addr.state} – {addr.zipCode}</p>
-                                <p>{addr.phone}</p>
-                              </div>
-                            )}
-                            <div className="text-right shrink-0">
-                              <p className="text-xs text-gray-400">{order.paymentMethod} · {order.paymentStatus}</p>
-                              <p className="text-base font-bold text-gray-900">{formatCurrency(order.total)}</p>
-                            </div>
-                          </div>
-                        </div>
+                        </Link>
                       );
                     })}
                   </div>

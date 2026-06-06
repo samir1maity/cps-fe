@@ -60,6 +60,10 @@ const normalizeOrder = (o: any): any => ({
     },
     price: item.price ?? 0,
   })),
+  messages: (o.messages ?? []).map((m: any) => ({
+    ...m,
+    id: m.id ?? m._id,
+  })),
 });
 
 const normalizePaymentAuditLog = (log: any): PaymentAuditLog => ({
@@ -576,11 +580,23 @@ export const api = {
     }
   },
 
-  async updateOrderStatus(orderId: string, status: string, trackingNumber?: string): Promise<ApiResponse<Order>> {
+  async updateOrderStatus(orderId: string, status: string, trackingNumber?: string, statusMessage?: string): Promise<ApiResponse<Order>> {
     try {
       const response = await httpClient.patch<any>(
         API_CONFIG.ENDPOINTS.ADMIN.ORDER_STATUS(orderId),
-        { status, trackingNumber }
+        { status, trackingNumber, statusMessage }
+      );
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  },
+
+  async addOrderStatusUpdate(orderId: string, message: string): Promise<ApiResponse<Order>> {
+    try {
+      const response = await httpClient.post<any>(
+        API_CONFIG.ENDPOINTS.ADMIN.ORDER_STATUS_UPDATES(orderId),
+        { message }
       );
       return { success: true, data: response.data };
     } catch (error: any) {

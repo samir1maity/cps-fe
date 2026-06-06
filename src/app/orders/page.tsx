@@ -45,7 +45,7 @@ const STATUS_CONFIG: Record<
     icon: <Package className="h-4 w-4 text-indigo-600" />,
   },
   SHIPPED: {
-    label: 'On the way',
+    label: 'Shipped',
     description: 'Your order has been shipped and is on the way.',
     badge: 'bg-purple-100 text-purple-700',
     icon: <Truck className="h-4 w-4 text-purple-600" />,
@@ -211,11 +211,18 @@ export default function OrdersPage() {
                         <p className="text-sm text-gray-600">{itemCount} item{itemCount > 1 ? 's' : ''}</p>
                       </div>
 
-                      <div className="flex flex-wrap items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-3">
                         <span className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-medium ${status.badge}`}>
                           {status.icon}
                           {status.label}
                         </span>
+                        <Link
+                          href={`/orders/${order.id}`}
+                          className="hidden sm:inline-flex items-center gap-1.5 rounded-xl border border-blue-200 bg-blue-50 px-4 py-1.5 text-sm font-semibold text-blue-700 transition-colors hover:bg-blue-100"
+                        >
+                          View Details
+                          <ChevronRight className="h-4 w-4" />
+                        </Link>
                       </div>
                     </div>
                   </div>
@@ -248,7 +255,13 @@ export default function OrdersPage() {
                           <div className="rounded-2xl bg-gray-50 p-4">
                             <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Delivery status</p>
                             <p className="mt-2 text-sm font-semibold text-gray-900">{status.label}</p>
-                            <p className="mt-1 text-sm text-gray-600">{status.description}</p>
+                            {order.messages && order.messages.length > 0 ? (
+                              <p className="mt-1 text-sm text-gray-600">
+                                {order.messages[order.messages.length - 1].message}
+                              </p>
+                            ) : (
+                              <p className="mt-1 text-sm text-gray-600">{status.description}</p>
+                            )}
                           </div>
                           <div className="rounded-2xl bg-gray-50 p-4">
                             <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Delivery to</p>
@@ -295,7 +308,7 @@ export default function OrdersPage() {
 
                         <Link
                           href={`/orders/${order.id}`}
-                          className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-700 transition-colors hover:bg-blue-100"
+                          className="sm:hidden mt-5 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-700 transition-colors hover:bg-blue-100"
                         >
                           View Details
                           <ChevronRight className="h-4 w-4" />

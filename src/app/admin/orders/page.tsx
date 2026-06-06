@@ -17,11 +17,14 @@ import {
   Hash,
   User as UserIcon,
   ShieldCheck,
+  MessageSquarePlus,
+  Send,
 } from 'lucide-react';
 import { api } from '@/lib/api';
 import { Order, OrderItem, OrderStatus, PaymentAuditLog } from '@/lib/types';
 import { formatCurrency } from '@/lib/utils/formatters';
 import { useSignedUrls } from '@/lib/hooks/useSignedUrls';
+import { useScrollLock } from '@/lib/hooks/useScrollLock';
 import toast from 'react-hot-toast';
 
 function OrderItemsList({ items, onProductClick }: { items: OrderItem[]; onProductClick: (productId: string) => void }) {
@@ -241,6 +244,14 @@ function LogCard({ log }: { log: PaymentAuditLog }) {
   );
 }
 
+const DEFAULT_STATUS_MESSAGES: Record<string, string> = {
+  CONFIRMED: 'Your order has been confirmed.',
+  PROCESSING: 'Your order is being packed and prepared for shipment.',
+  SHIPPED: 'Your order has been shipped and is on the way.',
+  DELIVERED: 'Your order has been delivered successfully.',
+  CANCELLED: 'Your order has been cancelled.',
+};
+
 function StatusConfirmModal({
   order,
   newStatus,
@@ -249,9 +260,11 @@ function StatusConfirmModal({
 }: {
   order: Order;
   newStatus: string;
-  onConfirm: () => void;
+  onConfirm: (message: string) => void;
   onCancel: () => void;
 }) {
+  const [message, setMessage] = React.useState(DEFAULT_STATUS_MESSAGES[newStatus] ?? '');
+
   React.useEffect(() => {
     const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onCancel(); };
     window.addEventListener('keydown', handler);
@@ -264,7 +277,7 @@ function StatusConfirmModal({
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
       <button aria-label="Cancel" onClick={onCancel} className="absolute inset-0 bg-slate-950/40 backdrop-blur-[2px]" />
-      <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 space-y-4">
+      <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-md p-6 space-y-4">
         <div className="space-y-1">
           <h3 className="text-base font-semibold text-gray-900">Update order status?</h3>
           <p className="text-sm text-gray-500">
@@ -280,6 +293,19 @@ function StatusConfirmModal({
             {to}
           </span>
         </div>
+        <div className="space-y-1.5">
+          <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+            Customer-visible message
+          </label>
+          <textarea
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            placeholder={`e.g. "Your package has reached Delhi hub and will be dispatched soon."`}
+            rows={3}
+            className="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+          />
+          <p className="text-[11px] text-gray-400">This message will appear in the customer's order timeline. Leave default or write a custom update.</p>
+        </div>
         <div className="flex gap-3 pt-1">
           <button
             onClick={onCancel}
@@ -288,10 +314,81 @@ function StatusConfirmModal({
             Cancel
           </button>
           <button
-            onClick={onConfirm}
+            onClick={() => onConfirm(message)}
             className="flex-1 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-xl hover:bg-blue-700 transition-colors"
           >
             Confirm
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AddUpdateModal({
+  order,
+  onConfirm,
+  onCancel,
+}: {
+  order: Order;
+  onConfirm: (message: string) => void;
+  onCancel: () => void;
+}) {
+  const [message, setMessage] = React.useState('');
+
+  React.useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onCancel(); };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [onCancel]);
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+      <button aria-label="Cancel" onClick={onCancel} className="absolute inset-0 bg-slate-950/40 backdrop-blur-[2px]" />
+      <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-md p-6 space-y-4">
+        <div className="flex items-center gap-3">
+          <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-100 text-indigo-700">
+            <MessageSquarePlus className="h-4 w-4" />
+          </span>
+          <div>
+            <h3 className="text-base font-semibold text-gray-900">Add tracking update</h3>
+            <p className="text-xs text-gray-500">
+              Order <span className="font-mono font-medium text-gray-700">#{order.id.slice(-8).toUpperCase()}</span>
+              {' · '}
+              <span className={`font-semibold ${STATUS_STYLES[order.status]?.split(' ')[1] ?? 'text-gray-700'}`}>
+                {order.status.charAt(0) + order.status.slice(1).toLowerCase()}
+              </span>
+            </p>
+          </div>
+        </div>
+        <div className="space-y-1.5">
+          <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+            Update message
+          </label>
+          <textarea
+            autoFocus
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            placeholder={`e.g. "Package has reached Delhi hub. Expected delivery in 1-2 days."`}
+            rows={4}
+            className="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
+          />
+          <p className="text-[11px] text-gray-400">This will be shown to the customer in their order status timeline.</p>
+        </div>
+        <div className="flex gap-3 pt-1">
+          <button
+            onClick={onCancel}
+            className="flex-1 px-4 py-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={() => message.trim() && onConfirm(message.trim())}
+            disabled={!message.trim()}
+            className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-xl hover:bg-indigo-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            <Send className="h-3.5 w-3.5" />
+            Send Update
           </button>
         </div>
       </div>
@@ -306,6 +403,7 @@ export default function AdminOrdersPage() {
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState<string | null>(null);
   const [pendingStatus, setPendingStatus] = useState<{ order: Order; newStatus: string } | null>(null);
+  const [addUpdateOrder, setAddUpdateOrder] = useState<Order | null>(null);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
@@ -318,6 +416,9 @@ export default function AdminOrdersPage() {
   const [logsRefreshing, setLogsRefreshing] = useState(false);
   const [detailOrder, setDetailOrder] = useState<Order | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
+
+  const anyModalOpen = !!(pendingStatus || addUpdateOrder || detailOrder || selectedOrder);
+  useScrollLock(anyModalOpen);
 
   const loadOrders = useCallback(async () => {
     setLoading(true);
@@ -341,12 +442,12 @@ export default function AdminOrdersPage() {
     setPendingStatus({ order, newStatus });
   };
 
-  const confirmStatusChange = async () => {
+  const confirmStatusChange = async (message: string) => {
     if (!pendingStatus) return;
     const { order, newStatus } = pendingStatus;
     setPendingStatus(null);
     setUpdating(order.id);
-    const res = await api.updateOrderStatus(order.id, newStatus);
+    const res = await api.updateOrderStatus(order.id, newStatus, undefined, message);
     if (res.success && res.data) {
       toast.success('Order status updated');
       const updated = res.data;
@@ -355,6 +456,20 @@ export default function AdminOrdersPage() {
       );
     } else {
       toast.error(res.error ?? 'Failed to update status');
+    }
+    setUpdating(null);
+  };
+
+  const confirmAddUpdate = async (message: string) => {
+    if (!addUpdateOrder) return;
+    const order = addUpdateOrder;
+    setAddUpdateOrder(null);
+    setUpdating(order.id);
+    const res = await api.addOrderStatusUpdate(order.id, message);
+    if (res.success) {
+      toast.success('Update sent to customer');
+    } else {
+      toast.error(res.error ?? 'Failed to send update');
     }
     setUpdating(null);
   };
@@ -521,6 +636,9 @@ export default function AdminOrdersPage() {
                       Update Status
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Add Update
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Details
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -578,6 +696,16 @@ export default function AdminOrdersPage() {
                             </option>
                           ))}
                         </select>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <button
+                          onClick={() => setAddUpdateOrder(order)}
+                          disabled={updating === order.id || order.status === 'CANCELLED' || order.status === 'REFUNDED'}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-indigo-700 border border-indigo-300 rounded-lg hover:bg-indigo-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                          <MessageSquarePlus className="h-3.5 w-3.5" />
+                          Update
+                        </button>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <button
@@ -639,6 +767,15 @@ export default function AdminOrdersPage() {
           newStatus={pendingStatus.newStatus}
           onConfirm={confirmStatusChange}
           onCancel={() => setPendingStatus(null)}
+        />
+      )}
+
+      {/* Add Update Modal */}
+      {addUpdateOrder && (
+        <AddUpdateModal
+          order={addUpdateOrder}
+          onConfirm={confirmAddUpdate}
+          onCancel={() => setAddUpdateOrder(null)}
         />
       )}
 
