@@ -6,7 +6,6 @@ import { Plus, Pencil, Trash2, ArrowLeft, X, Package, Star, Upload, Palette, Ima
 import { api } from '@/lib/api';
 import { Product, Category, ProductColor, ColorVariantGallery } from '@/lib/types';
 import { formatCurrency } from '@/lib/utils/formatters';
-import { useScrollLock } from '@/lib/hooks/useScrollLock';
 import { getProductThumbnailKey } from '@/lib/utils/product';
 import { uploadToS3, uploadManyToS3 } from '@/lib/hooks/useS3Upload';
 import { useSignedUrl, useSignedUrls } from '@/lib/hooks/useSignedUrls';
@@ -332,8 +331,6 @@ export default function AdminProductsPage() {
 
   const [colors, setColors] = useState<ColorEntry[]>([]);
   const [imageMode, setImageMode] = useState<'standard' | 'color'>('standard');
-
-  useScrollLock(showForm);
 
   const topLevelCategories = categories.filter((c) => !c.parentId);
   const subcategories = form.categoryId
