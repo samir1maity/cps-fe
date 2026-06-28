@@ -1,5 +1,6 @@
 'use client';
 
+import React from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { setRedirectUrl, setPendingAction, PendingAction, createLoginRedirect } from '@/lib/auth/redirects';
@@ -15,8 +16,38 @@ export const useRequireAuth = () => {
 
     setRedirectUrl(pathname || '/');
     if (action) setPendingAction(action);
-    toast(customMessage || 'Please login to continue', { icon: '🔒' });
-    router.push(createLoginRedirect(pathname || '/'));
+
+    const loginUrl = createLoginRedirect(pathname || '/');
+    toast(
+      (t) =>
+        React.createElement(
+          'div',
+          { style: { display: 'flex', alignItems: 'center', gap: '10px' } },
+          React.createElement('span', null, '🔒 ' + (customMessage || 'Please login to continue')),
+          React.createElement(
+            'button',
+            {
+              onClick: () => {
+                toast.dismiss(t.id);
+                router.push(loginUrl);
+              },
+              style: {
+                background: 'var(--brand-600, #7c2d12)',
+                color: '#fff',
+                border: 'none',
+                borderRadius: '6px',
+                padding: '4px 12px',
+                cursor: 'pointer',
+                fontSize: '13px',
+                fontWeight: 600,
+                whiteSpace: 'nowrap',
+              },
+            },
+            'Login'
+          )
+        ),
+      { duration: 5000 }
+    );
     return false;
   };
 
