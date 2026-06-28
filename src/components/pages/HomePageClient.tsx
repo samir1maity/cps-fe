@@ -179,7 +179,12 @@ const HomePageClient: React.FC = () => {
                       <Heart className="h-4 w-4 sm:h-5 sm:w-5" fill={isInWishlist(product.id) ? 'currentColor' : 'none'} />
                     </button>
                   </div>
-                  <p className="hidden sm:block text-sm text-gray-600 mb-2 line-clamp-2">{product.description}</p>
+                  <div className="hidden sm:block mb-2">
+                    <p
+                      className="text-xs text-gray-500 leading-relaxed overflow-hidden"
+                      style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}
+                    >{product.description}</p>
+                  </div>
                   <div className="flex justify-between items-center gap-1">
                     <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-2">
                       <span className="text-sm sm:text-lg font-bold text-gray-900">
