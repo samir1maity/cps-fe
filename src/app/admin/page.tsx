@@ -10,6 +10,7 @@ import {
   TrendingUp,
   ClipboardList,
   ScrollText,
+  MessageSquare,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { api } from '@/lib/api';
@@ -127,6 +128,11 @@ const AdminDashboard: React.FC = () => {
               icon={<ScrollText className="h-5 w-5 text-slate-600" />}
               label="Payment Logs"
               onClick={() => router.push('/admin/payment-logs')}
+            />
+            <QuickAction
+              icon={<MessageSquare className="h-5 w-5 text-rose-600" />}
+              label="Queries & Reviews"
+              onClick={() => router.push('/admin/queries')}
             />
           </div>
         </div>

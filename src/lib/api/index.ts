@@ -786,4 +786,37 @@ export const api = {
       return { success: false, error: error.message };
     }
   },
+
+  // Queries / Feedback
+  async submitQuery(payload: { name: string; email: string; type: 'review' | 'query'; subject: string; message: string }): Promise<ApiResponse<any>> {
+    try {
+      const response = await httpClient.post<any>(API_CONFIG.ENDPOINTS.QUERIES.SUBMIT, payload);
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  },
+
+  async getAdminQueries(params?: { page?: number; limit?: number; status?: string; type?: string }): Promise<ApiResponse<any>> {
+    try {
+      const query = new URLSearchParams();
+      if (params?.page) query.set('page', String(params.page));
+      if (params?.limit) query.set('limit', String(params.limit));
+      if (params?.status) query.set('status', params.status);
+      if (params?.type) query.set('type', params.type);
+      const response = await httpClient.get<any>(`${API_CONFIG.ENDPOINTS.ADMIN_QUERIES.LIST}?${query}`);
+      return { success: true, data: response.data, pagination: response.pagination };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  },
+
+  async updateAdminQueryStatus(id: string, status: string, adminNote?: string): Promise<ApiResponse<any>> {
+    try {
+      const response = await httpClient.patch<any>(API_CONFIG.ENDPOINTS.ADMIN_QUERIES.UPDATE_STATUS(id), { status, adminNote });
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  },
 };

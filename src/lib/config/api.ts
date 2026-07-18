@@ -92,6 +92,13 @@ export const API_CONFIG = {
       SIGN: (key: string) => `${BASE}/upload/sign/${key}`,
       SIGN_BATCH: `${BASE}/upload/sign-batch`,
     },
+    QUERIES: {
+      SUBMIT: `${BASE}/queries`,
+    },
+    ADMIN_QUERIES: {
+      LIST: `${BASE}/admin/queries`,
+      UPDATE_STATUS: (id: string) => `${BASE}/admin/queries/${id}/status`,
+    },
     HEALTH: '/health',
   },
 };

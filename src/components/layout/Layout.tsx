@@ -9,6 +9,7 @@ import Header from './Header';
 import BottomNavigation from './BottomNavigation';
 import AuthHeader from './AuthHeader';
 import CategoryBar from './CategoryBar';
+import Footer from './Footer';
 import { PendingActionsHandler } from '@/components/auth/PendingActionsHandler';
 
 interface LayoutProps {
@@ -44,6 +45,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       <main className="overflow-x-hidden pb-24 md:pb-0">
         {children}
       </main>
+      {!isAuthPage && !isAdminPage && <Footer />}
       {!isAuthPage && <BottomNavigation />}
       <Toaster
         position="top-center"

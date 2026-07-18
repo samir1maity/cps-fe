@@ -108,6 +108,14 @@ img, video, canvas, svg {
   display: none;
 }
 
+/* Force inputs, selects, and textareas to always show dark text on white bg */
+input,
+textarea,
+select {
+  color: #1f1b16;
+  background-color: #ffffff;
+}
+
 /* Input placeholder styling - darker for better readability */
 input::placeholder,
 textarea::placeholder {

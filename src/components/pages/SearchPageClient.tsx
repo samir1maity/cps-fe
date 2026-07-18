@@ -237,14 +237,14 @@ const SearchPageContent: React.FC = () => {
                     placeholder="Min"
                     value={priceRange.min}
                     onChange={(e) => setPriceRange((p) => ({ ...p, min: e.target.value }))}
-                    className="px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="px-3 py-1.5 border border-gray-300 rounded-md text-sm text-gray-900 bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                   <input
                     type="number"
                     placeholder="Max"
                     value={priceRange.max}
                     onChange={(e) => setPriceRange((p) => ({ ...p, max: e.target.value }))}
-                    className="px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="px-3 py-1.5 border border-gray-300 rounded-md text-sm text-gray-900 bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
                 <button
@@ -261,12 +261,12 @@ const SearchPageContent: React.FC = () => {
                 <select
                   value={sortBy}
                   onChange={(e) => handleSortChange(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  <option value="relevance">Newest First</option>
-                  <option value="price-low">Price: Low to High</option>
-                  <option value="price-high">Price: High to Low</option>
-                  <option value="rating">Customer Rating</option>
+                  <option className="text-gray-900 bg-white" value="relevance">Newest First</option>
+                  <option className="text-gray-900 bg-white" value="price-low">Price: Low to High</option>
+                  <option className="text-gray-900 bg-white" value="price-high">Price: High to Low</option>
+                  <option className="text-gray-900 bg-white" value="rating">Customer Rating</option>
                 </select>
               </div>
             </div>
