@@ -797,7 +797,7 @@ export const api = {
     }
   },
 
-  async getAdminQueries(params?: { page?: number; limit?: number; status?: string; type?: string }): Promise<ApiResponse<any>> {
+  async getAdminQueries(params?: { page?: number; limit?: number; status?: string; type?: string }): Promise<ApiResponse<any> & { pagination?: { page: number; limit: number; total: number; pages: number } }> {
     try {
       const query = new URLSearchParams();
       if (params?.page) query.set('page', String(params.page));
