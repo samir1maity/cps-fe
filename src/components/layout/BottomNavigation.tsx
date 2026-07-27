@@ -2,52 +2,75 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { Home, Grid3X3, ShoppingCart, Heart, User } from 'lucide-react';
+import { usePathname, useRouter } from 'next/navigation';
+import { Home, Grid3X3, ShoppingCart, Heart, User, Bell } from 'lucide-react';
 import { useCart } from '@/contexts/CartContext';
 import { useWishlist } from '@/contexts/WishlistContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { api } from '@/lib/api';
 
 const BottomNavigation: React.FC = () => {
   const pathname = usePathname();
+  const router = useRouter();
   const { getTotalItems } = useCart();
   const { getCount } = useWishlist();
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'ADMIN';
 
-  const navItems = [
-    {
-      href: '/',
-      icon: Home,
-      label: 'Home',
-      active: pathname === '/',
-    },
-    {
-      href: '/search',
-      icon: Grid3X3,
-      label: 'Search',
-      active: pathname.startsWith('/search'),
-    },
-    {
-      href: '/cart',
-      icon: ShoppingCart,
-      label: 'Cart',
-      active: pathname.startsWith('/cart'),
-      badge: getTotalItems(),
-      badgeColor: 'bg-[var(--brand-600)]',
-    },
-    {
-      href: '/wishlist',
-      icon: Heart,
-      label: 'Wishlist',
-      active: pathname.startsWith('/wishlist'),
-      badge: getCount(),
-      badgeColor: 'bg-red-500',
-    },
-    {
-      href: '/profile',
-      icon: User,
-      label: 'Profile',
-      active: pathname.startsWith('/profile') || pathname.startsWith('/orders'),
-    },
-  ];
+  const [adminUnread, setAdminUnread] = React.useState(0);
+
+  React.useEffect(() => {
+    if (!isAdmin) return;
+    const fetch = async () => {
+      const res = await api.getAdminNotificationUnreadCount();
+      if (res.success && res.data) setAdminUnread(res.data.count);
+    };
+    fetch();
+    const t = setInterval(fetch, 30_000);
+    return () => clearInterval(t);
+  }, [isAdmin]);
+
+  const navItems = isAdmin
+    ? [
+        { href: '/', icon: Home, label: 'Home', active: pathname === '/' },
+        { href: '/admin', icon: Grid3X3, label: 'Dashboard', active: pathname === '/admin' },
+        {
+          href: '/admin/notifications',
+          icon: Bell,
+          label: 'Alerts',
+          active: pathname.startsWith('/admin/notifications'),
+          badge: adminUnread,
+          badgeColor: 'bg-red-500',
+        },
+        { href: '/admin/orders', icon: ShoppingCart, label: 'Orders', active: pathname.startsWith('/admin/orders') },
+        { href: '/profile', icon: User, label: 'Profile', active: pathname.startsWith('/profile') },
+      ]
+    : [
+        { href: '/', icon: Home, label: 'Home', active: pathname === '/' },
+        { href: '/search', icon: Grid3X3, label: 'Search', active: pathname.startsWith('/search') },
+        {
+          href: '/cart',
+          icon: ShoppingCart,
+          label: 'Cart',
+          active: pathname.startsWith('/cart'),
+          badge: getTotalItems(),
+          badgeColor: 'bg-[var(--brand-600)]',
+        },
+        {
+          href: '/wishlist',
+          icon: Heart,
+          label: 'Wishlist',
+          active: pathname.startsWith('/wishlist'),
+          badge: getCount(),
+          badgeColor: 'bg-red-500',
+        },
+        {
+          href: '/profile',
+          icon: User,
+          label: 'Profile',
+          active: pathname.startsWith('/profile') || pathname.startsWith('/orders'),
+        },
+      ];
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden">

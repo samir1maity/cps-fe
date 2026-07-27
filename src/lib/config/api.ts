@@ -99,6 +99,12 @@ export const API_CONFIG = {
       LIST: `${BASE}/admin/queries`,
       UPDATE_STATUS: (id: string) => `${BASE}/admin/queries/${id}/status`,
     },
+    ADMIN_NOTIFICATIONS: {
+      LIST: `${BASE}/admin/notifications`,
+      UNREAD_COUNT: `${BASE}/admin/notifications/unread-count`,
+      MARK_READ: (id: string) => `${BASE}/admin/notifications/${id}/read`,
+      MARK_ALL_READ: `${BASE}/admin/notifications/read-all`,
+    },
     HEALTH: '/health',
   },
 };

@@ -53,7 +53,9 @@ export default function AdminUsersPage() {
             </button>
             <h1 className="text-xl font-bold text-gray-900">Manage Users</h1>
           </div>
-          <form onSubmit={handleSearch} className="flex items-center gap-2 flex-1 max-w-sm ml-auto">
+          <div className="flex items-center gap-2 ml-auto">
+          </div>
+          <form onSubmit={handleSearch} className="flex items-center gap-2 flex-1 max-w-sm ml-2">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
               <input

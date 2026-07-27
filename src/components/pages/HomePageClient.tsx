@@ -20,6 +20,7 @@ const HomePageClient: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const { addToCart } = useCart();
   const { user } = useAuth();
+  const isAdmin = user?.role === 'ADMIN';
   const { requireAuthForCart, requireAuthForWishlist } = useRequireAuth();
   const { toggleWishlist, isInWishlist } = useWishlist();
 
@@ -172,12 +173,14 @@ const HomePageClient: React.FC = () => {
                 <div className="p-2.5 sm:p-4">
                   <div className="flex justify-between items-start mb-1.5 sm:mb-2">
                     <h3 className="text-xs sm:text-sm font-semibold text-gray-900 line-clamp-2 leading-tight">{product.name}</h3>
-                    <button
-                      onClick={() => handleToggleWishlist(product)}
-                      className={`ml-1 shrink-0 transition-colors ${isInWishlist(product.id) ? 'text-red-500' : 'text-gray-400 hover:text-red-500'}`}
-                    >
-                      <Heart className="h-4 w-4 sm:h-5 sm:w-5" fill={isInWishlist(product.id) ? 'currentColor' : 'none'} />
-                    </button>
+                    {!isAdmin && (
+                      <button
+                        onClick={() => handleToggleWishlist(product)}
+                        className={`ml-1 shrink-0 transition-colors ${isInWishlist(product.id) ? 'text-red-500' : 'text-gray-400 hover:text-red-500'}`}
+                      >
+                        <Heart className="h-4 w-4 sm:h-5 sm:w-5" fill={isInWishlist(product.id) ? 'currentColor' : 'none'} />
+                      </button>
+                    )}
                   </div>
                   <div className="hidden sm:block mb-2">
                     <p
@@ -196,15 +199,17 @@ const HomePageClient: React.FC = () => {
                         </span>
                       )}
                     </div>
-                    <button
-                      onClick={() => handleAddToCart(product)}
-                      disabled={!product.inStock}
-                      className="bg-[var(--brand-600)] text-white px-2 sm:px-3 py-1 sm:py-1.5 rounded-md hover:bg-[var(--brand-700)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center text-[10px] sm:text-sm shrink-0"
-                    >
-                      <ShoppingCart className="h-3 w-3 sm:h-4 sm:w-4 mr-0.5 sm:mr-1" />
-                      <span className="hidden sm:inline">{product.inStock ? 'Add' : 'Out of Stock'}</span>
-                      <span className="sm:hidden">{product.inStock ? 'Add' : '—'}</span>
-                    </button>
+                    {!isAdmin && (
+                      <button
+                        onClick={() => handleAddToCart(product)}
+                        disabled={!product.inStock}
+                        className="bg-[var(--brand-600)] text-white px-2 sm:px-3 py-1 sm:py-1.5 rounded-md hover:bg-[var(--brand-700)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center text-[10px] sm:text-sm shrink-0"
+                      >
+                        <ShoppingCart className="h-3 w-3 sm:h-4 sm:w-4 mr-0.5 sm:mr-1" />
+                        <span className="hidden sm:inline">{product.inStock ? 'Add' : 'Out of Stock'}</span>
+                        <span className="sm:hidden">{product.inStock ? 'Add' : '—'}</span>
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>

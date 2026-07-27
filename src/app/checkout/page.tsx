@@ -565,19 +565,25 @@ const CheckoutPage: React.FC = () => {
             });
             if (verifyResult.success) {
               clearCart();
-              toast.success('Payment successful! Order confirmed.');
               const verifiedOrderId = verifyResult.data?.id ?? (verifyResult.data as any)?._id ?? orderData.order?._id;
-              router.push(verifiedOrderId ? `/checkout/success?orderId=${verifiedOrderId}&mode=online` : '/orders');
+              router.push(`/checkout/success?orderId=${verifiedOrderId}`);
             } else {
-              toast.error(verifyResult.error || 'Payment verification failed');
+              router.push(`/checkout/failed?orderId=${orderData.order._id}&reason=${encodeURIComponent(verifyResult.error || 'Payment verification failed')}`);
             }
           } catch {
-            toast.error('Payment verification failed. Contact support.');
+            router.push(`/checkout/failed?orderId=${orderData.order._id}&reason=${encodeURIComponent('Payment verification failed. Contact support.')}`);
           }
         },
-        modal: { ondismiss: () => { toast('Payment cancelled', { icon: '🔒' }); setLoading(false); } },
+        modal: {
+          ondismiss: () => { toast('Payment cancelled', { icon: '🔒' }); setLoading(false); },
+        },
         theme: { color: '#2563eb' },
+      } as any);
+
+      rzp.on('payment.failed', (resp: any) => {
+        router.push(`/checkout/failed?orderId=${orderData.order._id}&reason=${encodeURIComponent(resp?.error?.description || 'Payment failed')}`);
       });
+
       rzp.open();
     } catch {
       toast.error('An error occurred. Please try again.');

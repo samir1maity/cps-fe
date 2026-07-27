@@ -119,6 +119,7 @@ export default function AdminQueriesPage() {
               <span className="bg-gray-100 text-gray-600 text-xs font-semibold px-2 py-0.5 rounded-full">{total}</span>
             )}
           </div>
+          <div className="flex items-center gap-2">
           <button
             onClick={load}
             className="p-2 text-gray-500 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
@@ -126,6 +127,7 @@ export default function AdminQueriesPage() {
           >
             <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
           </button>
+          </div>
         </div>
       </div>
 

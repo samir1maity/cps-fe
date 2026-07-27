@@ -11,6 +11,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useCart } from '@/contexts/CartContext';
 import { useWishlist } from '@/contexts/WishlistContext';
 import { useScrollLock } from '@/lib/hooks/useScrollLock';
+import AdminNotificationBell from '@/components/admin/AdminNotificationBell';
 
 const Header: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -38,6 +39,8 @@ const Header: React.FC = () => {
     setIsMenuOpen(false);
     router.push('/');
   };
+
+  const isAdmin = user?.role === 'ADMIN';
 
   return (
     <>
@@ -82,32 +85,38 @@ const Header: React.FC = () => {
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-1">
-            {/* Wishlist */}
-            <Link
-              href="/wishlist"
-              className="relative p-2.5 rounded-xl text-gray-500 hover:text-red-500 hover:bg-red-50 transition-colors"
-              title="Wishlist"
-            >
-              <Heart className="h-5 w-5" />
-              {getCount() > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-[10px] font-bold rounded-full h-4 w-4 flex items-center justify-center">
-                  {getCount()}
-                </span>
-              )}
-            </Link>
-            {/* Cart */}
-            <Link
-              href="/cart"
-              className="relative p-2.5 rounded-xl text-gray-500 hover:text-[var(--brand-600)] hover:bg-[var(--brand-50)] transition-colors"
-              title="Cart"
-            >
-              <ShoppingCart className="h-5 w-5" />
-              {getTotalItems() > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 bg-[var(--brand-600)] text-white text-[10px] font-bold rounded-full h-4 w-4 flex items-center justify-center">
-                  {getTotalItems()}
-                </span>
-              )}
-            </Link>
+            {isAdmin ? (
+              <AdminNotificationBell />
+            ) : (
+              <>
+                {/* Wishlist */}
+                <Link
+                  href="/wishlist"
+                  className="relative p-2.5 rounded-xl text-gray-500 hover:text-red-500 hover:bg-red-50 transition-colors"
+                  title="Wishlist"
+                >
+                  <Heart className="h-5 w-5" />
+                  {getCount() > 0 && (
+                    <span className="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-[10px] font-bold rounded-full h-4 w-4 flex items-center justify-center">
+                      {getCount()}
+                    </span>
+                  )}
+                </Link>
+                {/* Cart */}
+                <Link
+                  href="/cart"
+                  className="relative p-2.5 rounded-xl text-gray-500 hover:text-[var(--brand-600)] hover:bg-[var(--brand-50)] transition-colors"
+                  title="Cart"
+                >
+                  <ShoppingCart className="h-5 w-5" />
+                  {getTotalItems() > 0 && (
+                    <span className="absolute -top-0.5 -right-0.5 bg-[var(--brand-600)] text-white text-[10px] font-bold rounded-full h-4 w-4 flex items-center justify-center">
+                      {getTotalItems()}
+                    </span>
+                  )}
+                </Link>
+              </>
+            )}
 
             {user ? (
               <>

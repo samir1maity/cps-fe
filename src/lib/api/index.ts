@@ -819,4 +819,45 @@ export const api = {
       return { success: false, error: error.message };
     }
   },
+
+  // Admin notifications
+  async getAdminNotificationsList(params?: { page?: number; limit?: number; unread?: boolean }): Promise<ApiResponse<any> & { unreadCount?: number; pagination?: { total: number; page: number; limit: number; pages: number } }> {
+    try {
+      const q = new URLSearchParams();
+      if (params?.page) q.set('page', String(params.page));
+      if (params?.limit) q.set('limit', String(params.limit));
+      if (params?.unread) q.set('unread', 'true');
+      const response = await httpClient.get<any>(`${API_CONFIG.ENDPOINTS.ADMIN_NOTIFICATIONS.LIST}?${q}`);
+      return { success: true, data: response.data, unreadCount: response.unreadCount, pagination: response.pagination };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  },
+
+  async getAdminNotificationUnreadCount(): Promise<ApiResponse<{ count: number }>> {
+    try {
+      const response = await httpClient.get<any>(API_CONFIG.ENDPOINTS.ADMIN_NOTIFICATIONS.UNREAD_COUNT);
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  },
+
+  async markAdminNotificationRead(id: string): Promise<ApiResponse<{ unreadCount: number }>> {
+    try {
+      const response = await httpClient.patch<any>(API_CONFIG.ENDPOINTS.ADMIN_NOTIFICATIONS.MARK_READ(id), {});
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  },
+
+  async markAllAdminNotificationsRead(): Promise<ApiResponse<{ unreadCount: number }>> {
+    try {
+      const response = await httpClient.patch<any>(API_CONFIG.ENDPOINTS.ADMIN_NOTIFICATIONS.MARK_ALL_READ, {});
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  },
 };
