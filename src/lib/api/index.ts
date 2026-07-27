@@ -264,6 +264,7 @@ export const api = {
     saveAddress?: boolean;
     paymentMethod?: string;
     couponCode?: string;
+    gstNumber?: string;
   }): Promise<ApiResponse<any>> {
     try {
       const response = await httpClient.post<any>(API_CONFIG.ENDPOINTS.ORDERS.CREATE, orderData);

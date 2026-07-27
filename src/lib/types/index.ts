@@ -105,6 +105,7 @@ export interface Order {
   paymentStatus: PaymentStatus;
   trackingNumber?: string;
   notes?: string;
+  gstNumber?: string | null;
   messages?: OrderMessage[];
   createdAt: Date;
   updatedAt: Date;

@@ -4,10 +4,9 @@
 import React from 'react';
 import Link from 'next/link';
 import { 
-  HelpCircle, 
-  MessageCircle, 
-  Shield, 
-  Truck,
+  HelpCircle,
+  MessageCircle,
+  Shield,
   LogOut,
   User
 } from 'lucide-react';
@@ -28,12 +27,6 @@ const MorePage: React.FC = () => {
       title: 'Account',
       items: [
         { icon: User, label: 'Profile', href: '/profile' },
-      ],
-    },
-    {
-      title: 'Shopping',
-      items: [
-        { icon: Truck, label: 'Track Order', href: '/track-order' },
       ],
     },
     {

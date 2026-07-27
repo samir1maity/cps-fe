@@ -31,7 +31,7 @@ const HomePageClient: React.FC = () => {
   const loadData = async () => {
     try {
       setLoading(true);
-      const productsResponse = await api.getProducts({ limit: 8, featured: 'true' });
+      const productsResponse = await api.getProducts({ limit: 16, featured: 'true' });
 
       if (productsResponse.data) {
         setFeaturedProducts(productsResponse.data);
@@ -147,7 +147,7 @@ const HomePageClient: React.FC = () => {
               <ChevronRight className="ml-0.5 h-4 w-4" />
             </Link>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-6">
             {featuredProducts.map((product) => (
               <div
                 key={product.id}
@@ -218,49 +218,6 @@ const HomePageClient: React.FC = () => {
         </div>
       </section>
 
-      <section className="bg-[var(--brand-600)] text-white py-10 sm:py-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          {user ? (
-            <>
-              <h2 className="text-xl sm:text-3xl font-bold mb-3 sm:mb-4">Welcome back, {user.name}!</h2>
-              <p className="text-sm sm:text-xl opacity-90 mb-6 sm:mb-8">Continue exploring our handcrafted collection</p>
-              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center">
-                <Link
-                  href="/search"
-                  className="bg-white text-[var(--brand-600)] px-6 py-2.5 sm:px-8 sm:py-3 rounded-lg text-sm sm:text-base font-semibold hover:bg-gray-100 transition-colors"
-                >
-                  Browse Products
-                </Link>
-                <Link
-                  href="/profile"
-                  className="border-2 border-white text-white px-6 py-2.5 sm:px-8 sm:py-3 rounded-lg text-sm sm:text-base font-semibold hover:bg-white hover:text-[var(--brand-600)] transition-colors"
-                >
-                  View Profile
-                </Link>
-              </div>
-            </>
-          ) : (
-            <>
-              <h2 className="text-xl sm:text-3xl font-bold mb-3 sm:mb-4">Ready to start shopping?</h2>
-              <p className="text-sm sm:text-xl opacity-90 mb-6 sm:mb-8">Join thousands of satisfied customers</p>
-              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center">
-                <Link
-                  href="/register"
-                  className="bg-white text-[var(--brand-600)] px-6 py-2.5 sm:px-8 sm:py-3 rounded-lg text-sm sm:text-base font-semibold hover:bg-gray-100 transition-colors"
-                >
-                  Create Account
-                </Link>
-                <Link
-                  href="/search"
-                  className="border-2 border-white text-white px-6 py-2.5 sm:px-8 sm:py-3 rounded-lg text-sm sm:text-base font-semibold hover:bg-white hover:text-[var(--brand-600)] transition-colors"
-                >
-                  Browse Products
-                </Link>
-              </div>
-            </>
-          )}
-        </div>
-      </section>
     </div>
   );
 };

@@ -37,6 +37,7 @@ interface ShippingForm {
 interface PaymentForm {
   paymentMethod: 'razorpay';
   couponCode: string;
+  gstNumber: string;
 }
 
 // ─── Shared input style ───────────────────────────────────────────────────────
@@ -247,6 +248,8 @@ function ShippingStep({ savedAddresses, selectedAddressId, onSelectAddress, form
 
 // ─── Step 2: Payment ──────────────────────────────────────────────────────────
 
+const GST_REGEX = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
+
 interface PaymentStepProps {
   form: ReturnType<typeof useForm<PaymentForm>>;
   discount: number;
@@ -258,7 +261,7 @@ interface PaymentStepProps {
 }
 
 function PaymentStep({ form, discount, couponApplied, onApplyCoupon, onBack, onNext, formatCurrency }: PaymentStepProps) {
-  const { register, getValues } = form;
+  const { register, getValues, formState: { errors } } = form;
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 space-y-6">
@@ -305,11 +308,39 @@ function PaymentStep({ form, discount, couponApplied, onApplyCoupon, onBack, onN
         )}
       </div>
 
+      {/* GST Number */}
+      <div>
+        <label className="block text-xs font-medium text-gray-600 mb-1.5">
+          GST Number <span className="text-gray-400 font-normal">(optional)</span>
+        </label>
+        <input
+          {...register('gstNumber', {
+            validate: (v) =>
+              !v || GST_REGEX.test(v.trim().toUpperCase()) || 'Invalid GST number (e.g. 27AAPFU0939F1ZV)',
+          })}
+          type="text"
+          placeholder="e.g. 27AAPFU0939F1ZV"
+          className={`${INPUT} uppercase`}
+          maxLength={15}
+        />
+        {errors.gstNumber && (
+          <p className="mt-1 text-xs text-red-500">{errors.gstNumber.message}</p>
+        )}
+        <p className="mt-1 text-xs text-gray-400">Provide your GSTIN to receive a GST invoice for this order.</p>
+      </div>
+
       <div className="flex justify-between pt-2">
         <button type="button" onClick={onBack} className="text-sm text-gray-500 hover:text-gray-800 transition-colors">
           ← Back
         </button>
-        <button type="button" onClick={onNext} className="bg-blue-600 text-white px-8 py-2.5 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
+        <button
+          type="button"
+          onClick={async () => {
+            const valid = await form.trigger('gstNumber');
+            if (valid) onNext();
+          }}
+          className="bg-blue-600 text-white px-8 py-2.5 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+        >
           Review Order
         </button>
       </div>
@@ -326,10 +357,11 @@ interface ReviewStepProps {
   tax: number;
   total: number;
   loading: boolean;
+  gstNumber: string;
   onBack: () => void;
 }
 
-function ReviewStep({ items, subtotal, discount, tax, total, loading, onBack }: ReviewStepProps) {
+function ReviewStep({ items, subtotal, discount, tax, total, loading, gstNumber, onBack }: ReviewStepProps) {
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 space-y-6">
       <div className="flex items-center gap-3">
@@ -367,8 +399,11 @@ function ReviewStep({ items, subtotal, discount, tax, total, loading, onBack }: 
         </div>
       </div>
 
-      <div className="bg-gray-50 rounded-lg px-4 py-3 text-sm text-gray-600">
-        <span className="font-medium">Payment:</span>{' '}Razorpay (Online)
+      <div className="bg-gray-50 rounded-lg px-4 py-3 text-sm text-gray-600 space-y-1">
+        <div><span className="font-medium">Payment:</span>{' '}Razorpay (Online)</div>
+        {gstNumber && (
+          <div><span className="font-medium">GSTIN:</span>{' '}<span className="font-mono">{gstNumber}</span></div>
+        )}
       </div>
 
       <div className="flex justify-between pt-2">
@@ -449,7 +484,7 @@ const CheckoutPage: React.FC = () => {
   });
 
   const paymentForm = useForm<PaymentForm>({
-    defaultValues: { paymentMethod: 'razorpay', couponCode: '' },
+    defaultValues: { paymentMethod: 'razorpay', couponCode: '', gstNumber: '' },
   });
 
   const subtotal = getTotalPrice();
@@ -531,6 +566,7 @@ const CheckoutPage: React.FC = () => {
         ...orderPayload,
         paymentMethod: 'RAZORPAY',
         couponCode: couponApplied || undefined,
+        gstNumber: paymentData.gstNumber?.trim().toUpperCase() || undefined,
       });
 
       if (!orderResult.success || !orderResult.data) {
@@ -637,6 +673,7 @@ const CheckoutPage: React.FC = () => {
                   tax={tax}
                   total={total}
                   loading={loading}
+                  gstNumber={paymentForm.getValues('gstNumber')}
                   onBack={() => setStep(2)}
                 />
               )}
