@@ -863,4 +863,60 @@ export const api = {
       return { success: false, error: error.message };
     }
   },
+
+  // ── Carousel ──────────────────────────────────────────────────────────────
+
+  async getCarouselSlides(): Promise<ApiResponse<any[]>> {
+    try {
+      const response = await httpClient.get<any>(API_CONFIG.ENDPOINTS.CAROUSEL.PUBLIC);
+      return { success: true, data: response.data ?? [] };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  },
+
+  async getAdminCarouselSlides(): Promise<ApiResponse<any[]>> {
+    try {
+      const response = await httpClient.get<any>(API_CONFIG.ENDPOINTS.ADMIN_CAROUSEL.LIST);
+      return { success: true, data: response.data ?? [] };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  },
+
+  async createCarouselSlide(payload: Record<string, unknown>): Promise<ApiResponse<any>> {
+    try {
+      const response = await httpClient.post<any>(API_CONFIG.ENDPOINTS.ADMIN_CAROUSEL.CREATE, payload);
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  },
+
+  async updateCarouselSlide(id: string, payload: Record<string, unknown>): Promise<ApiResponse<any>> {
+    try {
+      const response = await httpClient.put<any>(API_CONFIG.ENDPOINTS.ADMIN_CAROUSEL.UPDATE(id), payload);
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  },
+
+  async deleteCarouselSlide(id: string): Promise<ApiResponse<void>> {
+    try {
+      await httpClient.delete<any>(API_CONFIG.ENDPOINTS.ADMIN_CAROUSEL.DELETE(id));
+      return { success: true };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  },
+
+  async reorderCarouselSlides(order: string[]): Promise<ApiResponse<void>> {
+    try {
+      await httpClient.patch<any>(API_CONFIG.ENDPOINTS.ADMIN_CAROUSEL.REORDER, { order });
+      return { success: true };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  },
 };

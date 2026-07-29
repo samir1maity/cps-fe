@@ -15,8 +15,24 @@ import { formatCurrency } from '@/lib/utils/formatters';
 import ProductThumb from '@/components/ui/ProductThumb';
 import { getDefaultColorId } from '@/lib/utils/product';
 
+const FALLBACK_SLIDES: CarouselSlide[] = [
+  {
+    id: 'fallback-1',
+    bgColor: 'bg-gradient-to-br from-rose-200 via-orange-100 to-amber-100',
+  },
+  {
+    id: 'fallback-2',
+    bgColor: 'bg-gradient-to-br from-amber-200 via-orange-100 to-rose-100',
+  },
+  {
+    id: 'fallback-3',
+    bgColor: 'bg-gradient-to-br from-amber-100 via-yellow-50 to-orange-50',
+  },
+];
+
 const HomePageClient: React.FC = () => {
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
+  const [carouselSlides, setCarouselSlides] = useState<CarouselSlide[]>(FALLBACK_SLIDES);
   const [loading, setLoading] = useState(true);
   const { addToCart } = useCart();
   const { user } = useAuth();
@@ -31,10 +47,23 @@ const HomePageClient: React.FC = () => {
   const loadData = async () => {
     try {
       setLoading(true);
-      const productsResponse = await api.getProducts({ limit: 16, featured: 'true' });
+      const [productsResponse, slidesResponse] = await Promise.all([
+        api.getProducts({ limit: 16, featured: 'true' }),
+        api.getCarouselSlides(),
+      ]);
 
-      if (productsResponse.data) {
-        setFeaturedProducts(productsResponse.data);
+      if (productsResponse.data) setFeaturedProducts(productsResponse.data);
+
+      // Only replace fallback slides if the API returned at least one slide.
+      if (slidesResponse.success && slidesResponse.data && slidesResponse.data.length > 0) {
+        setCarouselSlides(
+          slidesResponse.data.map((s: any) => ({
+            id: s._id ?? s.id,
+            ctaLink: s.ctaLink || undefined,
+            bgColor: s.bgColor || undefined,
+            imageUrl: s.imageUrl ?? null,
+          })),
+        );
       }
     } catch (error) {
       console.error('Failed to load data:', error);
@@ -64,39 +93,6 @@ const HomePageClient: React.FC = () => {
       </div>
     );
   }
-
-  const carouselSlides: CarouselSlide[] = [
-    {
-      id: '1',
-      title: 'Handcrafted Pottery & Artisan Goods',
-      subtitle: 'Discover unique pieces made with care and passion',
-      description:
-        'Small-batch pottery crafted by skilled artisans, each piece tells a story of tradition and craftsmanship.',
-      ctaText: 'Shop Now',
-      ctaLink: '/',
-      bgColor: 'bg-gradient-to-br from-rose-200 via-orange-100 to-amber-100',
-    },
-    {
-      id: '2',
-      title: 'New Collection Available',
-      subtitle: 'Fresh designs and timeless classics',
-      description:
-        'Explore our latest collection featuring contemporary designs alongside traditional favorites.',
-      ctaText: 'Explore Collection',
-      ctaLink: '/',
-      bgColor: 'bg-gradient-to-br from-amber-200 via-orange-100 to-rose-100',
-    },
-    {
-      id: '3',
-      title: 'Artisan Quality, Every Time',
-      subtitle: 'Small-batch pieces with character',
-      description:
-        'Every product is carefully selected to bring beauty and functionality into your home.',
-      ctaText: 'View Products',
-      ctaLink: '/search',
-      bgColor: 'bg-gradient-to-br from-amber-100 via-yellow-50 to-orange-50',
-    },
-  ];
 
   return (
     <div className="min-h-screen">

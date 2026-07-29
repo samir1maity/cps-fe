@@ -8,14 +8,16 @@
  */
 import { api } from '@/lib/api';
 
-export type UploadFolder = 'products' | 'categories' | 'avatars';
+export type UploadFolder = 'products' | 'categories' | 'avatars' | 'carousel';
 
-const MAX_FILE_SIZE = 250 * 1024; // 250 KB — must match backend
+const MAX_FILE_SIZE = 250 * 1024;                         // 250 KB default
+const MAX_FILE_SIZE_CAROUSEL = 5 * 1024 * 1024;           // 5 MB for carousel banners
 
 export async function uploadToS3(file: File, folder: UploadFolder): Promise<string> {
-  // Client-side guard — avoids a round-trip when the file is already too large.
-  if (file.size > MAX_FILE_SIZE) {
-    throw new Error(`File size must not exceed ${MAX_FILE_SIZE / 1024} KB`);
+  const sizeLimit = folder === 'carousel' ? MAX_FILE_SIZE_CAROUSEL : MAX_FILE_SIZE;
+  if (file.size > sizeLimit) {
+    const limitLabel = folder === 'carousel' ? '5 MB' : '250 KB';
+    throw new Error(`File size must not exceed ${limitLabel}`);
   }
 
   // Step 1 — get signed PUT URL + key from our backend.

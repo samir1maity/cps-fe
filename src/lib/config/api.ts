@@ -105,6 +105,16 @@ export const API_CONFIG = {
       MARK_READ: (id: string) => `${BASE}/admin/notifications/${id}/read`,
       MARK_ALL_READ: `${BASE}/admin/notifications/read-all`,
     },
+    CAROUSEL: {
+      PUBLIC: `${BASE}/carousel`,
+    },
+    ADMIN_CAROUSEL: {
+      LIST: `${BASE}/admin/carousel`,
+      CREATE: `${BASE}/admin/carousel`,
+      UPDATE: (id: string) => `${BASE}/admin/carousel/${id}`,
+      DELETE: (id: string) => `${BASE}/admin/carousel/${id}`,
+      REORDER: `${BASE}/admin/carousel/reorder`,
+    },
     HEALTH: '/health',
   },
 };
