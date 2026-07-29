@@ -469,6 +469,8 @@ export const api = {
         name: userData.name,
         email: userData.email,
         password: userData.password,
+        phone: (userData as any).phone,
+        gstNumber: (userData as any).gstNumber || undefined,
       });
 
       if (response.success && response.data) {
@@ -789,7 +791,7 @@ export const api = {
   },
 
   // Queries / Feedback
-  async submitQuery(payload: { name: string; email: string; type: 'review' | 'query'; subject: string; message: string }): Promise<ApiResponse<any>> {
+  async submitQuery(payload: { name: string; email: string; phone: string; type: 'review' | 'query'; subject: string; message: string }): Promise<ApiResponse<any>> {
     try {
       const response = await httpClient.post<any>(API_CONFIG.ENDPOINTS.QUERIES.SUBMIT, payload);
       return { success: true, data: response.data };

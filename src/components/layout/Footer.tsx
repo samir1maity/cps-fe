@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { Send, MessageSquare, Star, CheckCircle2 } from 'lucide-react';
+import { Send, MessageSquare, Star, CheckCircle2, Phone } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { api } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
@@ -10,12 +10,13 @@ import { useAuth } from '@/contexts/AuthContext';
 type FormState = {
   name: string;
   email: string;
+  phone: string;
   type: 'review' | 'query';
   subject: string;
   message: string;
 };
 
-const INITIAL: FormState = { name: '', email: '', type: 'query', subject: '', message: '' };
+const INITIAL: FormState = { name: '', email: '', phone: '', type: 'query', subject: '', message: '' };
 
 const FIELD =
   'w-full bg-stone-800/60 border border-stone-700 rounded-xl px-4 py-3 text-sm text-stone-100 placeholder-stone-500 focus:outline-none focus:border-[var(--brand-500)] focus:bg-stone-800 focus:ring-1 focus:ring-[var(--brand-500)]/30 transition-all duration-200';
@@ -33,7 +34,7 @@ const Footer: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.name.trim() || !form.email.trim() || !form.subject.trim() || !form.message.trim()) {
+    if (!form.name.trim() || !form.email.trim() || !form.phone.trim() || !form.subject.trim() || !form.message.trim()) {
       toast.error('Please fill in all fields');
       return;
     }
@@ -142,6 +143,25 @@ const Footer: React.FC = () => {
                           required
                           className={FIELD}
                         />
+                      </div>
+                    </div>
+
+                    {/* Phone */}
+                    <div className="space-y-1.5">
+                      <label className="block text-xs font-medium text-stone-400 tracking-wide uppercase">
+                        Phone Number <span className="text-[var(--brand-400)] normal-case font-normal">*</span>
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="tel"
+                          value={form.phone}
+                          onChange={set('phone')}
+                          placeholder="9876543210"
+                          required
+                          maxLength={10}
+                          className={`${FIELD} pl-10`}
+                        />
+                        <Phone className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-stone-500" />
                       </div>
                     </div>
 
