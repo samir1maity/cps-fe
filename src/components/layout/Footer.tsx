@@ -12,11 +12,10 @@ type FormState = {
   email: string;
   phone: string;
   type: 'review' | 'query';
-  subject: string;
   message: string;
 };
 
-const INITIAL: FormState = { name: '', email: '', phone: '', type: 'query', subject: '', message: '' };
+const INITIAL: FormState = { name: '', email: '', phone: '', type: 'query', message: '' };
 
 const FIELD =
   'w-full bg-stone-800/60 border border-stone-700 rounded-xl px-4 py-3 text-sm text-stone-100 placeholder-stone-500 focus:outline-none focus:border-[var(--brand-500)] focus:bg-stone-800 focus:ring-1 focus:ring-[var(--brand-500)]/30 transition-all duration-200';
@@ -34,7 +33,7 @@ const Footer: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.name.trim() || !form.email.trim() || !form.phone.trim() || !form.subject.trim() || !form.message.trim()) {
+    if (!form.name.trim() || !form.email.trim() || !form.phone.trim() || !form.message.trim()) {
       toast.error('Please fill in all fields');
       return;
     }
@@ -163,25 +162,6 @@ const Footer: React.FC = () => {
                         />
                         <Phone className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-stone-500" />
                       </div>
-                    </div>
-
-                    {/* Subject */}
-                    <div className="space-y-1.5">
-                      <label className="block text-xs font-medium text-stone-400 tracking-wide uppercase">
-                        Subject
-                      </label>
-                      <input
-                        type="text"
-                        value={form.subject}
-                        onChange={set('subject')}
-                        placeholder={
-                          form.type === 'review'
-                            ? 'e.g. Loved the ceramic duck showpiece!'
-                            : 'e.g. Where is my order?'
-                        }
-                        required
-                        className={FIELD}
-                      />
                     </div>
 
                     {/* Message */}

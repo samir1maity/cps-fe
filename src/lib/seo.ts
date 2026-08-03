@@ -1,9 +1,9 @@
 import type { Metadata } from 'next';
 
 const SITE_NAME = 'Creative Pottery Studio';
-const DEFAULT_TITLE = 'Handcrafted Pottery, Ceramic Decor, and Artisan Gifts';
+const DEFAULT_TITLE = 'Online Shopping for Handcrafted Pottery, Ceramic Decor & Artisan Gifts';
 const DEFAULT_DESCRIPTION =
-  'Shop handcrafted pottery, ceramic home decor, tableware, and artisan gifts at Creative Pottery Studio. Explore unique handmade pieces for everyday living and thoughtful gifting.';
+  'Shop handcrafted pottery online at Creative Pottery Studio. Buy ceramic home decor, tableware, and artisan gifts. Explore unique handmade pieces for everyday living and thoughtful gifting.';
 
 const sanitizeUrl = (value?: string | null) => {
   if (!value) return null;
