@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { ShoppingCart, Heart, Filter, Grid, List } from 'lucide-react';
+import { ShoppingCart, Heart, Filter, Grid, List, ChevronLeft, ChevronRight } from 'lucide-react';
 import ProductThumb from '@/components/ui/ProductThumb';
 import toast from 'react-hot-toast';
 import { useCart } from '@/contexts/CartContext';
@@ -22,6 +22,8 @@ const SORT_MAP: Record<string, string> = {
   newest: '-createdAt',
 };
 
+const PAGE_SIZE = 12;
+
 const CategoryPageClient: React.FC = () => {
   const params = useParams();
   const slug = params.slug as string;
@@ -32,6 +34,8 @@ const CategoryPageClient: React.FC = () => {
   const [category, setCategory] = useState<Category | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [page, setPage] = useState(1);
   const [pageLoading, setPageLoading] = useState(true);
   const [listLoading, setListLoading] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -40,7 +44,7 @@ const CategoryPageClient: React.FC = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [selectedSubcategory, setSelectedSubcategory] = useState<string>('all');
 
-  const fetchProducts = useCallback(async (sub: string, sort: string, min: string, max: string) => {
+  const fetchProducts = useCallback(async (sub: string, sort: string, min: string, max: string, p: number) => {
     setListLoading(true);
     try {
       const response = await api.getProducts({
@@ -49,10 +53,12 @@ const CategoryPageClient: React.FC = () => {
         minPrice: min ? Number(min) : undefined,
         maxPrice: max ? Number(max) : undefined,
         sort: SORT_MAP[sort] ?? '-createdAt',
-        limit: 50,
+        limit: PAGE_SIZE,
+        page: p,
       });
       setProducts(response.data ?? []);
       setTotal(response.pagination?.total ?? response.data?.length ?? 0);
+      setTotalPages(response.pagination?.totalPages ?? 1);
     } catch (error) {
       console.error('Failed to load products:', error);
     } finally {
@@ -65,6 +71,7 @@ const CategoryPageClient: React.FC = () => {
     setSelectedSubcategory('all');
     setSortBy('relevance');
     setPriceRange({ min: '', max: '' });
+    setPage(1);
     setPageLoading(true);
     api.getCategory(slug)
       .then((res) => {
@@ -73,11 +80,21 @@ const CategoryPageClient: React.FC = () => {
       .finally(() => setPageLoading(false));
   }, [slug]);
 
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setPage(1);
+  }, [selectedSubcategory, sortBy, priceRange.min, priceRange.max]);
+
   useEffect(() => {
     if (!pageLoading && slug) {
-      fetchProducts(selectedSubcategory, sortBy, priceRange.min, priceRange.max);
+      fetchProducts(selectedSubcategory, sortBy, priceRange.min, priceRange.max, page);
     }
-  }, [selectedSubcategory, sortBy, priceRange.min, priceRange.max, pageLoading, fetchProducts, slug]);
+  }, [selectedSubcategory, sortBy, priceRange.min, priceRange.max, page, pageLoading, fetchProducts, slug]);
+
+  const goToPage = (p: number) => {
+    setPage(p);
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  };
 
   const handleAddToCart = async (product: Product) => {
     if (!requireAuthForCart(product.id, 1)) return;
@@ -94,6 +111,7 @@ const CategoryPageClient: React.FC = () => {
     setPriceRange({ min: '', max: '' });
     setSortBy('relevance');
     setSelectedSubcategory('all');
+    setPage(1);
   };
 
   if (!pageLoading && !category) {
@@ -249,65 +267,118 @@ const CategoryPageClient: React.FC = () => {
                 </button>
               </div>
             ) : (
-              <div className={viewMode === 'grid' ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6' : 'space-y-4'}>
-                {products.map((product) => (
-                  <div
-                    key={product.id}
-                    className={`bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow overflow-hidden group ${
-                      viewMode === 'list' ? 'flex' : ''
-                    }`}
-                  >
-                    <Link href={`/products/${product.id}`}>
-                      <div className="relative">
-                        <ProductThumb
-                          product={product}
-                          alt={product.name}
-                          className={`${viewMode === 'list' ? 'w-48' : 'w-full'} group-hover:[&_img]:scale-105 [&_img]:transition-transform [&_img]:duration-300`}
-                        />
-                        {!product.inStock && (
-                          <span className="absolute top-2 left-2 bg-red-600 text-white text-xs font-semibold px-2 py-0.5 rounded">
-                            Out of Stock
-                          </span>
-                        )}
-                      </div>
-                    </Link>
-                    <div className={`p-4 ${viewMode === 'list' ? 'flex-1' : ''}`}>
-                      <div className="flex justify-between items-start mb-2">
-                        <h3 className={`font-semibold text-gray-900 ${viewMode === 'grid' ? 'line-clamp-2' : 'line-clamp-1'}`}>
-                          {product.name}
-                        </h3>
-                        <button
-                          onClick={() => handleToggleWishlist(product)}
-                          className={`transition-colors ${isInWishlist(product.id) ? 'text-red-500' : 'text-gray-400 hover:text-red-500'}`}
-                        >
-                          <Heart className="h-5 w-5" fill={isInWishlist(product.id) ? 'currentColor' : 'none'} />
-                        </button>
-                      </div>
-                      <p className={`text-gray-600 mb-2 ${viewMode === 'grid' ? 'line-clamp-2' : 'line-clamp-1'}`}>
-                        {product.description}
-                      </p>
-                      <div className={`flex justify-between items-center ${viewMode === 'list' ? 'mt-4' : ''}`}>
-                        <div className="flex items-center space-x-2">
-                          <span className="text-lg font-bold text-gray-900">{formatCurrency(product.price)}</span>
-                          {product.originalPrice && (
-                            <span className="text-sm text-gray-500 line-through">
-                              {formatCurrency(product.originalPrice)}
+              <>
+                <div className={viewMode === 'grid' ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6' : 'space-y-4'}>
+                  {products.map((product) => (
+                    <div
+                      key={product.id}
+                      className={`bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow overflow-hidden group ${
+                        viewMode === 'list' ? 'flex' : ''
+                      }`}
+                    >
+                      <Link href={`/products/${product.id}`}>
+                        <div className="relative">
+                          <ProductThumb
+                            product={product}
+                            alt={product.name}
+                            className={`${viewMode === 'list' ? 'w-48' : 'w-full'} group-hover:[&_img]:scale-105 [&_img]:transition-transform [&_img]:duration-300`}
+                          />
+                          {!product.inStock && (
+                            <span className="absolute top-2 left-2 bg-red-600 text-white text-xs font-semibold px-2 py-0.5 rounded">
+                              Out of Stock
                             </span>
                           )}
                         </div>
-                        <button
-                          onClick={() => handleAddToCart(product)}
-                          disabled={!product.inStock}
-                          className="bg-blue-600 text-white px-3 py-1.5 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center text-sm"
-                        >
-                          <ShoppingCart className="h-4 w-4 mr-1" />
-                          {product.inStock ? 'Add' : 'Out of Stock'}
-                        </button>
+                      </Link>
+                      <div className={`p-4 ${viewMode === 'list' ? 'flex-1' : ''}`}>
+                        <div className="flex justify-between items-start mb-2">
+                          <h3 className={`font-semibold text-gray-900 ${viewMode === 'grid' ? 'line-clamp-2' : 'line-clamp-1'}`}>
+                            {product.name}
+                          </h3>
+                          <button
+                            onClick={() => handleToggleWishlist(product)}
+                            className={`transition-colors ${isInWishlist(product.id) ? 'text-red-500' : 'text-gray-400 hover:text-red-500'}`}
+                          >
+                            <Heart className="h-5 w-5" fill={isInWishlist(product.id) ? 'currentColor' : 'none'} />
+                          </button>
+                        </div>
+                        <p className={`text-gray-600 mb-2 ${viewMode === 'grid' ? 'line-clamp-2' : 'line-clamp-1'}`}>
+                          {product.description}
+                        </p>
+                        <div className={`flex justify-between items-center ${viewMode === 'list' ? 'mt-4' : ''}`}>
+                          <div className="flex items-center space-x-2">
+                            <span className="text-lg font-bold text-gray-900">{formatCurrency(product.price)}</span>
+                            {product.originalPrice && (
+                              <span className="text-sm text-gray-500 line-through">
+                                {formatCurrency(product.originalPrice)}
+                              </span>
+                            )}
+                          </div>
+                          <button
+                            onClick={() => handleAddToCart(product)}
+                            disabled={!product.inStock}
+                            className="bg-[var(--brand-600)] text-white px-3 py-1.5 rounded-md hover:bg-[var(--brand-700)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center text-sm"
+                          >
+                            <ShoppingCart className="h-4 w-4 mr-1" />
+                            {product.inStock ? 'Add' : 'Out of Stock'}
+                          </button>
+                        </div>
                       </div>
                     </div>
+                  ))}
+                </div>
+
+                {/* Pagination */}
+                {totalPages >= 1 && (
+                  <div className="flex flex-col items-center gap-2 mt-10">
+                    <div className="flex items-center gap-2">
+                      <button
+                        disabled={page <= 1}
+                        onClick={() => goToPage(page - 1)}
+                        className="flex items-center gap-1 px-3 py-1.5 text-sm border border-[var(--brand-600)] text-[var(--brand-600)] rounded-lg disabled:opacity-30 hover:bg-[var(--brand-600)] hover:text-white transition-colors"
+                      >
+                        <ChevronLeft className="h-4 w-4" /> Previous
+                      </button>
+
+                      <div className="flex items-center gap-1">
+                        {Array.from({ length: totalPages }, (_, i) => i + 1)
+                          .filter((p) => p === 1 || p === totalPages || Math.abs(p - page) <= 1)
+                          .reduce<(number | '...')[]>((acc, p, idx, arr) => {
+                            if (idx > 0 && p - (arr[idx - 1] as number) > 1) acc.push('...');
+                            acc.push(p);
+                            return acc;
+                          }, [])
+                          .map((p, i) =>
+                            p === '...' ? (
+                              <span key={`ellipsis-${i}`} className="px-2 text-gray-400 text-sm">…</span>
+                            ) : (
+                              <button
+                                key={p}
+                                onClick={() => goToPage(p as number)}
+                                className={`w-9 h-9 rounded-lg text-sm font-medium transition-colors ${
+                                  page === p
+                                    ? 'bg-[var(--brand-600)] text-white'
+                                    : 'border border-stone-200 text-stone-600 hover:bg-stone-100'
+                                }`}
+                              >
+                                {p}
+                              </button>
+                            )
+                          )}
+                      </div>
+
+                      <button
+                        disabled={page >= totalPages}
+                        onClick={() => goToPage(page + 1)}
+                        className="flex items-center gap-1 px-3 py-1.5 text-sm border border-[var(--brand-600)] text-[var(--brand-600)] rounded-lg disabled:opacity-30 hover:bg-[var(--brand-600)] hover:text-white transition-colors"
+                      >
+                        Next <ChevronRight className="h-4 w-4" />
+                      </button>
+                    </div>
+                    <p className="text-xs text-stone-400">Page {page} of {totalPages} · {total} products</p>
                   </div>
-                ))}
-              </div>
+                )}
+              </>
             )}
           </div>
         </div>

@@ -69,9 +69,18 @@ const Header: React.FC = () => {
                     placeholder="Search products..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-11 pr-4 py-2.5 bg-gray-50 rounded-l-full shadow-[0_1px_2px_0_rgba(0,0,0,0.05)] focus:bg-white focus:shadow-[0_1px_3px_0_rgba(0,0,0,0.08)] focus:outline-none focus:ring-2 focus:ring-[var(--brand-600)]/30 transition-all duration-200 text-gray-900 placeholder:text-gray-400"
+                    className="w-full pl-11 pr-8 py-2.5 bg-gray-50 rounded-l-full shadow-[0_1px_2px_0_rgba(0,0,0,0.05)] focus:bg-white focus:shadow-[0_1px_3px_0_rgba(0,0,0,0.08)] focus:outline-none focus:ring-2 focus:ring-[var(--brand-600)]/30 transition-all duration-200 text-gray-900 placeholder:text-gray-400"
                   />
                   <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+                  {searchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setSearchQuery('')}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  )}
                 </div>
                 <button
                   type="submit"
@@ -173,9 +182,18 @@ const Header: React.FC = () => {
                   placeholder="Search products..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-11 pr-4 py-2.5 bg-gray-50 rounded-l-full shadow-[0_1px_2px_0_rgba(0,0,0,0.05)] focus:bg-white focus:shadow-[0_1px_3px_0_rgba(0,0,0,0.08)] focus:outline-none focus:ring-2 focus:ring-[var(--brand-600)]/30 transition-all duration-200 text-gray-900 placeholder:text-gray-400"
+                  className="w-full pl-11 pr-8 py-2.5 bg-gray-50 rounded-l-full shadow-[0_1px_2px_0_rgba(0,0,0,0.05)] focus:bg-white focus:shadow-[0_1px_3px_0_rgba(0,0,0,0.08)] focus:outline-none focus:ring-2 focus:ring-[var(--brand-600)]/30 transition-all duration-200 text-gray-900 placeholder:text-gray-400"
                 />
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
               </div>
               <button
                 type="submit"
