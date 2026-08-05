@@ -800,6 +800,24 @@ export const api = {
     }
   },
 
+  async getPublicReviews(limit = 9): Promise<ApiResponse<any>> {
+    try {
+      const response = await httpClient.get<any>(`${API_CONFIG.ENDPOINTS.QUERIES.PUBLIC_REVIEWS}?limit=${limit}`);
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  },
+
+  async getAllPublicReviews(page = 1, limit = 12): Promise<ApiResponse<any> & { pagination?: { total: number; page: number; limit: number; pages: number } }> {
+    try {
+      const response = await httpClient.get<any>(`${API_CONFIG.ENDPOINTS.QUERIES.ALL_PUBLIC_REVIEWS}?page=${page}&limit=${limit}`);
+      return { success: true, data: response.data, pagination: response.pagination };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  },
+
   async getAdminQueries(params?: { page?: number; limit?: number; status?: string; type?: string }): Promise<ApiResponse<any> & { pagination?: { page: number; limit: number; total: number; pages: number } }> {
     try {
       const query = new URLSearchParams();
@@ -817,6 +835,15 @@ export const api = {
   async updateAdminQueryStatus(id: string, status: string, adminNote?: string): Promise<ApiResponse<any>> {
     try {
       const response = await httpClient.patch<any>(API_CONFIG.ENDPOINTS.ADMIN_QUERIES.UPDATE_STATUS(id), { status, adminNote });
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  },
+
+  async toggleFeaturedReview(id: string): Promise<ApiResponse<any>> {
+    try {
+      const response = await httpClient.patch<any>(API_CONFIG.ENDPOINTS.ADMIN_QUERIES.TOGGLE_FEATURE(id), {});
       return { success: true, data: response.data };
     } catch (error: any) {
       return { success: false, error: error.message };

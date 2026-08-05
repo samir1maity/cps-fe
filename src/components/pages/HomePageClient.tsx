@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
-import { ChevronRight, ShoppingCart, Heart } from 'lucide-react';
+import { ChevronRight, ShoppingCart, Heart, Quote, MessageSquare } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Carousel, { CarouselSlide } from '@/components/ui/Carousel';
 import { useAuth } from '@/contexts/AuthContext';
@@ -30,9 +30,101 @@ const FALLBACK_SLIDES: CarouselSlide[] = [
   },
 ];
 
+interface PublicReview {
+  _id: string;
+  name: string;
+  message: string;
+  createdAt: string;
+}
+
+// Initials avatar from name
+function getInitials(name: string) {
+  return name.trim().split(/\s+/).map((w) => w[0]).slice(0, 2).join('').toUpperCase();
+}
+
+// Deterministic pastel bg from name
+const AVATAR_COLORS = [
+  'bg-rose-100 text-rose-700',
+  'bg-amber-100 text-amber-700',
+  'bg-emerald-100 text-emerald-700',
+  'bg-sky-100 text-sky-700',
+  'bg-violet-100 text-violet-700',
+  'bg-orange-100 text-orange-700',
+];
+function avatarColor(name: string) {
+  let hash = 0;
+  for (const ch of name) hash = (hash * 31 + ch.charCodeAt(0)) & 0xffff;
+  return AVATAR_COLORS[hash % AVATAR_COLORS.length];
+}
+
+function ReviewCard({ review }: { review: PublicReview }) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [overflows, setOverflows] = useState(false);
+  const [atBottom, setAtBottom] = useState(false);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const check = () => {
+      const isOverflow = el.scrollHeight > el.clientHeight + 2;
+      setOverflows(isOverflow);
+      setAtBottom(el.scrollTop + el.clientHeight >= el.scrollHeight - 2);
+    };
+    check();
+    el.addEventListener('scroll', check);
+    return () => el.removeEventListener('scroll', check);
+  }, [review.message]);
+
+  const showFade = overflows && !atBottom;
+
+  return (
+    <div className="relative bg-gray-50 border border-gray-100 rounded-2xl p-5 flex flex-col gap-3 hover:shadow-md transition-shadow">
+      <Quote className="absolute top-4 right-4 h-7 w-7 text-[var(--brand-600)] fill-[var(--brand-600)] opacity-20 pointer-events-none" />
+
+      <div className="relative pr-1">
+        <div
+          ref={scrollRef}
+          className="overflow-y-auto pr-5"
+          style={{
+            maxHeight: '7.5rem',
+            scrollbarWidth: 'thin',
+            scrollbarColor: '#d1d5db transparent',
+          }}
+        >
+          <p className="text-sm text-gray-700 leading-6">
+            "{review.message}"
+          </p>
+        </div>
+        {showFade && (
+          <div
+            className="absolute bottom-0 left-0 right-0 h-7 pointer-events-none"
+            style={{ background: 'linear-gradient(to bottom, transparent 30%, rgba(255,255,255,0.6))' }}
+          />
+        )}
+      </div>
+
+      <div className="flex items-center gap-3 pt-2 border-t border-gray-100">
+        <div className={`h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${avatarColor(review.name)}`}>
+          {getInitials(review.name)}
+        </div>
+        <div className="min-w-0">
+          <p className="text-sm font-semibold text-gray-900 truncate">{review.name}</p>
+          <p className="text-[11px] text-gray-400">
+            {new Date(review.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+          </p>
+        </div>
+        <span className="ml-auto text-[10px] font-medium text-green-600 bg-green-50 border border-green-100 px-2 py-0.5 rounded-full shrink-0">
+          Verified
+        </span>
+      </div>
+    </div>
+  );
+}
+
 const HomePageClient: React.FC = () => {
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
   const [carouselSlides, setCarouselSlides] = useState<CarouselSlide[]>(FALLBACK_SLIDES);
+  const [reviews, setReviews] = useState<PublicReview[]>([]);
   const [loading, setLoading] = useState(true);
   const { addToCart } = useCart();
   const { user } = useAuth();
@@ -47,9 +139,10 @@ const HomePageClient: React.FC = () => {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [productsResponse, slidesResponse] = await Promise.all([
+      const [productsResponse, slidesResponse, reviewsResponse] = await Promise.all([
         api.getProducts({ limit: 16, featured: 'true' }),
         api.getCarouselSlides(),
+        api.getPublicReviews(),
       ]);
 
       if (productsResponse.data) setFeaturedProducts(productsResponse.data);
@@ -64,6 +157,10 @@ const HomePageClient: React.FC = () => {
             imageUrl: s.imageUrl ?? null,
           })),
         );
+      }
+
+      if (reviewsResponse.success && reviewsResponse.data) {
+        setReviews(reviewsResponse.data);
       }
     } catch (error) {
       console.error('Failed to load data:', error);
@@ -213,6 +310,42 @@ const HomePageClient: React.FC = () => {
           </div>
         </div>
       </section>
+
+      {/* Customer Reviews */}
+      {reviews.length > 0 && (
+        <section className="py-10 sm:py-16 bg-white">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
+            {/* Header */}
+            <div className="text-center mb-8 sm:mb-12">
+              <div className="inline-flex items-center gap-2 bg-amber-50 border border-amber-200 text-amber-700 text-xs font-semibold px-3 py-1.5 rounded-full mb-3">
+                <MessageSquare className="h-3.5 w-3.5" />
+                Customer Reviews
+              </div>
+              <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">What our customers say</h2>
+              <p className="mt-2 text-sm text-gray-500">Real words from people who love our pottery</p>
+            </div>
+
+            {/* Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              {reviews.map((review) => (
+                <ReviewCard key={review._id} review={review} />
+              ))}
+            </div>
+
+            {/* See all link */}
+            <div className="text-center mt-8">
+              <Link
+                href="/reviews"
+                className="inline-flex items-center gap-2 border border-stone-300 text-stone-600 hover:border-[var(--brand-600)] hover:text-[var(--brand-600)] text-sm font-medium px-5 py-2.5 rounded-full transition-colors"
+              >
+                See all reviews
+                <ChevronRight className="h-4 w-4" />
+              </Link>
+            </div>
+          </div>
+        </section>
+      )}
 
     </div>
   );

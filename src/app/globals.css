@@ -116,27 +116,27 @@ select {
   background-color: #ffffff;
 }
 
-/* Input placeholder styling - darker for better readability */
+/* Input placeholder styling */
 input::placeholder,
 textarea::placeholder {
-  color: #4b5563 !important; /* gray-600 - darker than gray-500 for better contrast */
-  opacity: 1 !important;
+  color: #d1d5db; /* gray-300 — subtle hint text */
+  opacity: 1;
 }
 
 input::-webkit-input-placeholder,
 textarea::-webkit-input-placeholder {
-  color: #4b5563 !important;
-  opacity: 1 !important;
+  color: #d1d5db;
+  opacity: 1;
 }
 
 input::-moz-placeholder,
 textarea::-moz-placeholder {
-  color: #4b5563 !important;
-  opacity: 1 !important;
+  color: #d1d5db;
+  opacity: 1;
 }
 
 input:-ms-input-placeholder,
 textarea:-ms-input-placeholder {
-  color: #4b5563 !important;
-  opacity: 1 !important;
+  color: #d1d5db;
+  opacity: 1;
 }

@@ -94,10 +94,13 @@ export const API_CONFIG = {
     },
     QUERIES: {
       SUBMIT: `${BASE}/queries`,
+      PUBLIC_REVIEWS: `${BASE}/queries/reviews`,
+      ALL_PUBLIC_REVIEWS: `${BASE}/queries/reviews/all`,
     },
     ADMIN_QUERIES: {
       LIST: `${BASE}/admin/queries`,
       UPDATE_STATUS: (id: string) => `${BASE}/admin/queries/${id}/status`,
+      TOGGLE_FEATURE: (id: string) => `${BASE}/admin/queries/${id}/feature`,
     },
     ADMIN_NOTIFICATIONS: {
       LIST: `${BASE}/admin/notifications`,

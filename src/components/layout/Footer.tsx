@@ -18,7 +18,7 @@ type FormState = {
 const INITIAL: FormState = { name: '', email: '', phone: '', type: 'query', message: '' };
 
 const FIELD =
-  'w-full bg-stone-800/60 border border-stone-700 rounded-xl px-4 py-3 text-sm text-stone-100 placeholder-stone-500 focus:outline-none focus:border-[var(--brand-500)] focus:bg-stone-800 focus:ring-1 focus:ring-[var(--brand-500)]/30 transition-all duration-200';
+  'w-full bg-white border border-stone-200 rounded-xl px-4 py-3 text-sm text-stone-800 placeholder-stone-200 focus:outline-none focus:border-[var(--brand-500)] focus:bg-white focus:ring-1 focus:ring-[var(--brand-500)]/30 transition-all duration-200';
 
 const Footer: React.FC = () => {
   const { isAdmin } = useAuth();
@@ -50,22 +50,22 @@ const Footer: React.FC = () => {
   };
 
   return (
-    <footer className="bg-stone-900 text-stone-300 mt-auto">
+    <footer className="bg-stone-50 text-stone-700 mt-auto border-t border-stone-200 pb-24 md:pb-0">
       {!isAdmin && (
-        <div className="border-t border-stone-800">
+        <div className="bg-amber-50/60 border-b border-stone-200">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-16">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 items-start">
 
               {/* Left — brand copy */}
               <div className="space-y-5">
-                <div className="inline-flex items-center gap-2 bg-[var(--brand-600)]/15 border border-[var(--brand-600)]/25 text-[var(--brand-400)] text-xs font-semibold px-3 py-1.5 rounded-full tracking-wide uppercase">
+                <div className="inline-flex items-center gap-2 bg-[var(--brand-600)]/10 border border-[var(--brand-600)]/20 text-[var(--brand-600)] text-xs font-semibold px-3 py-1.5 rounded-full tracking-wide uppercase">
                   <MessageSquare className="h-3.5 w-3.5" />
                   Get in Touch
                 </div>
-                <h2 className="text-2xl sm:text-3xl font-bold text-white leading-snug">
+                <h2 className="text-2xl sm:text-3xl font-bold text-stone-900 leading-snug">
                   We'd love to hear<br className="hidden sm:block" /> from you
                 </h2>
-                <p className="text-stone-400 text-sm leading-relaxed max-w-sm">
+                <p className="text-stone-500 text-sm leading-relaxed max-w-sm">
                   Have a question about your order, or want to share how much you loved a piece?
                   Drop us a message and we'll get back to you within 24 hours.
                 </p>
@@ -74,8 +74,8 @@ const Footer: React.FC = () => {
                     { icon: <Star className="h-4 w-4" />, text: 'Share your experience with our products' },
                     { icon: <MessageSquare className="h-4 w-4" />, text: 'Ask about orders, shipping or returns' },
                   ].map(({ icon, text }) => (
-                    <div key={text} className="flex items-center gap-3 text-stone-400 text-sm">
-                      <span className="text-[var(--brand-400)]">{icon}</span>
+                    <div key={text} className="flex items-center gap-3 text-stone-500 text-sm">
+                      <span className="text-[var(--brand-600)]">{icon}</span>
                       {text}
                     </div>
                   ))}
@@ -83,21 +83,21 @@ const Footer: React.FC = () => {
               </div>
 
               {/* Right — form card */}
-              <div className="bg-stone-800/50 border border-stone-700/60 rounded-2xl p-6 sm:p-8 backdrop-blur-sm">
+              <div className="bg-white border border-stone-200 rounded-2xl p-6 sm:p-8 shadow-sm">
                 {sent ? (
                   <div className="flex flex-col items-center justify-center py-8 text-center gap-4">
-                    <div className="h-14 w-14 rounded-full bg-[var(--brand-600)]/20 flex items-center justify-center">
-                      <CheckCircle2 className="h-7 w-7 text-[var(--brand-400)]" />
+                    <div className="h-14 w-14 rounded-full bg-[var(--brand-600)]/10 flex items-center justify-center">
+                      <CheckCircle2 className="h-7 w-7 text-[var(--brand-600)]" />
                     </div>
                     <div>
-                      <p className="text-white font-semibold text-lg">Message sent!</p>
-                      <p className="text-stone-400 text-sm mt-1">Thanks, we'll get back to you soon.</p>
+                      <p className="text-stone-900 font-semibold text-lg">Message sent!</p>
+                      <p className="text-stone-500 text-sm mt-1">Thanks, we'll get back to you soon.</p>
                     </div>
                   </div>
                 ) : (
                   <form onSubmit={handleSubmit} className="space-y-5">
                     {/* Type tabs */}
-                    <div className="flex gap-2 p-1 bg-stone-900/60 rounded-xl">
+                    <div className="flex gap-2 p-1 bg-stone-100 rounded-xl">
                       {(['query', 'review'] as const).map((t) => (
                         <button
                           key={t}
@@ -105,8 +105,8 @@ const Footer: React.FC = () => {
                           onClick={() => setForm((prev) => ({ ...prev, type: t }))}
                           className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${
                             form.type === t
-                              ? 'bg-[var(--brand-600)] text-white shadow-lg shadow-[var(--brand-700)]/30'
-                              : 'text-stone-400 hover:text-stone-200'
+                              ? 'bg-[var(--brand-600)] text-white shadow-md'
+                              : 'text-stone-500 hover:text-stone-800'
                           }`}
                         >
                           {t === 'query' ? <MessageSquare className="h-3.5 w-3.5" /> : <Star className="h-3.5 w-3.5" />}
@@ -118,7 +118,7 @@ const Footer: React.FC = () => {
                     {/* Name + Email */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="space-y-1.5">
-                        <label className="block text-xs font-medium text-stone-400 tracking-wide uppercase">
+                        <label className="block text-xs font-medium text-stone-500 tracking-wide uppercase">
                           Your Name
                         </label>
                         <input
@@ -131,7 +131,7 @@ const Footer: React.FC = () => {
                         />
                       </div>
                       <div className="space-y-1.5">
-                        <label className="block text-xs font-medium text-stone-400 tracking-wide uppercase">
+                        <label className="block text-xs font-medium text-stone-500 tracking-wide uppercase">
                           Email Address
                         </label>
                         <input
@@ -147,26 +147,36 @@ const Footer: React.FC = () => {
 
                     {/* Phone */}
                     <div className="space-y-1.5">
-                      <label className="block text-xs font-medium text-stone-400 tracking-wide uppercase">
-                        Phone Number <span className="text-[var(--brand-400)] normal-case font-normal">*</span>
+                      <label className="block text-xs font-medium text-stone-500 tracking-wide uppercase">
+                        Phone Number <span className="text-[var(--brand-600)] normal-case font-normal">*</span>
                       </label>
                       <div className="relative">
                         <input
                           type="tel"
                           value={form.phone}
-                          onChange={set('phone')}
+                          onChange={(e) =>
+                            setForm((prev) => ({ ...prev, phone: e.target.value.replace(/\D/g, '').slice(0, 10) }))
+                          }
+                          onKeyDown={(e) => {
+                            if (
+                              !/[\d]/.test(e.key) &&
+                              !['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'Tab', 'Enter'].includes(e.key)
+                            ) {
+                              e.preventDefault();
+                            }
+                          }}
                           placeholder="9876543210"
                           required
-                          maxLength={10}
+                          inputMode="numeric"
                           className={`${FIELD} pl-10`}
                         />
-                        <Phone className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-stone-500" />
+                        <Phone className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-stone-400" />
                       </div>
                     </div>
 
                     {/* Message */}
                     <div className="space-y-1.5">
-                      <label className="block text-xs font-medium text-stone-400 tracking-wide uppercase">
+                      <label className="block text-xs font-medium text-stone-500 tracking-wide uppercase">
                         Message
                       </label>
                       <textarea
@@ -186,7 +196,7 @@ const Footer: React.FC = () => {
                     <button
                       type="submit"
                       disabled={submitting}
-                      className="w-full flex items-center justify-center gap-2 bg-[var(--brand-600)] hover:bg-[var(--brand-700)] disabled:opacity-60 disabled:cursor-not-allowed text-white text-sm font-semibold px-6 py-3 rounded-xl transition-all duration-200 shadow-lg shadow-[var(--brand-700)]/20 hover:shadow-[var(--brand-700)]/40"
+                      className="w-full flex items-center justify-center gap-2 bg-[var(--brand-600)] hover:bg-[var(--brand-700)] disabled:opacity-60 disabled:cursor-not-allowed text-white text-sm font-semibold px-6 py-3 rounded-xl transition-all duration-200 shadow-md hover:shadow-lg"
                     >
                       {submitting ? (
                         <>
@@ -209,12 +219,19 @@ const Footer: React.FC = () => {
       )}
 
       {/* Bottom bar */}
-      <div className="border-t border-stone-800">
+      <div className="border-t border-stone-200 bg-stone-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-stone-500">
-          <span>© {new Date().getFullYear()} Creative Pottery Studio. All rights reserved.</span>
-          <div className="flex items-center gap-4">
-            <Link href="/search" className="hover:text-stone-300 transition-colors">Shop</Link>
-            <Link href="/profile" className="hover:text-stone-300 transition-colors">My Account</Link>
+          <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 text-center sm:text-left">
+            <span>© {new Date().getFullYear()} Creative Pottery Studio. All rights reserved.</span>
+            <span className="hidden sm:inline text-stone-300">·</span>
+            <span>Designed &amp; Developed by <span className="text-stone-700 font-medium">Prince Globe</span></span>
+          </div>
+          <div className="flex flex-wrap items-center gap-4">
+            <Link href="/search" className="hover:text-stone-800 transition-colors">Shop</Link>
+            <Link href="/profile" className="hover:text-stone-800 transition-colors">My Account</Link>
+            <Link href="/about" className="hover:text-stone-800 transition-colors">About Us</Link>
+            <span className="text-stone-300">·</span>
+            <Link href="/terms" className="hover:text-stone-800 transition-colors">Terms & Conditions</Link>
           </div>
         </div>
       </div>
