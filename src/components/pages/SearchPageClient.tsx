@@ -3,8 +3,10 @@
 import React, { Suspense, useCallback, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { ChevronLeft, ChevronRight, Filter, Heart, Search, ShoppingCart, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Filter, Heart, Search, X } from 'lucide-react';
 import ProductThumb from '@/components/ui/ProductThumb';
+import AddToCartButton from '@/components/ui/AddToCartButton';
+import ColorDots from '@/components/ui/ColorDots';
 import toast from 'react-hot-toast';
 import { useCart } from '@/contexts/CartContext';
 import { useWishlist } from '@/contexts/WishlistContext';
@@ -12,7 +14,7 @@ import { useRequireAuth } from '@/hooks/useRequireAuth';
 import { api } from '@/lib/api';
 import { Category, Product } from '@/lib/types';
 import { formatCurrency } from '@/lib/utils/formatters';
-import { getDefaultColorId } from '@/lib/utils/product';
+import { getDefaultColorId, isProductAvailable } from '@/lib/utils/product';
 
 const SORT_MAP: Record<string, string> = {
   relevance: '-createdAt',
@@ -296,7 +298,7 @@ const SearchPageContent: React.FC = () => {
                   {products.map((product) => (
                     <div
                       key={product.id}
-                      className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow overflow-hidden group"
+                      className="bg-white rounded-2xl border border-stone-100 hover:border-stone-200 hover:shadow-md transition-all duration-200 overflow-hidden group"
                     >
                       <Link href={`/products/${product.id}`}>
                         <div className="relative">
@@ -305,49 +307,46 @@ const SearchPageContent: React.FC = () => {
                             alt={product.name}
                             className="w-full group-hover:[&_img]:scale-105 [&_img]:transition-transform [&_img]:duration-300"
                           />
-                          {!product.inStock && (
-                            <div className="absolute inset-0 bg-black/40" />
-                          )}
-                          {!product.inStock && (
-                            <span className="absolute top-2 left-2 bg-red-600 text-white text-xs font-semibold px-2 py-0.5 rounded">
-                              Out of Stock
-                            </span>
+                          {!isProductAvailable(product) && (
+                            <>
+                              <div className="absolute inset-0 bg-black/30" />
+                              <span className="absolute top-2 left-2 bg-red-500/90 backdrop-blur-sm text-white text-[10px] font-semibold px-2 py-0.5 rounded-full">
+                                Out of Stock
+                              </span>
+                            </>
                           )}
                         </div>
                       </Link>
-                      <div className="p-4">
+                      <div className="p-3.5">
                         <div className="flex justify-between items-start mb-1">
-                          <h3 className="font-semibold text-gray-900 line-clamp-2 text-sm leading-snug">
+                          <h3 className="text-sm font-semibold text-stone-800 line-clamp-2 leading-snug">
                             {product.name}
                           </h3>
                           <button
                             onClick={() => handleToggleWishlist(product)}
-                            className={`ml-2 flex-shrink-0 transition-colors ${isInWishlist(product.id) ? 'text-red-500' : 'text-gray-400 hover:text-red-500'}`}
+                            className={`ml-1 shrink-0 transition-colors ${isInWishlist(product.id) ? 'text-red-500' : 'text-stone-300 hover:text-red-400'}`}
                           >
                             <Heart className="h-4 w-4" fill={isInWishlist(product.id) ? 'currentColor' : 'none'} />
                           </button>
                         </div>
-                        <p className="text-xs text-gray-500 mb-3 line-clamp-2">{product.description}</p>
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <span className="text-base font-bold text-gray-900">
+                        <p className="text-xs text-stone-400 mb-3 line-clamp-2 leading-relaxed">{product.description}</p>
+                        <div className="flex items-center justify-between gap-2 mb-2.5">
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <span className="text-sm font-bold text-stone-900 shrink-0">
                               {formatCurrency(product.price)}
                             </span>
                             {product.originalPrice && (
-                              <span className="text-xs text-gray-400 line-through ml-1.5">
+                              <span className="text-xs text-stone-400 line-through shrink-0">
                                 {formatCurrency(product.originalPrice)}
                               </span>
                             )}
                           </div>
-                          <button
-                            onClick={() => handleAddToCart(product)}
-                            disabled={!product.inStock}
-                            className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                          >
-                            <ShoppingCart className="h-3.5 w-3.5" />
-                            {product.inStock ? 'Add' : 'Out of Stock'}
-                          </button>
+                          <ColorDots colors={product.colors} />
                         </div>
+                        <AddToCartButton
+                          product={product}
+                          onAddToCart={() => handleAddToCart(product)}
+                        />
                       </div>
                     </div>
                   ))}

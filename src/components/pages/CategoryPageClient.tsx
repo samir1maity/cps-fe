@@ -3,8 +3,10 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { ShoppingCart, Heart, Filter, Grid, List, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Heart, Filter, Grid, List, ChevronLeft, ChevronRight } from 'lucide-react';
 import ProductThumb from '@/components/ui/ProductThumb';
+import AddToCartButton from '@/components/ui/AddToCartButton';
+import ColorDots from '@/components/ui/ColorDots';
 import toast from 'react-hot-toast';
 import { useCart } from '@/contexts/CartContext';
 import { useWishlist } from '@/contexts/WishlistContext';
@@ -12,7 +14,7 @@ import { useRequireAuth } from '@/hooks/useRequireAuth';
 import { api } from '@/lib/api';
 import { Category, Product } from '@/lib/types';
 import { formatCurrency } from '@/lib/utils/formatters';
-import { getDefaultColorId } from '@/lib/utils/product';
+import { getDefaultColorId, isProductAvailable } from '@/lib/utils/product';
 
 const SORT_MAP: Record<string, string> = {
   relevance: '-createdAt',
@@ -272,7 +274,7 @@ const CategoryPageClient: React.FC = () => {
                   {products.map((product) => (
                     <div
                       key={product.id}
-                      className={`bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow overflow-hidden group ${
+                      className={`bg-white rounded-2xl border border-stone-100 hover:border-stone-200 hover:shadow-md transition-all duration-200 overflow-hidden group ${
                         viewMode === 'list' ? 'flex' : ''
                       }`}
                     >
@@ -281,48 +283,45 @@ const CategoryPageClient: React.FC = () => {
                           <ProductThumb
                             product={product}
                             alt={product.name}
-                            className={`${viewMode === 'list' ? 'w-48' : 'w-full'} group-hover:[&_img]:scale-105 [&_img]:transition-transform [&_img]:duration-300`}
+                            className={`${viewMode === 'list' ? 'w-44' : 'w-full'} group-hover:[&_img]:scale-105 [&_img]:transition-transform [&_img]:duration-300`}
                           />
-                          {!product.inStock && (
-                            <span className="absolute top-2 left-2 bg-red-600 text-white text-xs font-semibold px-2 py-0.5 rounded">
+                          {!isProductAvailable(product) && (
+                            <span className="absolute top-2 left-2 bg-red-500/90 backdrop-blur-sm text-white text-[10px] font-semibold px-2 py-0.5 rounded-full">
                               Out of Stock
                             </span>
                           )}
                         </div>
                       </Link>
-                      <div className={`p-4 ${viewMode === 'list' ? 'flex-1' : ''}`}>
-                        <div className="flex justify-between items-start mb-2">
-                          <h3 className={`font-semibold text-gray-900 ${viewMode === 'grid' ? 'line-clamp-2' : 'line-clamp-1'}`}>
+                      <div className={`p-3.5 ${viewMode === 'list' ? 'flex-1' : ''}`}>
+                        <div className="flex justify-between items-start mb-1">
+                          <h3 className={`text-sm font-semibold text-stone-800 leading-snug ${viewMode === 'grid' ? 'line-clamp-2' : 'line-clamp-1'}`}>
                             {product.name}
                           </h3>
                           <button
                             onClick={() => handleToggleWishlist(product)}
-                            className={`transition-colors ${isInWishlist(product.id) ? 'text-red-500' : 'text-gray-400 hover:text-red-500'}`}
+                            className={`ml-1 shrink-0 transition-colors ${isInWishlist(product.id) ? 'text-red-500' : 'text-stone-300 hover:text-red-400'}`}
                           >
-                            <Heart className="h-5 w-5" fill={isInWishlist(product.id) ? 'currentColor' : 'none'} />
+                            <Heart className="h-4 w-4" fill={isInWishlist(product.id) ? 'currentColor' : 'none'} />
                           </button>
                         </div>
-                        <p className={`text-gray-600 mb-2 ${viewMode === 'grid' ? 'line-clamp-2' : 'line-clamp-1'}`}>
+                        <p className={`text-xs text-stone-400 mb-3 leading-relaxed ${viewMode === 'grid' ? 'line-clamp-2' : 'line-clamp-1'}`}>
                           {product.description}
                         </p>
-                        <div className={`flex justify-between items-center ${viewMode === 'list' ? 'mt-4' : ''}`}>
-                          <div className="flex items-center space-x-2">
-                            <span className="text-lg font-bold text-gray-900">{formatCurrency(product.price)}</span>
+                        <div className="flex items-center justify-between gap-2 mb-2.5">
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <span className="text-sm font-bold text-stone-900 shrink-0">{formatCurrency(product.price)}</span>
                             {product.originalPrice && (
-                              <span className="text-sm text-gray-500 line-through">
+                              <span className="text-xs text-stone-400 line-through shrink-0">
                                 {formatCurrency(product.originalPrice)}
                               </span>
                             )}
                           </div>
-                          <button
-                            onClick={() => handleAddToCart(product)}
-                            disabled={!product.inStock}
-                            className="bg-[var(--brand-600)] text-white px-3 py-1.5 rounded-md hover:bg-[var(--brand-700)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center text-sm"
-                          >
-                            <ShoppingCart className="h-4 w-4 mr-1" />
-                            {product.inStock ? 'Add' : 'Out of Stock'}
-                          </button>
+                          <ColorDots colors={product.colors} />
                         </div>
+                        <AddToCartButton
+                          product={product}
+                          onAddToCart={() => handleAddToCart(product)}
+                        />
                       </div>
                     </div>
                   ))}

@@ -24,7 +24,7 @@ import { usePendingActions } from '@/hooks/usePendingActions';
 import { api } from '@/lib/api';
 import { Product, ProductColor, ColorVariantGallery } from '@/lib/types';
 import { formatCurrency } from '@/lib/utils/formatters';
-import { hasColorVariants, getProductThumbnailKey } from '@/lib/utils/product';
+import { hasColorVariants, getProductThumbnailKey, getFirstAvailableColor } from '@/lib/utils/product';
 
 // ── Color swatch — resolves its own signed URL ────────────────────────────────
 
@@ -168,7 +168,9 @@ const ProductPageClient: React.FC = () => {
         const p = res.data;
         setProduct(p);
         if (hasColorVariants(p)) {
-          setSelectedColor(p.colors[0]);
+          // Pre-select the first in-stock color so the detail page
+          // doesn't default to a sold-out variant.
+          setSelectedColor(getFirstAvailableColor(p) ?? p.colors[0]);
         }
       }
     } finally {

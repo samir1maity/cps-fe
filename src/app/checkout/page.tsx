@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import {
@@ -467,6 +467,10 @@ const CheckoutPage: React.FC = () => {
   const { items, getTotalPrice, clearCart } = useCart();
   const router = useRouter();
 
+  // Prevents the "cart empty → go to /cart" guard from firing after clearCart()
+  // is called inside the Razorpay success handler (race condition fix).
+  const paymentInProgressRef = useRef(false);
+
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [discount, setDiscount] = useState(0);
@@ -508,7 +512,10 @@ const CheckoutPage: React.FC = () => {
   }, [user]);
 
   if (!user) { router.push('/login'); return null; }
-  if (items.length === 0) { router.push('/cart'); return null; }
+  // Only redirect to cart when cart is empty and we're NOT mid-payment.
+  // After clearCart() fires inside the Razorpay handler this guard would
+  // otherwise steal the navigation before router.push('/checkout/success').
+  if (items.length === 0 && !paymentInProgressRef.current) { router.push('/cart'); return null; }
 
   // ── Coupon ──
   const handleApplyCoupon = async () => {
@@ -600,30 +607,39 @@ const CheckoutPage: React.FC = () => {
               razorpaySignature: response.razorpay_signature,
             });
             if (verifyResult.success) {
+              // Mark payment as done BEFORE clearing cart so the cart-empty
+              // guard doesn't redirect to /cart while we navigate to /success.
+              paymentInProgressRef.current = true;
               clearCart();
               const verifiedOrderId = verifyResult.data?.id ?? (verifyResult.data as any)?._id ?? orderData.order?._id;
               router.push(`/checkout/success?orderId=${verifiedOrderId}`);
             } else {
+              paymentInProgressRef.current = true;
               router.push(`/checkout/failed?orderId=${orderData.order._id}&reason=${encodeURIComponent(verifyResult.error || 'Payment verification failed')}`);
             }
           } catch {
+            paymentInProgressRef.current = true;
             router.push(`/checkout/failed?orderId=${orderData.order._id}&reason=${encodeURIComponent('Payment verification failed. Contact support.')}`);
           }
         },
         modal: {
+          // User dismissed the modal — cancel loading state so the page is usable again.
           ondismiss: () => { toast('Payment cancelled', { icon: '🔒' }); setLoading(false); },
         },
         theme: { color: '#2563eb' },
       } as any);
 
       rzp.on('payment.failed', (resp: any) => {
+        paymentInProgressRef.current = true;
         router.push(`/checkout/failed?orderId=${orderData.order._id}&reason=${encodeURIComponent(resp?.error?.description || 'Payment failed')}`);
       });
 
+      // rzp.open() is non-blocking — Razorpay uses callbacks (handler / payment.failed / ondismiss),
+      // NOT Promises. We must NOT reset loading here; it stays true while the modal is open.
+      // Loading is reset only in ondismiss (user cancelled) — navigation handles the rest.
       rzp.open();
     } catch {
       toast.error('An error occurred. Please try again.');
-    } finally {
       setLoading(false);
     }
   });

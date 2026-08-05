@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
-import { ChevronRight, ShoppingCart, Heart, Quote, MessageSquare } from 'lucide-react';
+import { ChevronRight, Heart, Quote, MessageSquare } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Carousel, { CarouselSlide } from '@/components/ui/Carousel';
 import { useAuth } from '@/contexts/AuthContext';
@@ -13,7 +13,9 @@ import { api } from '@/lib/api';
 import { Product } from '@/lib/types';
 import { formatCurrency } from '@/lib/utils/formatters';
 import ProductThumb from '@/components/ui/ProductThumb';
-import { getDefaultColorId } from '@/lib/utils/product';
+import AddToCartButton from '@/components/ui/AddToCartButton';
+import ColorDots from '@/components/ui/ColorDots';
+import { getDefaultColorId, isProductAvailable } from '@/lib/utils/product';
 
 const FALLBACK_SLIDES: CarouselSlide[] = [
   {
@@ -244,7 +246,7 @@ const HomePageClient: React.FC = () => {
             {featuredProducts.map((product) => (
               <div
                 key={product.id}
-                className="bg-white rounded-lg shadow-sm sm:shadow-md hover:shadow-lg transition-shadow overflow-hidden group"
+                className="bg-white rounded-2xl border border-stone-100 hover:border-stone-200 hover:shadow-md transition-all duration-200 overflow-hidden group"
               >
                 <Link href={`/products/${product.id}`}>
                   <div className="relative">
@@ -253,57 +255,50 @@ const HomePageClient: React.FC = () => {
                       alt={product.name}
                       className="w-full group-hover:[&_img]:scale-105 [&_img]:transition-transform [&_img]:duration-300"
                     />
-                    {!product.inStock && (
-                      <div className="absolute inset-0 bg-black/40" />
-                    )}
-                    {!product.inStock && (
-                      <span className="absolute top-2 left-2 bg-red-600 text-white text-[10px] sm:text-xs font-semibold px-1.5 py-0.5 rounded">
-                        Out of Stock
-                      </span>
+                    {!isProductAvailable(product) && (
+                      <>
+                        <div className="absolute inset-0 bg-black/30" />
+                        <span className="absolute top-2 left-2 bg-red-500/90 backdrop-blur-sm text-white text-[10px] font-semibold px-2 py-0.5 rounded-full">
+                          Out of Stock
+                        </span>
+                      </>
                     )}
                   </div>
                 </Link>
-                <div className="p-2.5 sm:p-4">
-                  <div className="flex justify-between items-start mb-1.5 sm:mb-2">
-                    <h3 className="text-xs sm:text-sm font-semibold text-gray-900 line-clamp-2 leading-tight">{product.name}</h3>
+                <div className="p-3">
+                  <div className="flex justify-between items-start mb-1">
+                    <h3 className="text-xs sm:text-sm font-semibold text-stone-800 line-clamp-2 leading-snug">{product.name}</h3>
                     {!isAdmin && (
                       <button
                         onClick={() => handleToggleWishlist(product)}
-                        className={`ml-1 shrink-0 transition-colors ${isInWishlist(product.id) ? 'text-red-500' : 'text-gray-400 hover:text-red-500'}`}
+                        className={`ml-1 shrink-0 transition-colors ${isInWishlist(product.id) ? 'text-red-500' : 'text-stone-300 hover:text-red-400'}`}
                       >
-                        <Heart className="h-4 w-4 sm:h-5 sm:w-5" fill={isInWishlist(product.id) ? 'currentColor' : 'none'} />
+                        <Heart className="h-3.5 w-3.5 sm:h-4 sm:w-4" fill={isInWishlist(product.id) ? 'currentColor' : 'none'} />
                       </button>
                     )}
                   </div>
                   <div className="hidden sm:block mb-2">
-                    <p
-                      className="text-xs text-gray-500 leading-relaxed overflow-hidden"
-                      style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}
-                    >{product.description}</p>
+                    <p className="text-xs text-stone-400 leading-relaxed line-clamp-2">{product.description}</p>
                   </div>
-                  <div className="flex justify-between items-center gap-1">
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-2">
-                      <span className="text-sm sm:text-lg font-bold text-gray-900">
+                  <div className="flex items-center justify-between gap-1.5 mb-2">
+                    <div className="flex items-center gap-1 min-w-0">
+                      <span className="text-xs sm:text-sm font-bold text-stone-900 shrink-0">
                         {formatCurrency(product.price)}
                       </span>
                       {product.originalPrice && (
-                        <span className="text-[10px] sm:text-sm text-gray-500 line-through">
+                        <span className="text-[9px] sm:text-[10px] text-stone-400 line-through shrink-0">
                           {formatCurrency(product.originalPrice)}
                         </span>
                       )}
                     </div>
-                    {!isAdmin && (
-                      <button
-                        onClick={() => handleAddToCart(product)}
-                        disabled={!product.inStock}
-                        className="bg-[var(--brand-600)] text-white px-2 sm:px-3 py-1 sm:py-1.5 rounded-md hover:bg-[var(--brand-700)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center text-[10px] sm:text-sm shrink-0"
-                      >
-                        <ShoppingCart className="h-3 w-3 sm:h-4 sm:w-4 mr-0.5 sm:mr-1" />
-                        <span className="hidden sm:inline">{product.inStock ? 'Add' : 'Out of Stock'}</span>
-                        <span className="sm:hidden">{product.inStock ? 'Add' : '—'}</span>
-                      </button>
-                    )}
+                    <ColorDots colors={product.colors} />
                   </div>
+                  {!isAdmin && (
+                    <AddToCartButton
+                      product={product}
+                      onAddToCart={() => handleAddToCart(product)}
+                    />
+                  )}
                 </div>
               </div>
             ))}

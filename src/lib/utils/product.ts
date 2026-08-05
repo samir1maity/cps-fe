@@ -1,14 +1,33 @@
 import { CartItem, Product, ProductColor } from '@/lib/types';
 
 /**
+ * Returns the first color that has stock > 0.
+ * Falls back to the first color if every variant is out of stock.
+ * Returns null if the product has no colors at all.
+ */
+export function getFirstAvailableColor(
+  product: Pick<Product, 'colors'>,
+): ProductColor | null {
+  if (!product.colors?.length) return null;
+  return (
+    product.colors.find((c) => c.stock > 0) ??
+    product.colors[0]  // all OOS — still return first so UI can show "Out of stock"
+  );
+}
+
+/**
  * Returns the storage key that should represent this product everywhere
  * in listings, thumbnails, cart, orders, and checkout.
  *
- * Rule: if the product uses color variants, the first color's image is
- * the canonical thumbnail. Otherwise fall back to images[0].
+ * Rule: prefer the first IN-STOCK color's image so the listing card
+ * doesn't show a greyed-out / unavailable variant by default.
+ * Falls back to images[0] for non-color products.
  */
 export function getProductThumbnailKey(product: Pick<Product, 'images' | 'colors'>): string {
-  if (product.colors?.length > 0) return product.colors[0].imageKey;
+  if (product.colors?.length > 0) {
+    const available = getFirstAvailableColor(product);
+    return available?.imageKey ?? product.colors[0].imageKey;
+  }
   return product.images?.[0] ?? '';
 }
 
@@ -45,9 +64,26 @@ export function getCartItemImageKey(item: CartItem): string | undefined {
 
 /**
  * Returns the colorId to send when adding to cart from a listing page
- * (where no explicit color choice was made). Uses the first color's _id
- * so cart always receives a valid colorId for color-variant products.
+ * (where no explicit color choice was made).
+ *
+ * Picks the first IN-STOCK color so the cart always receives a variant
+ * that can actually be ordered. Falls back to colors[0] only when every
+ * variant is sold out (the cart will still add, and the order will fail
+ * at checkout — which is the correct behavior since stock can change).
  */
 export function getDefaultColorId(product: Pick<Product, 'colors'>): string | null {
-  return product.colors?.[0]?._id ?? null;
+  const color = getFirstAvailableColor(product);
+  return color?._id ?? null;
+}
+
+/**
+ * Returns true if the product has at least one in-stock color variant,
+ * OR is a plain product with stockQuantity > 0.
+ * Use this instead of product.inStock on listing cards to get a per-color-aware answer.
+ */
+export function isProductAvailable(product: Pick<Product, 'colors' | 'inStock' | 'stockQuantity'>): boolean {
+  if (product.colors?.length) {
+    return product.colors.some((c) => c.stock > 0);
+  }
+  return product.inStock && product.stockQuantity > 0;
 }
