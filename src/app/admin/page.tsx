@@ -12,6 +12,7 @@ import {
   ScrollText,
   MessageSquare,
   SlidersHorizontal,
+  FileText,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { api } from '@/lib/api';
@@ -139,6 +140,11 @@ const AdminDashboard: React.FC = () => {
               icon={<SlidersHorizontal className="h-5 w-5 text-cyan-600" />}
               label="Manage Carousel"
               onClick={() => router.push('/admin/carousel')}
+            />
+            <QuickAction
+              icon={<FileText className="h-5 w-5 text-red-500" />}
+              label="Manage Documents"
+              onClick={() => router.push('/admin/documents')}
             />
           </div>
         </div>

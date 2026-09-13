@@ -483,6 +483,7 @@ const CheckoutPage: React.FC = () => {
       email: user?.email || '',
       firstName: user?.name?.split(' ')[0] || '',
       lastName: user?.name?.split(' ')[1] || '',
+      phone: (user as any)?.phone || '',
       country: 'India',
     },
   });

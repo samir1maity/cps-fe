@@ -165,10 +165,17 @@ const SearchPageContent: React.FC = () => {
           {/* Mobile filter toggle */}
           <button
             onClick={() => setShowFilters(!showFilters)}
-            className="lg:hidden flex items-center gap-1.5 px-3 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50"
+            className={`lg:hidden flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium border transition-all duration-150 ${
+              showFilters
+                ? 'bg-[var(--brand-600)] text-white border-[var(--brand-600)] shadow-sm'
+                : 'bg-white text-stone-700 border-stone-300 hover:border-stone-400 hover:bg-stone-50'
+            }`}
           >
             <Filter className="h-4 w-4" />
             Filters
+            {hasActiveFilters && (
+              <span className="ml-0.5 h-2 w-2 rounded-full bg-amber-400 shrink-0" />
+            )}
           </button>
         </div>
 

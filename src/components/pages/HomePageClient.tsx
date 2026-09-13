@@ -317,7 +317,7 @@ const HomePageClient: React.FC = () => {
                 <MessageSquare className="h-3.5 w-3.5" />
                 Customer Reviews
               </div>
-              <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">What our customers say</h2>
+              <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">What our visitors say</h2>
               <p className="mt-2 text-sm text-gray-500">Real words from people who love our pottery</p>
             </div>
 

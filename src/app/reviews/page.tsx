@@ -130,7 +130,7 @@ export default function ReviewsPage() {
             <MessageSquare className="h-3.5 w-3.5" />
             Customer Reviews
           </div>
-          <h1 className="text-3xl sm:text-4xl font-bold text-stone-900">What our customers say</h1>
+          <h1 className="text-3xl sm:text-4xl font-bold text-stone-900">What our visitors say</h1>
           {total > 0 && (
             <p className="mt-2 text-sm text-stone-500">{total} verified review{total !== 1 ? 's' : ''}</p>
           )}

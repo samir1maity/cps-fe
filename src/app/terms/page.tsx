@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import DocumentsButton from './DocumentsButton';
 
 export const metadata: Metadata = {
   title: 'Terms & Conditions | Creative Pottery Studio',
@@ -9,7 +10,10 @@ export default function TermsPage() {
   return (
     <main className="min-h-screen bg-gray-50">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Our Terms of Service</h1>
+        <div className="flex flex-wrap items-start justify-between gap-4 mb-2">
+          <h1 className="text-3xl font-bold text-gray-900">Our Terms of Service</h1>
+          <DocumentsButton />
+        </div>
         <p className="text-sm text-gray-500 mb-10">Last updated: June 2025</p>
 
         <div className="space-y-8 text-gray-700 text-sm leading-7">

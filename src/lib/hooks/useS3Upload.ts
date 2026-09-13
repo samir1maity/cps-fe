@@ -8,15 +8,20 @@
  */
 import { api } from '@/lib/api';
 
-export type UploadFolder = 'products' | 'categories' | 'avatars' | 'carousel';
+export type UploadFolder = 'products' | 'categories' | 'avatars' | 'carousel' | 'documents';
 
 const MAX_FILE_SIZE = 250 * 1024;                         // 250 KB default
 const MAX_FILE_SIZE_CAROUSEL = 5 * 1024 * 1024;           // 5 MB for carousel banners
+const MAX_FILE_SIZE_DOCUMENT = 5 * 1024 * 1024;           // 5 MB for PDF documents
 
 export async function uploadToS3(file: File, folder: UploadFolder): Promise<string> {
-  const sizeLimit = folder === 'carousel' ? MAX_FILE_SIZE_CAROUSEL : MAX_FILE_SIZE;
+  const sizeLimit = folder === 'carousel'
+    ? MAX_FILE_SIZE_CAROUSEL
+    : folder === 'documents'
+      ? MAX_FILE_SIZE_DOCUMENT
+      : MAX_FILE_SIZE;
   if (file.size > sizeLimit) {
-    const limitLabel = folder === 'carousel' ? '5 MB' : '250 KB';
+    const limitLabel = sizeLimit >= 1024 * 1024 ? `${sizeLimit / (1024 * 1024)} MB` : `${sizeLimit / 1024} KB`;
     throw new Error(`File size must not exceed ${limitLabel}`);
   }
 

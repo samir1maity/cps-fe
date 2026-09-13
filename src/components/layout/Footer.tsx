@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { Send, MessageSquare, Star, CheckCircle2, Phone, X } from 'lucide-react';
+import { Send, MessageSquare, Star, CheckCircle2, Phone } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { api } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
@@ -30,7 +30,6 @@ const Footer: React.FC = () => {
   const [form, setForm] = useState<FormState>(INITIAL);
   const [submitting, setSubmitting] = useState(false);
   const [sent, setSent] = useState(false);
-  const [open, setOpen] = useState(false);
 
   const isInline = INLINE_PAGES.includes(pathname);
 
@@ -51,18 +50,11 @@ const Footer: React.FC = () => {
     if (res.success) {
       setSent(true);
       setForm(INITIAL);
-      // Close after 2.5s on non-inline pages
-      if (!isInline) {
-        setTimeout(() => { setSent(false); setOpen(false); }, 2500);
-      } else {
-        setTimeout(() => setSent(false), 5000);
-      }
+      setTimeout(() => setSent(false), 5000);
     } else {
       toast.error(res.error || 'Something went wrong. Please try again.');
     }
   };
-
-  const closeForm = () => { setOpen(false); setSent(false); setForm(INITIAL); };
 
   // ── Form content (shared between inline and modal) ────────────────────────
   const FormContent = (
@@ -81,7 +73,7 @@ const Footer: React.FC = () => {
         <form onSubmit={handleSubmit} className="space-y-5">
           {/* Type tabs */}
           <div className="flex gap-2 p-1 bg-stone-100 rounded-xl">
-            {(['query', 'review'] as const).map((t) => (
+            {(['review', 'query'] as const).map((t) => (
               <button
                 key={t}
                 type="button"
@@ -210,76 +202,31 @@ const Footer: React.FC = () => {
 
         {/* Bottom bar */}
         <div className="border-t border-stone-200 bg-stone-100">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-stone-500">
-            <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 text-center sm:text-left">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-col lg:flex-row items-center justify-between gap-2 lg:gap-3 text-xs text-stone-500">
+            <div className="flex flex-col lg:flex-row lg:items-center gap-1 lg:gap-3 text-center lg:text-left text-xs lg:text-sm lg:whitespace-nowrap">
               <span>© {new Date().getFullYear()} Creative Pottery Studio. All rights reserved.</span>
-              <span className="hidden sm:inline text-stone-300">·</span>
-              <span>Designed &amp; Developed by <span className="text-stone-700 font-medium">Prince Globe</span></span>
+              <span className="hidden lg:inline text-stone-300">·</span>
+              <span>Designed &amp; Developed by <a href="https://princeglobe.com" target="_blank" rel="noopener noreferrer" className="text-stone-700 font-medium hover:text-[var(--brand-600)] hover:underline transition-colors">Prince Globe</a></span>
             </div>
-            <div className="flex flex-wrap items-center gap-4">
+            <div className="flex flex-wrap lg:flex-nowrap items-center justify-center gap-x-3 gap-y-1.5 lg:gap-4 text-xs lg:text-sm lg:whitespace-nowrap">
               <Link href="/search" className="hover:text-stone-800 transition-colors">Shop</Link>
               <Link href="/profile" className="hover:text-stone-800 transition-colors">My Account</Link>
-              <Link href="/about" className="hover:text-stone-800 transition-colors">About Us</Link>
-              <span className="text-stone-300">·</span>
-              <Link href="/terms" className="hover:text-stone-800 transition-colors">Terms & Conditions</Link>
+              <Link href="/about" className="font-semibold hover:text-stone-800 transition-colors">About Us</Link>
+              <Link
+                href="/profile?tab=contact"
+                className="bg-[var(--brand-600)] hover:bg-[var(--brand-700)] text-white font-medium px-2.5 py-1 lg:px-3 lg:py-1.5 rounded-full transition-colors"
+              >
+                Contact Us
+              </Link>
+              <span className="hidden lg:inline text-stone-300">·</span>
+              <Link href="/terms" className="font-semibold hover:text-stone-800 transition-colors">Terms & Conditions</Link>
+              <span className="hidden lg:inline text-stone-300">·</span>
+              <Link href="/profile?tab=contact" className="hover:text-stone-800 transition-colors">Get in Touch</Link>
             </div>
           </div>
         </div>
       </footer>
 
-      {/* Floating button + modal — all pages except home and admin */}
-      {!isAdmin && !isInline && (
-        <>
-          {/* Floating trigger button */}
-          {!open && (
-            <button
-              onClick={() => setOpen(true)}
-              className="fixed bottom-6 right-5 z-40 flex items-center gap-2 bg-[var(--brand-600)] hover:bg-[var(--brand-700)] text-white text-sm font-semibold px-4 py-3 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 md:bottom-6"
-            >
-              <MessageSquare className="h-4 w-4" />
-              <span>Get in Touch</span>
-            </button>
-          )}
-
-          {/* Modal overlay */}
-          {open && (
-            <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 sm:p-6">
-              {/* Backdrop */}
-              <div
-                className="absolute inset-0 bg-black/40 backdrop-blur-sm"
-                onClick={closeForm}
-              />
-
-              {/* Modal card */}
-              <div className="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom-4 duration-300">
-                {/* Modal header */}
-                <div className="flex items-center justify-between px-6 py-4 border-b border-stone-100">
-                  <div className="flex items-center gap-2">
-                    <div className="h-8 w-8 rounded-full bg-[var(--brand-600)]/10 flex items-center justify-center">
-                      <MessageSquare className="h-4 w-4 text-[var(--brand-600)]" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold text-stone-900">Get in Touch</p>
-                      <p className="text-xs text-stone-400">We'll reply within 24 hours</p>
-                    </div>
-                  </div>
-                  <button
-                    onClick={closeForm}
-                    className="p-1.5 rounded-lg text-stone-400 hover:text-stone-700 hover:bg-stone-100 transition-colors"
-                  >
-                    <X className="h-5 w-5" />
-                  </button>
-                </div>
-
-                {/* Modal body */}
-                <div className="px-6 py-5 max-h-[75vh] overflow-y-auto">
-                  {FormContent}
-                </div>
-              </div>
-            </div>
-          )}
-        </>
-      )}
     </>
   );
 };

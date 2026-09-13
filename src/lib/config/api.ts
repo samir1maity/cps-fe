@@ -118,6 +118,15 @@ export const API_CONFIG = {
       DELETE: (id: string) => `${BASE}/admin/carousel/${id}`,
       REORDER: `${BASE}/admin/carousel/reorder`,
     },
+    DOCUMENTS: {
+      PUBLIC: `${BASE}/documents`,
+    },
+    ADMIN_DOCUMENTS: {
+      LIST: `${BASE}/admin/documents`,
+      CREATE: `${BASE}/admin/documents`,
+      UPDATE: (id: string) => `${BASE}/admin/documents/${id}`,
+      DELETE: (id: string) => `${BASE}/admin/documents/${id}`,
+    },
     HEALTH: '/health',
   },
 };

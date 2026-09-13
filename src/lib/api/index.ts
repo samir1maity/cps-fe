@@ -946,4 +946,51 @@ export const api = {
       return { success: false, error: error.message };
     }
   },
+
+  // ── Documents (Terms page downloads) ────────────────────────────────────────
+
+  async getDocuments(): Promise<ApiResponse<any[]>> {
+    try {
+      const response = await httpClient.get<any>(API_CONFIG.ENDPOINTS.DOCUMENTS.PUBLIC);
+      return { success: true, data: response.data ?? [] };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  },
+
+  async getAdminDocuments(): Promise<ApiResponse<any[]>> {
+    try {
+      const response = await httpClient.get<any>(API_CONFIG.ENDPOINTS.ADMIN_DOCUMENTS.LIST);
+      return { success: true, data: response.data ?? [] };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  },
+
+  async createDocument(payload: Record<string, unknown>): Promise<ApiResponse<any>> {
+    try {
+      const response = await httpClient.post<any>(API_CONFIG.ENDPOINTS.ADMIN_DOCUMENTS.CREATE, payload);
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  },
+
+  async updateDocument(id: string, payload: Record<string, unknown>): Promise<ApiResponse<any>> {
+    try {
+      const response = await httpClient.put<any>(API_CONFIG.ENDPOINTS.ADMIN_DOCUMENTS.UPDATE(id), payload);
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  },
+
+  async deleteDocument(id: string): Promise<ApiResponse<void>> {
+    try {
+      await httpClient.delete<any>(API_CONFIG.ENDPOINTS.ADMIN_DOCUMENTS.DELETE(id));
+      return { success: true };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  },
 };
